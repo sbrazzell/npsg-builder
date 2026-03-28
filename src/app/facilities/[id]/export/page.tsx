@@ -39,8 +39,9 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
     }
   }
 
-  const totalBudget = facility.projectProposals.reduce<number>((sum, p) =>
-    sum + p.budgetItems.reduce<number>((s, b) => s + b.totalCost, 0), 0)
+  const totalBudget = facility.projectProposals
+    .flatMap(p => p.budgetItems)
+    .reduce<number>((s, b) => s + b.totalCost, 0)
 
   const org = facility.organization
 

@@ -34,8 +34,9 @@ export default async function ProjectsPage({ params }: { params: Promise<{ id: s
 
   if (!facility) notFound()
 
-  const totalBudget = facility.projectProposals.reduce<number>((sum, p) =>
-    sum + p.budgetItems.reduce<number>((s, b) => s + b.totalCost, 0), 0)
+  const totalBudget = facility.projectProposals
+    .flatMap(p => p.budgetItems)
+    .reduce<number>((s, b) => s + b.totalCost, 0)
 
   return (
     <div>

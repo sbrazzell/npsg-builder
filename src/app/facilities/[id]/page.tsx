@@ -32,8 +32,9 @@ export default async function FacilityPage({ params }: { params: Promise<{ id: s
 
   if (!facility) notFound()
 
-  const totalBudget = facility.projectProposals.reduce<number>((sum, p) =>
-    sum + p.budgetItems.reduce<number>((s, b) => s + b.totalCost, 0), 0)
+  const totalBudget = facility.projectProposals
+    .flatMap(p => p.budgetItems)
+    .reduce<number>((s, b) => s + b.totalCost, 0)
 
   const highRiskCount = facility.threatAssessments.filter((t) => {
     const level = getRiskLevel(calculateRiskScore(t.likelihood, t.impact))
