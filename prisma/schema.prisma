@@ -50,6 +50,7 @@ model Facility {
   siteObservations      SiteObservation[]
   narrativeDrafts       NarrativeDraft[]
   applicationPackets    ApplicationPacket[]
+  grantAnalyses         GrantAnalysis[]
 }
 
 model ThreatAssessment {
@@ -161,4 +162,48 @@ model ApplicationPacket {
   status      String    @default("draft")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+model GrantAnalysis {
+  id                            String   @id @default(cuid())
+  facilityId                    String
+  facility                      Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  overallScore                  Int      @default(0)
+  riskClarityScore              Int      @default(0)
+  vulnerabilitySpecificityScore Int      @default(0)
+  projectAlignmentScore         Int      @default(0)
+  budgetDefensibilityScore      Int      @default(0)
+  narrativeQualityScore         Int      @default(0)
+  strengthsSummary              String?
+  weaknessesSummary             String?
+  priorityFixesSummary          String?
+  analysisJson                  String?
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+  flags                         GrantAnalysisFlag[]
+  projectSnapshots              ProjectAnalysisSnapshot[]
+}
+
+model GrantAnalysisFlag {
+  id                String        @id @default(cuid())
+  grantAnalysisId   String
+  grantAnalysis     GrantAnalysis @relation(fields: [grantAnalysisId], references: [id], onDelete: Cascade)
+  severity          String
+  category          String
+  relatedEntityType String?
+  relatedEntityId   String?
+  title             String
+  explanation       String
+  suggestedFix      String
+  createdAt         DateTime      @default(now())
+}
+
+model ProjectAnalysisSnapshot {
+  id              String        @id @default(cuid())
+  grantAnalysisId String
+  grantAnalysis   GrantAnalysis @relation(fields: [grantAnalysisId], references: [id], onDelete: Cascade)
+  projectId       String
+  score           Int           @default(0)
+  findingsJson    String?
+  createdAt       DateTime      @default(now())
 }

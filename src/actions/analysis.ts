@@ -1,0 +1,113 @@
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import { runAnalysis } from '@/lib/analyzer'
+import { revalidatePath } from 'next/cache'
+
+export async function runGrantAnalysis(
+  facilityId: string
+): Promise<{ success: boolean; analysisId?: string; error?: string }> {
+  try {
+    const result = await runAnalysis(facilityId)
+
+    // Delete any previous analyses for this facility (keep only latest)
+    await prisma.grantAnalysis.deleteMany({ where: { facilityId } })
+
+    // Create new analysis record
+    const analysis = await prisma.grantAnalysis.create({
+      data: {
+        facilityId,
+        overallScore: result.overallScore,
+        riskClarityScore: result.riskClarityScore,
+        vulnerabilitySpecificityScore: result.vulnerabilitySpecificityScore,
+        projectAlignmentScore: result.projectAlignmentScore,
+        budgetDefensibilityScore: result.budgetDefensibilityScore,
+        narrativeQualityScore: result.narrativeQualityScore,
+        strengthsSummary: result.strengthsSummary,
+        weaknessesSummary: result.weaknessesSummary,
+        priorityFixesSummary: result.priorityFixesSummary,
+        analysisJson: result.analysisJson,
+      },
+    })
+
+    // Create flag records
+    for (const flag of result.flags) {
+      await prisma.grantAnalysisFlag.create({
+        data: {
+          grantAnalysisId: analysis.id,
+          severity: flag.severity,
+          category: flag.category,
+          relatedEntityType: flag.relatedEntityType,
+          relatedEntityId: flag.relatedEntityId,
+          title: flag.title,
+          explanation: flag.explanation,
+          suggestedFix: flag.suggestedFix,
+        },
+      })
+    }
+
+    // Create project snapshot records
+    for (const snapshot of result.projectSnapshots) {
+      await prisma.projectAnalysisSnapshot.create({
+        data: {
+          grantAnalysisId: analysis.id,
+          projectId: snapshot.projectId,
+          score: snapshot.score,
+          findingsJson: JSON.stringify({
+            projectTitle: snapshot.projectTitle,
+            linkedThreatsCount: snapshot.linkedThreatsCount,
+            budgetItemCount: snapshot.budgetItemCount,
+            hasProblemStatement: snapshot.hasProblemStatement,
+            hasRationale: snapshot.hasRationale,
+            hasImplementationNotes: snapshot.hasImplementationNotes,
+            budgetHasJustifications: snapshot.budgetHasJustifications,
+            findings: snapshot.findings,
+          }),
+        },
+      })
+    }
+
+    revalidatePath(`/analyzer/${facilityId}`)
+    revalidatePath('/analyzer')
+
+    return { success: true, analysisId: analysis.id }
+  } catch (error) {
+    console.error('runGrantAnalysis error:', error)
+    return { success: false, error: 'Failed to run analysis. Please try again.' }
+  }
+}
+
+export async function getLatestAnalysis(facilityId: string) {
+  try {
+    const analysis = await prisma.grantAnalysis.findFirst({
+      where: { facilityId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        flags: { orderBy: { severity: 'asc' } },
+        projectSnapshots: true,
+      },
+    })
+    return { success: true, data: analysis }
+  } catch (error) {
+    console.error('getLatestAnalysis error:', error)
+    return { success: false, error: 'Failed to fetch analysis' }
+  }
+}
+
+export async function listAnalyses(facilityId: string) {
+  try {
+    const analyses = await prisma.grantAnalysis.findMany({
+      where: { facilityId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        overallScore: true,
+        createdAt: true,
+      },
+    })
+    return { success: true, data: analyses }
+  } catch (error) {
+    console.error('listAnalyses error:', error)
+    return { success: false, error: 'Failed to list analyses' }
+  }
+}
