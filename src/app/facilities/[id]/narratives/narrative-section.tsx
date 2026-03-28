@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { Sparkles, Edit2, Save, Trash2, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react'
+import { ApplyNarrativeRewriteButton } from './apply-narrative-rewrite-button'
 
 interface Draft {
   id: string
@@ -16,12 +17,18 @@ interface Draft {
   versionNumber: number
 }
 
+interface ImprovementSuggestion {
+  detectedWeaknesses: string[]
+  suggestedRewrite: string
+}
+
 interface NarrativeSectionProps {
   facilityId: string
   sectionKey: string
   sectionLabel: string
   sectionDescription: string
   draft: Draft | null
+  improvement?: ImprovementSuggestion
 }
 
 export function NarrativeSection({
@@ -30,6 +37,7 @@ export function NarrativeSection({
   sectionLabel,
   sectionDescription,
   draft,
+  improvement,
 }: NarrativeSectionProps) {
   const router = useRouter()
   const [generating, setGenerating] = useState(false)
@@ -38,6 +46,7 @@ export function NarrativeSection({
   const [deleting, setDeleting] = useState(false)
   const [editText, setEditText] = useState(draft?.editedText || '')
   const [expanded, setExpanded] = useState(!!draft)
+  const [suggestionsExpanded, setSuggestionsExpanded] = useState(false)
 
   async function handleGenerate() {
     setGenerating(true)
@@ -158,6 +167,60 @@ export function NarrativeSection({
               <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{displayText}</p>
             </div>
           )}
+        </CardContent>
+      )}
+
+      {improvement && improvement.detectedWeaknesses.length > 0 && (
+        <CardContent className="pt-0">
+          <div className="border-t border-slate-100 pt-3">
+            <button
+              onClick={() => setSuggestionsExpanded(!suggestionsExpanded)}
+              className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+            >
+              {suggestionsExpanded ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+              {suggestionsExpanded ? 'Hide suggestions' : 'Show improvement suggestions'}
+              <span className="ml-1 inline-flex items-center justify-center h-4 w-4 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
+                {improvement.detectedWeaknesses.length}
+              </span>
+            </button>
+
+            {suggestionsExpanded && (
+              <div className="mt-3 space-y-3">
+                <div>
+                  <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1.5">
+                    Detected weaknesses
+                  </p>
+                  <ul className="space-y-1">
+                    {improvement.detectedWeaknesses.map((w, i) => (
+                      <li key={i} className="text-sm text-amber-700 flex items-start gap-1.5">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1.5" />
+                        {w}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                    Suggested rewrite (generated from your data — review before applying)
+                  </p>
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-700 font-mono leading-relaxed whitespace-pre-wrap mb-3">
+                    {improvement.suggestedRewrite}
+                  </div>
+                  {draft ? (
+                    <ApplyNarrativeRewriteButton
+                      narrativeId={draft.id}
+                      rewriteText={improvement.suggestedRewrite}
+                    />
+                  ) : null}
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       )}
     </Card>

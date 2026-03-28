@@ -83,3 +83,65 @@ export async function deleteNarrative(id: string, facilityId: string) {
     return { success: false, error: 'Failed to delete narrative' }
   }
 }
+
+export async function applyNarrativeRewrite(
+  narrativeId: string,
+  rewriteText: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const existing = await prisma.narrativeDraft.findUnique({ where: { id: narrativeId } })
+    if (!existing) return { success: false, error: 'Narrative not found' }
+
+    await prisma.narrativeDraft.update({
+      where: { id: narrativeId },
+      data: {
+        editedText: rewriteText,
+        versionNumber: existing.versionNumber + 1,
+      },
+    })
+
+    revalidatePath(`/facilities/${existing.facilityId}/narratives`)
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: 'Failed to apply rewrite' }
+  }
+}
+
+export async function applyGeneratedRewrite(
+  facilityId: string,
+  sectionName: string,
+  rewriteText: string
+): Promise<{ success: boolean; narrativeId?: string; error?: string }> {
+  try {
+    const existing = await prisma.narrativeDraft.findFirst({
+      where: { facilityId, sectionName },
+      orderBy: { versionNumber: 'desc' },
+    })
+
+    if (existing) {
+      const updated = await prisma.narrativeDraft.update({
+        where: { id: existing.id },
+        data: {
+          editedText: rewriteText,
+          versionNumber: existing.versionNumber + 1,
+        },
+      })
+      revalidatePath(`/facilities/${facilityId}/narratives`)
+      return { success: true, narrativeId: updated.id }
+    } else {
+      const created = await prisma.narrativeDraft.create({
+        data: {
+          facilityId,
+          sectionName,
+          generatedText: rewriteText,
+          editedText: rewriteText,
+          versionNumber: 1,
+        },
+      })
+      revalidatePath(`/facilities/${facilityId}/narratives`)
+      return { success: true, narrativeId: created.id }
+    }
+  } catch (error) {
+    return { success: false, error: 'Failed to apply rewrite' }
+  }
+}
