@@ -32,8 +32,8 @@ export default async function FacilityPage({ params }: { params: Promise<{ id: s
 
   if (!facility) notFound()
 
-  const totalBudget = facility.projectProposals.reduce((sum: number, p) =>
-    sum + p.budgetItems.reduce((s: number, b) => s + b.totalCost, 0), 0)
+  const totalBudget = facility.projectProposals.reduce<number>((sum, p) =>
+    sum + p.budgetItems.reduce<number>((s, b) => s + b.totalCost, 0), 0)
 
   const highRiskCount = facility.threatAssessments.filter((t) => {
     const level = getRiskLevel(calculateRiskScore(t.likelihood, t.impact))
@@ -203,7 +203,7 @@ export default async function FacilityPage({ params }: { params: Promise<{ id: s
               <CardContent>
                 <div className="space-y-2">
                   {facility.projectProposals.map((project) => {
-                    const budget = project.budgetItems.reduce((s: number, b) => s + b.totalCost, 0)
+                    const budget = project.budgetItems.reduce<number>((s, b) => s + b.totalCost, 0)
                     return (
                       <Link key={project.id} href={`/facilities/${id}/projects/${project.id}`}>
                         <div className="flex items-center gap-3 py-2 hover:bg-slate-50 rounded-md px-2 -mx-2 transition-colors">
