@@ -24,7 +24,7 @@ export default async function MeasuresPage({ params }: { params: Promise<{ id: s
   if (!facility) notFound()
 
   const avgEffectiveness = facility.securityMeasures.length > 0
-    ? facility.securityMeasures.reduce((s, m) => s + m.effectivenessRating, 0) / facility.securityMeasures.length
+    ? facility.securityMeasures.reduce((s: number, m) => s + m.effectivenessRating, 0) / facility.securityMeasures.length
     : 0
 
   const categories = [...new Set(facility.securityMeasures.map((m) => m.category))]

@@ -38,10 +38,10 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
 
   if (!org) notFound()
 
-  const totalThreats = org.facilities.reduce((s, f) => s + f.threatAssessments.length, 0)
-  const totalProjects = org.facilities.reduce((s, f) => s + f.projectProposals.length, 0)
-  const totalBudget = org.facilities.reduce((sum, f) =>
-    sum + f.projectProposals.reduce((s, p) =>
+  const totalThreats = org.facilities.reduce((s: number, f) => s + f.threatAssessments.length, 0)
+  const totalProjects = org.facilities.reduce((s: number, f) => s + f.projectProposals.length, 0)
+  const totalBudget = org.facilities.reduce((sum: number, f) =>
+    sum + f.projectProposals.reduce((s: number, p) =>
       s + p.budgetItems.reduce((b, item) => b + item.totalCost, 0), 0), 0)
 
   return (
@@ -163,7 +163,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
             ) : (
               <div className="space-y-3">
                 {org.facilities.map((facility) => {
-                  const budget = facility.projectProposals.reduce((s, p) =>
+                  const budget = facility.projectProposals.reduce((s: number, p) =>
                     s + p.budgetItems.reduce((b, item) => b + item.totalCost, 0), 0)
                   return (
                     <Link key={facility.id} href={`/facilities/${facility.id}`}>

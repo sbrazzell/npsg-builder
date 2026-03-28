@@ -36,8 +36,8 @@ async function getDashboardData() {
 
   const openProposals = projects.filter((p) => p.status !== "submitted").length;
 
-  const totalBudget = projects.reduce((sum, p) => {
-    return sum + p.budgetItems.reduce((s, b) => s + b.totalCost, 0);
+  const totalBudget = projects.reduce((sum: number, p) => {
+    return sum + p.budgetItems.reduce((s: number, b) => s + b.totalCost, 0);
   }, 0);
 
   return { orgCount, facilityCount, highRiskThreats, openProposals, totalBudget, projects };
