@@ -1,36 +1,163 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NSGP Builder
 
-## Getting Started
+**Nonprofit Security Grant Program Application Builder**
 
-First, run the development server:
+NSGP Builder is a full-stack, local-first web application for security consultants, nonprofit administrators, and grant writers who need to build comprehensive FEMA Nonprofit Security Grant Program (NSGP) applications. All data is stored locally in a SQLite database — no cloud accounts, no subscriptions, no data leaving your machine.
+
+---
+
+## What Is NSGP Builder?
+
+The FEMA Nonprofit Security Grant Program provides funding to nonprofit organizations at high risk of terrorist attack. Applications require detailed threat assessments, vulnerability analyses, project proposals, budget justifications, and professional-quality narratives. NSGP Builder guides you through each section and helps generate polished first-draft narratives using template-based generation (with hooks for future AI providers like OpenAI or Anthropic).
+
+### Key Features
+
+- **Organization & Facility Management** — Manage multiple organizations and facilities with detailed profiles including occupancy, population served, site characteristics, and known concerns.
+- **Threat Assessment** — Document threats using a 5x5 likelihood/impact risk matrix with automatic risk scoring and visual threat matrix.
+- **Security Measure Inventory** — Catalog existing security infrastructure with effectiveness ratings and gap analysis.
+- **Project Proposals** — Build grant-ready project proposals with problem statements, proposed solutions, risk reduction rationale, and threat linkage.
+- **Budget Builder** — Line-item budget builder with quantity, unit cost, vendor information, and justification fields.
+- **Narrative Studio** — Template-based narrative generation for 6 key application sections (Executive Summary, Threat Overview, Vulnerability Statement, etc.). Designed to accept AI providers in the future.
+- **Site Observations** — Field observation log for site walkthrough findings with severity rating.
+- **Review & Scorecard** — Automated readiness checker with completeness scores and warning flags before submission.
+- **Export** — Full printable HTML export and Markdown download of the complete application draft.
+
+---
+
+## Prerequisites
+
+- Node.js 18+
+- npm 9+
+
+---
+
+## Setup
+
+### 1. Clone and install
+
+```bash
+git clone <your-repo-url> npsg-builder
+cd npsg-builder
+npm install
+```
+
+### 2. Run database migrations
+
+```bash
+npx prisma migrate dev
+```
+
+This creates `dev.db` in the project root.
+
+### 3. Seed with demo data (optional)
+
+```bash
+npx prisma db seed
+```
+
+This populates the database with a complete demo application for **Grace Community Church** — a realistic urban church with 5 threats, 4 security measures, 3 project proposals, line-item budgets, site observations, and narrative drafts. Use it to explore all features.
+
+### 4. Start the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Configuring Narrative Providers
 
-## Learn More
+By default, NSGP Builder uses a **template-based** narrative generator that produces professional first drafts based on the data you have entered. No API key is required.
 
-To learn more about Next.js, take a look at the following resources:
+To use an AI provider, edit `.env`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+NARRATIVE_PROVIDER="openai"
+OPENAI_API_KEY="sk-..."
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+or
 
-## Deploy on Vercel
+```env
+NARRATIVE_PROVIDER="anthropic"
+ANTHROPIC_API_KEY="sk-ant-..."
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+> **Note:** The OpenAI and Anthropic implementations are placeholder hooks in `src/lib/narratives.ts`. You will need to add the API call logic when enabling these providers.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Project Structure
+
+```
+src/
+  app/                        # Next.js App Router pages
+    page.tsx                  # Dashboard
+    organizations/            # Organization CRUD
+    facilities/               # Facility CRUD and all sub-modules
+      [id]/
+        threats/              # Threat assessments
+        measures/             # Security measures
+        projects/             # Project proposals
+          [projectId]/
+            budget/           # Budget line items
+        narratives/           # Narrative studio
+        observations/         # Site observations
+        review/               # Readiness scorecard
+        export/               # Print/download export
+    settings/                 # App settings
+  components/
+    ui/                       # shadcn/ui components
+    layout/                   # Sidebar, header, breadcrumbs
+    shared/                   # Reusable components (RiskBadge, EmptyState, etc.)
+  lib/
+    prisma.ts                 # Prisma client singleton
+    scoring.ts                # Risk scoring utilities
+    narratives.ts             # Narrative generation (template + AI hooks)
+    validations.ts            # Zod validation schemas
+  actions/                    # Next.js Server Actions
+    organizations.ts
+    facilities.ts
+    threats.ts
+    measures.ts
+    projects.ts
+    budget.ts
+    narratives.ts
+    observations.ts
+prisma/
+  schema.prisma               # Database schema
+  seed.ts                     # Demo data seed
+  migrations/                 # Migration history
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router, TypeScript) |
+| Styling | Tailwind CSS v4 |
+| UI Components | shadcn/ui (base-ui) |
+| Database | SQLite via Prisma 7 + better-sqlite3 adapter |
+| Validation | Zod v4 |
+| Forms | react-hook-form |
+| Charts | recharts |
+| Icons | lucide-react |
+
+---
+
+## Production Build
+
+```bash
+npm run build
+npm start
+```
+
+---
+
+## License
+
+MIT
