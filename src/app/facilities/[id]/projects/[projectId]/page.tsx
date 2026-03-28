@@ -33,7 +33,7 @@ export default async function ProjectPage({
 
   if (!project || project.facilityId !== id) notFound()
 
-  const totalBudget = project.budgetItems.reduce<number>((s, b) => s + b.totalCost, 0)
+  const totalBudget = project.budgetItems.reduce((s: number, b) => s + b.totalCost, 0)
   const linkedThreatIds = new Set(project.threatLinks.map((l) => l.threatId))
   const unlinkedThreats = project.facility.threatAssessments.filter((t) => !linkedThreatIds.has(t.id))
 

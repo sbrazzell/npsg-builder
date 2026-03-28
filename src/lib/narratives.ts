@@ -77,7 +77,8 @@ function generateBudgetRationale(items: any[]): string {
     return 'No budget items have been entered for this project. A detailed budget breakdown should be added prior to submission.'
   }
 
-  const total = items.reduce<number>((sum, item: { totalCost: number }) => sum + item.totalCost, 0)
+  let total = 0
+  for (const item of items) { total += item.totalCost }
   const categories = [...new Set(items.map((i: { category: string | null }) => i.category).filter(Boolean))]
   const itemNames = items.map((i: { itemName: string }) => i.itemName).slice(0, 3).join(', ')
 
@@ -97,9 +98,10 @@ function generateImplementationApproach(project: any): string {
 function generateExecutiveSummary(facility: any): string {
   const org = facility.organization
   const projects = facility.projectProposals || []
-  const totalBudget = projects.reduce<number>((sum, p: { budgetItems?: { totalCost: number }[] }) => {
-    return sum + (p.budgetItems || []).reduce<number>((s, b: { totalCost: number }) => s + b.totalCost, 0)
-  }, 0)
+  let totalBudget = 0
+  for (const p of projects) {
+    for (const b of (p.budgetItems || [])) { totalBudget += b.totalCost }
+  }
 
   return `${org?.name || 'The applicant organization'} respectfully submits this application for Nonprofit Security Grant Program funding to support security improvements at ${facility.facilityName}${facility.address ? ` located at ${facility.address}` : ''}. ${
     facility.populationServed

@@ -125,8 +125,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
     { label: 'Narratives', score: narScore, max: maxNarScore, notes: [] },
   ]
 
-  const totalScore = sections.reduce<number>((s, sec) => s + sec.score, 0)
-  const totalMax = sections.reduce<number>((s, sec) => s + sec.max, 0)
+  const totalScore = sections.reduce((s: number, sec) => s + sec.score, 0)
+  const totalMax = sections.reduce((s: number, sec) => s + sec.max, 0)
   const overallPct = Math.round((totalScore / totalMax) * 100)
 
   const overallLevel = overallPct >= 85 ? 'Strong' : overallPct >= 65 ? 'Good' : overallPct >= 45 ? 'Developing' : 'Incomplete'

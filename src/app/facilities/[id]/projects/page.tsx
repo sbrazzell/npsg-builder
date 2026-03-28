@@ -87,7 +87,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ id: s
         ) : (
           <div className="space-y-3">
             {facility.projectProposals.map((project) => {
-              const budget = project.budgetItems.reduce<number>((s, b) => s + b.totalCost, 0)
+              const budget = project.budgetItems.reduce((s: number, b) => s + b.totalCost, 0)
               return (
                 <Link key={project.id} href={`/facilities/${id}/projects/${project.id}`}>
                   <Card className="hover:shadow-md transition-shadow cursor-pointer">

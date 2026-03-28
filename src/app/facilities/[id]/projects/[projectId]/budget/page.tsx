@@ -27,7 +27,7 @@ export default async function BudgetPage({
 
   if (!project || project.facilityId !== id) notFound()
 
-  const totalBudget = project.budgetItems.reduce<number>((s, b) => s + b.totalCost, 0)
+  const totalBudget = project.budgetItems.reduce((s: number, b) => s + b.totalCost, 0)
   const categories = [...new Set(project.budgetItems.map((i) => i.category).filter(Boolean))]
 
   return (

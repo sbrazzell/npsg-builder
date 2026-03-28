@@ -169,7 +169,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
 
               {/* Projects & Budgets */}
               {facility.projectProposals.map((project) => {
-                const budget = project.budgetItems.reduce<number>((s, b) => s + b.totalCost, 0)
+                const budget = project.budgetItems.reduce((s: number, b) => s + b.totalCost, 0)
                 return (
                   <section key={project.id}>
                     <h2 className="text-lg font-bold text-gray-900 mb-1 pb-2 border-b">

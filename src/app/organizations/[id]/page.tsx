@@ -38,8 +38,8 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
 
   if (!org) notFound()
 
-  const totalThreats = org.facilities.reduce<number>((s, f) => s + f.threatAssessments.length, 0)
-  const totalProjects = org.facilities.reduce<number>((s, f) => s + f.projectProposals.length, 0)
+  const totalThreats = org.facilities.reduce((s: number, f) => s + f.threatAssessments.length, 0)
+  const totalProjects = org.facilities.reduce((s: number, f) => s + f.projectProposals.length, 0)
   let totalBudget = 0
   for (const f of org.facilities) {
     for (const p of f.projectProposals) {
