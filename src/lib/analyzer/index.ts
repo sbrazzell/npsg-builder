@@ -12,6 +12,8 @@ import {
   generateWeaknesses,
   generatePriorityFixes,
 } from './scoring'
+import { getAnalyzerProvider } from './llm-provider'
+import { runLLMReview } from './llm-review'
 
 export async function runAnalysis(facilityId: string): Promise<AnalysisResult> {
   const facility = await prisma.facility.findUnique({
@@ -102,9 +104,18 @@ export async function runAnalysis(facilityId: string): Promise<AnalysisResult> {
     flags,
   }
 
-  const strengthsSummary = generateStrengths(dimScores)
-  const weaknessesSummary = generateWeaknesses(dimScores)
-  const priorityFixesSummary = generatePriorityFixes(flags)
+  let strengthsSummary = generateStrengths(dimScores)
+  let weaknessesSummary = generateWeaknesses(dimScores)
+  let priorityFixesSummary = generatePriorityFixes(flags)
+
+  // Optionally enhance summaries with LLM review
+  const analyzerProvider = getAnalyzerProvider()
+  if (analyzerProvider !== 'rules') {
+    const llmEnhancement = await runLLMReview(facility, analyzerProvider)
+    if (llmEnhancement.strengthsSummary) strengthsSummary = llmEnhancement.strengthsSummary
+    if (llmEnhancement.weaknessesSummary) weaknessesSummary = llmEnhancement.weaknessesSummary
+    if (llmEnhancement.priorityFixesSummary) priorityFixesSummary = llmEnhancement.priorityFixesSummary
+  }
 
   const analysisJson = JSON.stringify({
     facilityId,

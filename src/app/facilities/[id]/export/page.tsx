@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
@@ -6,6 +8,7 @@ import { Header } from '@/components/layout/header'
 import { PageHeader } from '@/components/shared/page-header'
 import { calculateRiskScore, getRiskLevel, formatCurrency } from '@/lib/scoring'
 import { ExportButtons } from './export-buttons'
+import { getLatestAnalysis } from '@/actions/analysis'
 
 export default async function ExportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -30,6 +33,10 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
   })
 
   if (!facility) notFound()
+
+  // Fetch latest analysis for export
+  const analysisResult = await getLatestAnalysis(id)
+  const analysis = analysisResult.success ? analysisResult.data : null
 
   // Get latest narrative per section
   const latestNarratives = new Map<string, string>()
@@ -239,6 +246,142 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                     <p>{facility.projectProposals.flatMap(p => p.budgetItems).length} budget items</p>
                   </div>
                 </div>
+              </section>
+
+              {/* Grant Strength Analysis */}
+              <section>
+                <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b">Grant Strength Analysis</h2>
+                {analysis ? (
+                  <div className="space-y-5">
+                    {/* Score header */}
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">Overall Score</p>
+                        <p className="text-4xl font-bold text-gray-900 leading-none">{analysis.overallScore}<span className="text-lg font-normal text-gray-400"> / 100</span></p>
+                      </div>
+                      <div className="ml-2">
+                        <span className={`inline-block text-sm font-semibold px-3 py-1 rounded-full border ${
+                          analysis.overallScore >= 90 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                          analysis.overallScore >= 80 ? 'bg-green-50 text-green-800 border-green-200' :
+                          analysis.overallScore >= 60 ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                          analysis.overallScore >= 40 ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                          'bg-red-50 text-red-800 border-red-200'
+                        }`}>
+                          {analysis.overallScore >= 90 ? 'Excellent' :
+                           analysis.overallScore >= 80 ? 'Strong' :
+                           analysis.overallScore >= 60 ? 'Good' :
+                           analysis.overallScore >= 40 ? 'Fair' : 'Needs Work'}
+                        </span>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Analyzed {new Date(analysis.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Dimension scores table */}
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50">
+                          <th className="border p-2 text-left font-semibold">Dimension</th>
+                          <th className="border p-2 text-center font-semibold">Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="even:bg-slate-50">
+                          <td className="border p-2">Risk Clarity</td>
+                          <td className="border p-2 text-center font-medium">{analysis.riskClarityScore}/20</td>
+                        </tr>
+                        <tr className="even:bg-slate-50">
+                          <td className="border p-2">Vulnerability Specificity</td>
+                          <td className="border p-2 text-center font-medium">{analysis.vulnerabilitySpecificityScore}/20</td>
+                        </tr>
+                        <tr className="even:bg-slate-50">
+                          <td className="border p-2">Project Alignment</td>
+                          <td className="border p-2 text-center font-medium">{analysis.projectAlignmentScore}/20</td>
+                        </tr>
+                        <tr className="even:bg-slate-50">
+                          <td className="border p-2">Budget Defensibility</td>
+                          <td className="border p-2 text-center font-medium">{analysis.budgetDefensibilityScore}/20</td>
+                        </tr>
+                        <tr className="even:bg-slate-50">
+                          <td className="border p-2">Narrative Quality</td>
+                          <td className="border p-2 text-center font-medium">{analysis.narrativeQualityScore}/20</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    {/* Strengths */}
+                    {analysis.strengthsSummary && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Strengths</p>
+                        <ul className="list-disc list-inside space-y-0.5">
+                          {analysis.strengthsSummary.split(/[.,]/).filter((s) => s.trim().length > 10).map((s, i) => (
+                            <li key={i} className="text-sm text-gray-700">{s.trim()}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Weaknesses */}
+                    {analysis.weaknessesSummary && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Weaknesses</p>
+                        <ul className="list-disc list-inside space-y-0.5">
+                          {analysis.weaknessesSummary.split(/[.,]/).filter((s) => s.trim().length > 10).map((s, i) => (
+                            <li key={i} className="text-sm text-gray-700">{s.trim()}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Priority fixes */}
+                    {analysis.priorityFixesSummary && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Priority Fixes</p>
+                        <ol className="list-decimal list-inside space-y-1">
+                          {analysis.priorityFixesSummary.split('\n').filter(Boolean).map((line, i) => (
+                            <li key={i} className="text-sm text-gray-700">{line.replace(/^\d+\.\s*/, '')}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+
+                    {/* High/Medium flags */}
+                    {analysis.flags && analysis.flags.filter((f) => f.severity !== 'low').length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Key Flags</p>
+                        <table className="w-full text-sm border-collapse">
+                          <thead>
+                            <tr className="bg-slate-50">
+                              <th className="border p-2 text-left font-semibold">Category</th>
+                              <th className="border p-2 text-left font-semibold">Flag</th>
+                              <th className="border p-2 text-left font-semibold">Suggested Fix</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {analysis.flags
+                              .filter((f) => f.severity !== 'low')
+                              .map((flag) => (
+                                <tr key={flag.id} className="even:bg-slate-50 align-top">
+                                  <td className="border p-2 capitalize whitespace-nowrap">{flag.category}</td>
+                                  <td className="border p-2">{flag.title}</td>
+                                  <td className="border p-2 text-gray-600">{flag.suggestedFix}</td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-500">
+                    No analysis run yet. Visit the{' '}
+                    <Link href={`/analyzer/${id}`} className="text-indigo-600 underline">
+                      Grant Strength Analyzer
+                    </Link>{' '}
+                    to generate a strength report.
+                  </div>
+                )}
               </section>
             </div>
           </div>

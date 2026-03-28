@@ -102,6 +102,11 @@ export async function listAnalyses(facilityId: string) {
       select: {
         id: true,
         overallScore: true,
+        riskClarityScore: true,
+        vulnerabilitySpecificityScore: true,
+        projectAlignmentScore: true,
+        budgetDefensibilityScore: true,
+        narrativeQualityScore: true,
         createdAt: true,
       },
     })
@@ -109,5 +114,44 @@ export async function listAnalyses(facilityId: string) {
   } catch (error) {
     console.error('listAnalyses error:', error)
     return { success: false, error: 'Failed to list analyses' }
+  }
+}
+
+export async function getBenchmarkData() {
+  try {
+    const facilities = await prisma.facility.findMany({
+      include: {
+        organization: { select: { name: true } },
+        grantAnalyses: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            overallScore: true,
+            riskClarityScore: true,
+            vulnerabilitySpecificityScore: true,
+            projectAlignmentScore: true,
+            budgetDefensibilityScore: true,
+            narrativeQualityScore: true,
+            createdAt: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    })
+
+    const withAnalysis = facilities
+      .filter((f) => f.grantAnalyses.length > 0)
+      .map((f) => ({
+        facilityId: f.id,
+        facilityName: f.facilityName,
+        organizationName: f.organization.name,
+        analysis: f.grantAnalyses[0]!,
+      }))
+
+    return { success: true, data: withAnalysis }
+  } catch (error) {
+    console.error('getBenchmarkData error:', error)
+    return { success: false, error: 'Failed to fetch benchmark data' }
   }
 }

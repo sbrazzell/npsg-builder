@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { Info } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +24,8 @@ import {
 import { RunAnalysisButton } from './run-analysis-button'
 import { ApplyRewriteButton } from './apply-rewrite-button'
 import { generateNarrativeImprovements } from '@/lib/analyzer/recommendations'
+import { ScoreHistoryChart } from './score-history-chart'
+import { listAnalyses } from '@/actions/analysis'
 
 interface PageProps {
   params: Promise<{ facilityId: string }>
@@ -82,6 +85,10 @@ export default async function AnalyzerFacilityPage({ params }: PageProps) {
   if (!facility) notFound()
 
   const analysis = facility.grantAnalyses[0] ?? null
+  const analyzerProvider = process.env.ANALYZER_PROVIDER ?? 'rules'
+
+  const historyResult = await listAnalyses(facilityId)
+  const scoreHistory = historyResult.success && historyResult.data ? historyResult.data : []
 
   const dimensions = analysis
     ? [
@@ -174,6 +181,14 @@ export default async function AnalyzerFacilityPage({ params }: PageProps) {
           description={`${facility.facilityName} · ${facility.organization.name}`}
           action={<RunAnalysisButton facilityId={facilityId} />}
         />
+
+        {/* Analyzer provider info banner */}
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 border border-slate-200 mb-4 text-xs text-slate-500">
+          <Info className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+          {analyzerProvider === 'rules'
+            ? 'Using rule-based analysis. Set ANALYZER_PROVIDER=anthropic to enable AI-powered review.'
+            : `AI-powered review is active (provider: ${analyzerProvider}).`}
+        </div>
 
         {/* Hero Card */}
         {analysis ? (
@@ -311,6 +326,24 @@ export default async function AnalyzerFacilityPage({ params }: PageProps) {
                 </CardContent>
               </Card>
             )}
+
+            {/* Score History Chart */}
+            <Card className="mb-6 bg-white border border-slate-200 shadow-sm rounded-xl">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-slate-800 flex items-center gap-2">
+                  <BarChart2 className="h-4 w-4 text-indigo-600" />
+                  Score History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ScoreHistoryChart history={scoreHistory} />
+                {scoreHistory.length >= 2 && (
+                  <p className="text-xs text-slate-400 mt-2 text-center">
+                    Dimension lines are scaled to 0–100 (each dimension is scored 0–20).
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Flags Table */}
             {sortedFlags.length > 0 && (
