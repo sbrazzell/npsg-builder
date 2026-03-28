@@ -21,6 +21,8 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { RunAnalysisButton } from './run-analysis-button'
+import { ApplyRewriteButton } from './apply-rewrite-button'
+import { generateNarrativeImprovements } from '@/lib/analyzer/recommendations'
 
 interface PageProps {
   params: Promise<{ facilityId: string }>
@@ -471,8 +473,124 @@ export default async function AnalyzerFacilityPage({ params }: PageProps) {
 
         {/* Section Readiness — always shown, derived live from DB */}
         <SectionReadinessPanel facilityId={facilityId} />
+
+        {/* Narrative Improvement Suggestions */}
+        <NarrativeImprovementsPanel facilityId={facilityId} />
       </div>
     </div>
+  )
+}
+
+const IMPROVEMENT_SECTIONS = [
+  { key: 'threat_overview', label: 'Threat Overview' },
+  { key: 'vulnerability_statement', label: 'Vulnerability Statement' },
+  { key: 'project_justification', label: 'Project Justification' },
+  { key: 'budget_rationale', label: 'Budget Rationale' },
+  { key: 'implementation_approach', label: 'Implementation Approach' },
+  { key: 'executive_summary', label: 'Executive Summary' },
+]
+
+async function NarrativeImprovementsPanel({ facilityId }: { facilityId: string }) {
+  const facility = await prisma.facility.findUnique({
+    where: { id: facilityId },
+    include: {
+      threatAssessments: true,
+      projectProposals: true,
+      narrativeDrafts: {
+        orderBy: [{ sectionName: 'asc' }, { versionNumber: 'desc' }],
+      },
+    },
+  })
+
+  if (!facility) return null
+
+  // Get latest draft per section
+  const latestDrafts = new Map<string, { id: string; editedText: string | null; generatedText: string | null }>()
+  for (const draft of facility.narrativeDrafts) {
+    if (!latestDrafts.has(draft.sectionName)) {
+      latestDrafts.set(draft.sectionName, draft)
+    }
+  }
+
+  // Generate improvements for each section
+  const improvements: Array<{
+    key: string
+    label: string
+    currentTextPreview: string
+    detectedWeaknesses: string[]
+    suggestedRewrite: string
+  }> = []
+
+  for (const section of IMPROVEMENT_SECTIONS) {
+    const draft = latestDrafts.get(section.key)
+    const currentText = draft?.editedText || draft?.generatedText || ''
+    const result = generateNarrativeImprovements(section.key, currentText, facility)
+    if (result.detectedWeaknesses.length > 0) {
+      const preview = currentText.length > 100
+        ? currentText.slice(0, 100).trimEnd() + '…'
+        : currentText || '(no text yet)'
+      improvements.push({
+        key: section.key,
+        label: section.label,
+        currentTextPreview: preview,
+        detectedWeaknesses: result.detectedWeaknesses,
+        suggestedRewrite: result.suggestedRewrite,
+      })
+    }
+  }
+
+  if (improvements.length === 0) return null
+
+  return (
+    <Card className="mt-6 bg-white border border-slate-200 shadow-sm rounded-xl">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base text-slate-800 flex items-center gap-2">
+          <FileText className="h-4 w-4 text-violet-600" />
+          Narrative Improvement Suggestions
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {improvements.map((item) => (
+            <div key={item.key} className="border border-slate-200 rounded-lg p-4">
+              <p className="text-base font-semibold text-slate-900 mb-1">{item.label}</p>
+              {item.currentTextPreview !== '(no text yet)' && (
+                <p className="text-xs text-slate-400 italic mb-3">{item.currentTextPreview}</p>
+              )}
+
+              <div className="mb-3">
+                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1.5">
+                  Detected weaknesses
+                </p>
+                <ul className="space-y-1">
+                  {item.detectedWeaknesses.map((w, i) => (
+                    <li key={i} className="text-sm text-amber-700 flex items-start gap-1.5">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1.5" />
+                      {w}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mb-3">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                  Suggested rewrite — review before applying
+                </p>
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-700 font-mono leading-relaxed whitespace-pre-wrap">
+                  {item.suggestedRewrite}
+                </div>
+              </div>
+
+              <ApplyRewriteButton
+                facilityId={facilityId}
+                sectionName={item.key}
+                rewriteText={item.suggestedRewrite}
+              />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
