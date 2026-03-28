@@ -59,7 +59,7 @@ export default async function FacilityPage({ params }: { params: Promise<{ id: s
         { label: facility.organization.name, href: `/organizations/${facility.organizationId}` },
         { label: facility.facilityName },
       ]} />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader
           title={facility.facilityName}
           description={facility.organization.name + (facility.address ? ` · ${facility.address}` : '')}

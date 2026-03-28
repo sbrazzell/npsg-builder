@@ -139,7 +139,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         { label: facility.facilityName, href: `/facilities/${id}` },
         { label: 'Review & Scorecard' },
       ]} />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader
           title="Review & Scorecard"
           description={`Application readiness assessment for ${facility.facilityName}`}

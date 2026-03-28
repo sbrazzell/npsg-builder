@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
+import { MobileNav } from "@/components/layout/mobile-nav";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { UserMenu } from "@/components/layout/user-menu";
@@ -33,9 +34,12 @@ export default function RootLayout({
     >
       <body className="min-h-full flex">
         <AuthSessionProvider>
-          <Sidebar />
-          <div className="flex-1 flex flex-col bg-slate-50 overflow-auto">
-            <header className="h-12 border-b border-slate-200 bg-white flex items-center justify-end px-4 shrink-0">
+          <div className="hidden md:flex md:flex-shrink-0">
+            <Sidebar />
+          </div>
+          <div className="flex-1 flex flex-col bg-slate-50 overflow-auto min-w-0">
+            <header className="h-12 border-b border-slate-200 bg-white flex items-center justify-between px-4 shrink-0">
+              <MobileNav />
               <UserMenu />
             </header>
             <main className="flex-1 overflow-auto">

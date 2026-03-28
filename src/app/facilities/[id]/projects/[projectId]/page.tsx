@@ -45,7 +45,7 @@ export default async function ProjectPage({
         { label: 'Projects', href: `/facilities/${id}/projects` },
         { label: project.title },
       ]} />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader
           title={project.title}
           description={project.category || undefined}

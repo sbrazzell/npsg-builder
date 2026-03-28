@@ -45,7 +45,7 @@ export default async function NarrativesPage({ params }: { params: Promise<{ id:
         { label: facility.facilityName, href: `/facilities/${id}` },
         { label: 'Narrative Studio' },
       ]} />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader
           title="Narrative Studio"
           description="Generate and edit grant application narrative sections using template-based AI."

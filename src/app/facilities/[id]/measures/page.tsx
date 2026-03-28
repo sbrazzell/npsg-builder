@@ -36,7 +36,7 @@ export default async function MeasuresPage({ params }: { params: Promise<{ id: s
         { label: facility.facilityName, href: `/facilities/${id}` },
         { label: 'Security Measures' },
       ]} />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader
           title="Existing Security Measures"
           description={`Current security infrastructure at ${facility.facilityName}`}

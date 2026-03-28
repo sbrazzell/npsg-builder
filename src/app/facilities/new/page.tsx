@@ -166,7 +166,7 @@ function NewFacilityForm() {
 
 export default function NewFacilityPage() {
   return (
-    <Suspense fallback={<div className="p-8">Loading...</div>}>
+    <Suspense fallback={<div className="p-4 md:p-8">Loading...</div>}>
       <NewFacilityForm />
     </Suspense>
   )

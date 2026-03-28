@@ -16,7 +16,7 @@ export default async function OrganizationsPage() {
   })
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <PageHeader
         title="Organizations"
         description="Manage the organizations you are building grant applications for."

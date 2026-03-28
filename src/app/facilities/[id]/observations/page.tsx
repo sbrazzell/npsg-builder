@@ -30,7 +30,7 @@ export default async function ObservationsPage({ params }: { params: Promise<{ i
         { label: facility.facilityName, href: `/facilities/${id}` },
         { label: 'Site Observations' },
       ]} />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader
           title="Site Observations"
           description={`Field observations from site walkthrough at ${facility.facilityName}`}

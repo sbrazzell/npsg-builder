@@ -21,7 +21,7 @@ export default async function FacilitiesPage() {
   })
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <PageHeader
         title="Facilities"
         description="All facilities across all organizations."

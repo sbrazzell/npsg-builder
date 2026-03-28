@@ -44,7 +44,7 @@ export default async function ThreatsPage({ params }: { params: Promise<{ id: st
         { label: facility.facilityName, href: `/facilities/${id}` },
         { label: 'Threat Assessments' },
       ]} />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader
           title="Threat Assessments"
           description={`Documented threats for ${facility.facilityName}`}

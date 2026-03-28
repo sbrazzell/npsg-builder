@@ -62,7 +62,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
         { label: facility.facilityName, href: `/facilities/${id}` },
         { label: 'Export' },
       ]} />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader
           title="Export Application"
           description="Download your completed grant application package."
@@ -135,7 +135,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
               {facility.threatAssessments.length > 0 && (
                 <section>
                   <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b">Threat Assessment Matrix</h2>
-                  <table className="w-full text-sm border-collapse">
+                  <table className="w-full text-sm border-collapse min-w-[600px]">
                     <thead>
                       <tr className="bg-slate-50">
                         <th className="border p-2 text-left font-semibold">Threat</th>
@@ -193,7 +193,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                     </div>
 
                     {project.budgetItems.length > 0 && (
-                      <table className="w-full text-sm border-collapse">
+                      <table className="w-full text-sm border-collapse min-w-[600px]">
                         <thead>
                           <tr className="bg-slate-50">
                             <th className="border p-2 text-left">Item</th>

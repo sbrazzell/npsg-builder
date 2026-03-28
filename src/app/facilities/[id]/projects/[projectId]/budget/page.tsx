@@ -39,7 +39,7 @@ export default async function BudgetPage({
         { label: project.title, href: `/facilities/${id}/projects/${projectId}` },
         { label: 'Budget' },
       ]} />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader
           title="Budget Builder"
           description={`${project.title} — ${project.facility.facilityName}`}
@@ -75,7 +75,7 @@ export default async function BudgetPage({
               <Card>
                 <CardContent className="pt-0 px-0">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm min-w-[600px]">
                       <thead>
                         <tr className="border-b bg-slate-50">
                           <th className="text-left p-3 font-medium text-muted-foreground">Item</th>

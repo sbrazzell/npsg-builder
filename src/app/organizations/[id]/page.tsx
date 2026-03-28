@@ -53,7 +53,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
         { label: 'Organizations', href: '/organizations' },
         { label: org.name },
       ]} />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader
           title={org.name}
           description={[org.denomination, org.city && org.state && `${org.city}, ${org.state}`].filter(Boolean).join(' · ')}

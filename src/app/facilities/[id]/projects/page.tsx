@@ -46,7 +46,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ id: s
         { label: facility.facilityName, href: `/facilities/${id}` },
         { label: 'Project Proposals' },
       ]} />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <PageHeader
           title="Project Proposals"
           description={`Security improvement projects for ${facility.facilityName}`}
