@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/header'
 import { PageHeader } from '@/components/shared/page-header'
 import { MessageSquare } from 'lucide-react'
 import { NarrativeSection } from './narrative-section'
+import { generateNarrativeImprovements } from '@/lib/analyzer/recommendations'
 
 const NARRATIVE_SECTIONS = [
   { key: 'executive_summary', label: 'Executive Summary', description: 'High-level overview of the organization, facility, and grant request.' },
@@ -22,6 +23,8 @@ export default async function NarrativesPage({ params }: { params: Promise<{ id:
     where: { id },
     include: {
       organization: true,
+      threatAssessments: true,
+      projectProposals: true,
       narrativeDrafts: {
         orderBy: [{ sectionName: 'asc' }, { versionNumber: 'desc' }],
       },
@@ -35,6 +38,17 @@ export default async function NarrativesPage({ params }: { params: Promise<{ id:
   for (const draft of facility.narrativeDrafts) {
     if (!latestDrafts.has(draft.sectionName)) {
       latestDrafts.set(draft.sectionName, draft)
+    }
+  }
+
+  // Compute improvement suggestions per section
+  const improvements = new Map<string, { detectedWeaknesses: string[]; suggestedRewrite: string }>()
+  for (const section of NARRATIVE_SECTIONS) {
+    const draft = latestDrafts.get(section.key)
+    const currentText = draft?.editedText || draft?.generatedText || ''
+    const result = generateNarrativeImprovements(section.key, currentText, facility)
+    if (result.detectedWeaknesses.length > 0) {
+      improvements.set(section.key, result)
     }
   }
 
@@ -66,6 +80,7 @@ export default async function NarrativesPage({ params }: { params: Promise<{ id:
                 sectionLabel={section.label}
                 sectionDescription={section.description}
                 draft={draft || null}
+                improvement={improvements.get(section.key)}
               />
             )
           })}
