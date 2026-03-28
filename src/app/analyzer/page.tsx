@@ -49,6 +49,15 @@ export default async function AnalyzerListPage() {
         <PageHeader
           title="Grant Strength Analyzer"
           description="Select a facility to analyze its grant application strength across five key dimensions."
+          action={
+            <Link
+              href="/analyzer/benchmark"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+            >
+              Compare All
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          }
         />
 
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 rounded-xl p-5 text-white mb-8">
