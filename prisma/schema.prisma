@@ -1,0 +1,164 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Organization {
+  id                    String     @id @default(cuid())
+  name                  String
+  denomination          String?
+  address               String?
+  city                  String?
+  state                 String?
+  zip                   String?
+  contactName           String?
+  contactEmail          String?
+  contactPhone          String?
+  einOrTaxId            String?
+  notes                 String?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  facilities            Facility[]
+}
+
+model Facility {
+  id                    String                  @id @default(cuid())
+  organizationId        String
+  organization          Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  facilityName          String
+  address               String?
+  occupancyNotes        String?
+  populationServed      String?
+  daysHoursOfOperation  String?
+  childrensAreasNotes   String?
+  parkingLotNotes       String?
+  surroundingAreaNotes  String?
+  publicAccessNotes     String?
+  knownSecurityConcerns String?
+  notes                 String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  threatAssessments     ThreatAssessment[]
+  securityMeasures      ExistingSecurityMeasure[]
+  projectProposals      ProjectProposal[]
+  siteObservations      SiteObservation[]
+  narrativeDrafts       NarrativeDraft[]
+  applicationPackets    ApplicationPacket[]
+}
+
+model ThreatAssessment {
+  id                  String    @id @default(cuid())
+  facilityId          String
+  facility            Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  threatType          String
+  description         String?
+  likelihood          Int       @default(3)
+  impact              Int       @default(3)
+  vulnerabilityNotes  String?
+  incidentHistory     String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  projectLinks        ProjectThreatLink[]
+}
+
+model ExistingSecurityMeasure {
+  id                  String    @id @default(cuid())
+  facilityId          String
+  facility            Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  category            String
+  description         String?
+  effectivenessRating Int       @default(3)
+  gapsRemaining       String?
+  notes               String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model ProjectProposal {
+  id                      String    @id @default(cuid())
+  facilityId              String
+  facility                Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  title                   String
+  category                String?
+  problemStatement        String?
+  proposedSolution        String?
+  riskReductionRationale  String?
+  implementationNotes     String?
+  priority                Int       @default(3)
+  status                  String    @default("draft")
+  notes                   String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  budgetItems             BudgetItem[]
+  threatLinks             ProjectThreatLink[]
+}
+
+model ProjectThreatLink {
+  id                String          @id @default(cuid())
+  projectId         String
+  project           ProjectProposal @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  threatId          String
+  threat            ThreatAssessment @relation(fields: [threatId], references: [id], onDelete: Cascade)
+  @@unique([projectId, threatId])
+}
+
+model BudgetItem {
+  id              String          @id @default(cuid())
+  projectId       String
+  project         ProjectProposal @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  itemName        String
+  category        String?
+  quantity        Int             @default(1)
+  unitCost        Float           @default(0)
+  totalCost       Float           @default(0)
+  vendorName      String?
+  vendorUrl       String?
+  justification   String?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model NarrativeDraft {
+  id              String    @id @default(cuid())
+  facilityId      String
+  facility        Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  sectionName     String
+  promptContext   String?
+  generatedText   String?
+  editedText      String?
+  versionNumber   Int       @default(1)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model SiteObservation {
+  id                  String    @id @default(cuid())
+  facilityId          String
+  facility            Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  title               String
+  locationDescription String?
+  observationType     String?
+  severity            Int       @default(3)
+  notes               String?
+  photoFilename       String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model ApplicationPacket {
+  id          String    @id @default(cuid())
+  facilityId  String
+  facility    Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  title       String
+  summary     String?
+  status      String    @default("draft")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
