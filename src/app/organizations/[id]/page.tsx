@@ -40,10 +40,12 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
 
   const totalThreats = org.facilities.reduce<number>((s, f) => s + f.threatAssessments.length, 0)
   const totalProjects = org.facilities.reduce<number>((s, f) => s + f.projectProposals.length, 0)
-  const totalBudget = org.facilities
-    .flatMap(f => f.projectProposals)
-    .flatMap(p => p.budgetItems)
-    .reduce<number>((s, b) => s + b.totalCost, 0)
+  let totalBudget = 0
+  for (const f of org.facilities) {
+    for (const p of f.projectProposals) {
+      for (const b of p.budgetItems) { totalBudget += b.totalCost }
+    }
+  }
 
   return (
     <div>
@@ -164,9 +166,10 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
             ) : (
               <div className="space-y-3">
                 {org.facilities.map((facility) => {
-                  const budget = facility.projectProposals
-                    .flatMap(p => p.budgetItems)
-                    .reduce<number>((s, b) => s + b.totalCost, 0)
+                  let budget = 0
+                  for (const p of facility.projectProposals) {
+                    for (const b of p.budgetItems) { budget += b.totalCost }
+                  }
                   return (
                     <Link key={facility.id} href={`/facilities/${facility.id}`}>
                       <Card className="hover:shadow-md transition-shadow cursor-pointer">

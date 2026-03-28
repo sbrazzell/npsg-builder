@@ -36,9 +36,10 @@ async function getDashboardData() {
 
   const openProposals = projects.filter((p) => p.status !== "submitted").length;
 
-  const totalBudget = projects
-    .flatMap(p => p.budgetItems)
-    .reduce<number>((s, b) => s + b.totalCost, 0);
+  let totalBudget = 0
+  for (const p of projects) {
+    for (const b of p.budgetItems) { totalBudget += b.totalCost }
+  }
 
   return { orgCount, facilityCount, highRiskThreats, openProposals, totalBudget, projects };
 }

@@ -49,9 +49,10 @@ export default async function FacilitiesPage() {
               return score > max ? score : max
             }, 0)
             const riskLevel = maxRiskScore > 0 ? getRiskLevel(maxRiskScore) : null
-            const totalBudget = facility.projectProposals
-              .flatMap(p => p.budgetItems)
-              .reduce<number>((s, b) => s + b.totalCost, 0)
+            let totalBudget = 0
+            for (const p of facility.projectProposals) {
+              for (const b of p.budgetItems) { totalBudget += b.totalCost }
+            }
 
             return (
               <Link key={facility.id} href={`/facilities/${facility.id}`}>
