@@ -111,8 +111,8 @@ export default async function DashboardPage() {
       value: orgCount,
       icon: Building2,
       href: "/organizations",
-      color: "text-blue-600",
-      bg: "bg-blue-50",
+      color: "text-indigo-600",
+      bg: "bg-indigo-50",
     },
     {
       label: "Facilities",
@@ -149,37 +149,35 @@ export default async function DashboardPage() {
   ];
 
   const typeColors: Record<string, string> = {
-    facility: "bg-violet-100 text-violet-700",
-    threat: "bg-red-100 text-red-700",
-    project: "bg-blue-100 text-blue-700",
+    facility: "bg-violet-50 text-violet-700 border-violet-200",
+    threat: "bg-red-50 text-red-700 border-red-200",
+    project: "bg-indigo-50 text-indigo-700 border-indigo-200",
   };
 
   return (
-    <div className="p-4 md:p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-blue-600 rounded-lg">
-            <Shield className="h-6 w-6 text-white" />
-          </div>
+    <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      {/* Welcome hero bar */}
+      <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 rounded-xl p-6 text-white mb-6">
+        <div className="flex items-center gap-3">
+          <Shield className="h-7 w-7 text-indigo-200 flex-shrink-0" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">NSGP Builder</h1>
-            <p className="text-sm text-muted-foreground">Nonprofit Security Grant Program Planner</p>
+            <h1 className="text-xl font-semibold tracking-tight">NSGP Builder</h1>
+            <p className="text-sm text-indigo-200 mt-0.5">Nonprofit Security Grant Program Planner — manage organizations, facilities, threats, and proposals.</p>
           </div>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {stats.map((stat) => (
           <Link key={stat.label} href={stat.href}>
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="pt-5 pb-4">
+            <Card className="bg-white border border-slate-200 shadow-sm rounded-xl hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="pt-6 pb-6 px-6">
                 <div className={`inline-flex p-2 rounded-lg ${stat.bg} mb-3`}>
                   <stat.icon className={`h-4 w-4 ${stat.color}`} />
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+                <p className="text-3xl font-bold text-slate-900 tracking-tight">{stat.value}</p>
+                <p className="text-sm text-slate-500 mt-0.5">{stat.label}</p>
               </CardContent>
             </Card>
           </Link>
@@ -188,22 +186,22 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Recent Activity</CardTitle>
+        <Card className="bg-white border border-slate-200 shadow-sm rounded-xl">
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
             {recentActivity.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
+              <p className="text-sm text-slate-500 py-4 text-center">
                 No activity yet. Start by adding an organization.
               </p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="divide-y divide-slate-100">
                 {recentActivity.map((item, i) => (
                   <li key={i}>
                     <Link
                       href={item.href}
-                      className="flex items-center gap-3 text-sm hover:bg-slate-50 rounded-md px-2 py-1.5 -mx-2 transition-colors"
+                      className="flex items-center gap-3 text-sm hover:bg-slate-50 rounded-md px-2 py-2.5 -mx-2 transition-colors"
                     >
                       <Badge
                         variant="outline"
@@ -212,10 +210,10 @@ export default async function DashboardPage() {
                         {item.type}
                       </Badge>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 truncate">{item.label}</p>
-                        <p className="text-xs text-muted-foreground truncate">{item.sub}</p>
+                        <p className="font-medium text-slate-900 truncate">{item.label}</p>
+                        <p className="text-xs text-slate-400 truncate">{item.sub}</p>
                       </div>
-                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      <ArrowRight className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
                     </Link>
                   </li>
                 ))}
@@ -224,10 +222,10 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Quick Links */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Quick Actions</CardTitle>
+        {/* Quick Actions */}
+        <Card className="bg-white border border-slate-200 shadow-sm rounded-xl">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-2">
@@ -257,9 +255,9 @@ export default async function DashboardPage() {
               </Button>
             </div>
 
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                <strong>Getting started:</strong> Add an organization, then add facilities. For each
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <p className="text-xs text-slate-400 leading-relaxed">
+                <strong className="text-slate-600">Getting started:</strong> Add an organization, then add facilities. For each
                 facility, document threats, existing security measures, project proposals, and
                 narratives before exporting your application packet.
               </p>

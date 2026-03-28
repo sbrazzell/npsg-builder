@@ -38,7 +38,7 @@ export default function RootLayout({
             <Sidebar />
           </div>
           <div className="flex-1 flex flex-col bg-slate-50 overflow-auto min-w-0">
-            <header className="h-12 border-b border-slate-200 bg-white flex items-center justify-between px-4 shrink-0">
+            <header className="h-12 border-b border-slate-200 bg-white shadow-sm flex items-center justify-between px-4 shrink-0">
               <MobileNav />
               <UserMenu />
             </header>

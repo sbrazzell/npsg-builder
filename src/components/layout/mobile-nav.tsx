@@ -72,9 +72,9 @@ export function MobileNav() {
                     href={item.href}
                     onClick={() => setOpen(false)}
                     className={cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                      'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
                       isActive
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-indigo-600/20 text-indigo-300 font-medium'
                         : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                     )}
                   >
@@ -87,16 +87,16 @@ export function MobileNav() {
           </ul>
 
           <div className="mt-8">
-            <p className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Settings</p>
+            <p className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Settings</p>
             <ul className="space-y-1">
               <li>
                 <Link
                   href="/settings"
                   onClick={() => setOpen(false)}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                    'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
                     pathname === '/settings'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-indigo-600/20 text-indigo-300 font-medium'
                       : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                   )}
                 >
