@@ -12,12 +12,14 @@ import {
   Settings,
   Menu,
   X,
+  BarChart2,
 } from 'lucide-react'
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/organizations', label: 'Organizations', icon: Building2 },
   { href: '/facilities', label: 'Facilities', icon: MapPin },
+  { href: '/analyzer', label: 'Analyzer', icon: BarChart2 },
 ]
 
 export function MobileNav() {

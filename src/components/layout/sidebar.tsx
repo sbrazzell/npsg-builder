@@ -9,6 +9,7 @@ import {
   MapPin,
   Shield,
   Settings,
+  BarChart2,
 } from 'lucide-react'
 
 const navItems = [
@@ -26,6 +27,11 @@ const navItems = [
     href: '/facilities',
     label: 'Facilities',
     icon: MapPin,
+  },
+  {
+    href: '/analyzer',
+    label: 'Analyzer',
+    icon: BarChart2,
   },
 ]
 
