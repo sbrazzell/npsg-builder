@@ -6,11 +6,11 @@ import { getFacility, updateFacility, deleteFacility } from '@/actions/facilitie
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { PageHeader } from '@/components/shared/page-header'
 import { Header } from '@/components/layout/header'
+import { AiAssistTextarea } from '@/components/shared/ai-assist-textarea'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { use } from 'react'
@@ -30,6 +30,15 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
   }, [id])
 
   if (!facility) return <div className="p-8 text-muted-foreground">Loading...</div>
+
+  // Context passed to AI assist — enriches suggestions with facility info
+  const aiContext = {
+    'Facility Name': facility.facilityName,
+    'Organization': facility.organization?.name,
+    'Address': facility.address,
+    'Population Served': facility.populationServed,
+    'Days / Hours': facility.daysHoursOfOperation,
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -107,7 +116,7 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
 
           <Card className="mb-4">
             <CardHeader>
-              <CardTitle className="text-base">Occupancy & Operations</CardTitle>
+              <CardTitle className="text-base">Occupancy &amp; Operations</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4">
               <div>
@@ -120,7 +129,16 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
               </div>
               <div>
                 <Label htmlFor="occupancyNotes">Occupancy Notes</Label>
-                <Textarea id="occupancyNotes" name="occupancyNotes" defaultValue={facility.occupancyNotes || ''} className="mt-1" rows={2} />
+                <AiAssistTextarea
+                  id="occupancyNotes"
+                  name="occupancyNotes"
+                  fieldLabel="Occupancy Notes"
+                  context={aiContext}
+                  initialValue={facility.occupancyNotes || ''}
+                  placeholder="Describe typical attendance, peak occupancy times, major gatherings..."
+                  className="mt-1"
+                  rows={2}
+                />
               </div>
             </CardContent>
           </Card>
@@ -132,27 +150,81 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
             <CardContent className="grid gap-4">
               <div>
                 <Label htmlFor="childrensAreasNotes">Children&apos;s Areas</Label>
-                <Textarea id="childrensAreasNotes" name="childrensAreasNotes" defaultValue={facility.childrensAreasNotes || ''} className="mt-1" rows={2} />
+                <AiAssistTextarea
+                  id="childrensAreasNotes"
+                  name="childrensAreasNotes"
+                  fieldLabel="Children's Areas"
+                  context={aiContext}
+                  initialValue={facility.childrensAreasNotes || ''}
+                  placeholder="Nursery, classrooms, playground areas — who uses them and when..."
+                  className="mt-1"
+                  rows={2}
+                />
               </div>
               <div>
                 <Label htmlFor="parkingLotNotes">Parking Lot</Label>
-                <Textarea id="parkingLotNotes" name="parkingLotNotes" defaultValue={facility.parkingLotNotes || ''} className="mt-1" rows={2} />
+                <AiAssistTextarea
+                  id="parkingLotNotes"
+                  name="parkingLotNotes"
+                  fieldLabel="Parking Lot"
+                  context={aiContext}
+                  initialValue={facility.parkingLotNotes || ''}
+                  placeholder="Size, lighting conditions, visibility, access points..."
+                  className="mt-1"
+                  rows={2}
+                />
               </div>
               <div>
                 <Label htmlFor="surroundingAreaNotes">Surrounding Area</Label>
-                <Textarea id="surroundingAreaNotes" name="surroundingAreaNotes" defaultValue={facility.surroundingAreaNotes || ''} className="mt-1" rows={2} />
+                <AiAssistTextarea
+                  id="surroundingAreaNotes"
+                  name="surroundingAreaNotes"
+                  fieldLabel="Surrounding Area"
+                  context={aiContext}
+                  initialValue={facility.surroundingAreaNotes || ''}
+                  placeholder="Neighborhood context, proximity to other institutions, area characteristics..."
+                  className="mt-1"
+                  rows={2}
+                />
               </div>
               <div>
                 <Label htmlFor="publicAccessNotes">Public Access</Label>
-                <Textarea id="publicAccessNotes" name="publicAccessNotes" defaultValue={facility.publicAccessNotes || ''} className="mt-1" rows={2} />
+                <AiAssistTextarea
+                  id="publicAccessNotes"
+                  name="publicAccessNotes"
+                  fieldLabel="Public Access"
+                  context={aiContext}
+                  initialValue={facility.publicAccessNotes || ''}
+                  placeholder="Who can enter, how, visitor management, open vs. restricted areas..."
+                  className="mt-1"
+                  rows={2}
+                />
               </div>
               <div>
                 <Label htmlFor="knownSecurityConcerns">Known Security Concerns</Label>
-                <Textarea id="knownSecurityConcerns" name="knownSecurityConcerns" defaultValue={facility.knownSecurityConcerns || ''} className="mt-1" rows={3} />
+                <AiAssistTextarea
+                  id="knownSecurityConcerns"
+                  name="knownSecurityConcerns"
+                  fieldLabel="Known Security Concerns"
+                  context={aiContext}
+                  initialValue={facility.knownSecurityConcerns || ''}
+                  placeholder="Specific vulnerabilities staff have identified, prior incidents, gaps in current security..."
+                  className="mt-1"
+                  rows={3}
+                />
               </div>
               <div>
                 <Label htmlFor="notes">Additional Notes</Label>
-                <Textarea id="notes" name="notes" defaultValue={facility.notes || ''} className="mt-1" rows={2} />
+                <AiAssistTextarea
+                  id="notes"
+                  name="notes"
+                  fieldLabel="Additional Notes"
+                  context={aiContext}
+                  initialValue={facility.notes || ''}
+                  placeholder="Any other relevant details..."
+                  className="mt-1"
+                  rows={2}
+                />
               </div>
             </CardContent>
           </Card>
@@ -217,10 +289,15 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
               </div>
               <div>
                 <Label htmlFor="lawEnforcementFindings">Key Findings / Summary</Label>
-                <Textarea
+                <AiAssistTextarea
                   id="lawEnforcementFindings"
                   name="lawEnforcementFindings"
-                  defaultValue={facility.lawEnforcementFindings || ''}
+                  fieldLabel="Key Findings / Summary"
+                  context={{
+                    ...aiContext,
+                    'Law Enforcement Agency': facility.lawEnforcementAgency,
+                  }}
+                  initialValue={facility.lawEnforcementFindings || ''}
                   placeholder="Summarize the threats or vulnerabilities identified by law enforcement..."
                   className="mt-1"
                   rows={4}
