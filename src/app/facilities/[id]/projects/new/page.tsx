@@ -6,10 +6,10 @@ import { createProject } from '@/actions/projects'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/shared/page-header'
 import { Header } from '@/components/layout/header'
+import { AiAssistTextarea } from '@/components/shared/ai-assist-textarea'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { use } from 'react'
@@ -32,6 +32,8 @@ export default function NewProjectPage({ params }: { params: Promise<{ id: strin
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [priority, setPriority] = useState(3)
+  const [projectTitle, setProjectTitle] = useState('')
+  const [projectCategory, setProjectCategory] = useState('')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -60,6 +62,12 @@ export default function NewProjectPage({ params }: { params: Promise<{ id: strin
     }
   }
 
+  const aiContext = {
+    'Project Title': projectTitle,
+    'Project Category': projectCategory,
+    'Priority': `${priority}/5`,
+  }
+
   return (
     <div>
       <Header breadcrumbs={[
@@ -82,11 +90,27 @@ export default function NewProjectPage({ params }: { params: Promise<{ id: strin
             <CardContent className="grid gap-4">
               <div>
                 <Label htmlFor="title">Project Title *</Label>
-                <Input id="title" name="title" required placeholder="Perimeter Fencing & Anti-Ram Barriers" className="mt-1" />
+                <Input
+                  id="title"
+                  name="title"
+                  required
+                  placeholder="Perimeter Fencing & Anti-Ram Barriers"
+                  className="mt-1"
+                  value={projectTitle}
+                  onChange={(e) => setProjectTitle(e.target.value)}
+                />
               </div>
               <div>
                 <Label htmlFor="category">Category</Label>
-                <Input id="category" name="category" list="categoryList" placeholder="Select or type a category" className="mt-1" />
+                <Input
+                  id="category"
+                  name="category"
+                  list="categoryList"
+                  placeholder="Select or type a category"
+                  className="mt-1"
+                  value={projectCategory}
+                  onChange={(e) => setProjectCategory(e.target.value)}
+                />
                 <datalist id="categoryList">
                   {CATEGORIES.map((c) => <option key={c} value={c} />)}
                 </datalist>
@@ -113,9 +137,11 @@ export default function NewProjectPage({ params }: { params: Promise<{ id: strin
             <CardContent className="grid gap-4">
               <div>
                 <Label htmlFor="problemStatement">Problem Statement</Label>
-                <Textarea
+                <AiAssistTextarea
                   id="problemStatement"
                   name="problemStatement"
+                  fieldLabel="Problem Statement"
+                  context={aiContext}
                   placeholder="Describe the specific security problem this project addresses..."
                   className="mt-1"
                   rows={3}
@@ -124,9 +150,11 @@ export default function NewProjectPage({ params }: { params: Promise<{ id: strin
               </div>
               <div>
                 <Label htmlFor="proposedSolution">Proposed Solution</Label>
-                <Textarea
+                <AiAssistTextarea
                   id="proposedSolution"
                   name="proposedSolution"
+                  fieldLabel="Proposed Solution"
+                  context={aiContext}
                   placeholder="Describe the proposed security improvement in detail..."
                   className="mt-1"
                   rows={3}
@@ -134,9 +162,11 @@ export default function NewProjectPage({ params }: { params: Promise<{ id: strin
               </div>
               <div>
                 <Label htmlFor="riskReductionRationale">Risk Reduction Rationale</Label>
-                <Textarea
+                <AiAssistTextarea
                   id="riskReductionRationale"
                   name="riskReductionRationale"
+                  fieldLabel="Risk Reduction Rationale"
+                  context={aiContext}
                   placeholder="How specifically does this project reduce the identified risks?"
                   className="mt-1"
                   rows={3}
@@ -153,9 +183,11 @@ export default function NewProjectPage({ params }: { params: Promise<{ id: strin
             <CardContent className="grid gap-4">
               <div>
                 <Label htmlFor="implementationNotes">Implementation Notes</Label>
-                <Textarea
+                <AiAssistTextarea
                   id="implementationNotes"
                   name="implementationNotes"
+                  fieldLabel="Implementation Notes"
+                  context={aiContext}
                   placeholder="Timeline, vendor considerations, installation approach, phasing..."
                   className="mt-1"
                   rows={3}
@@ -163,7 +195,15 @@ export default function NewProjectPage({ params }: { params: Promise<{ id: strin
               </div>
               <div>
                 <Label htmlFor="notes">Additional Notes</Label>
-                <Textarea id="notes" name="notes" placeholder="Any other relevant notes." className="mt-1" rows={2} />
+                <AiAssistTextarea
+                  id="notes"
+                  name="notes"
+                  fieldLabel="Additional Notes"
+                  context={aiContext}
+                  placeholder="Any other relevant notes."
+                  className="mt-1"
+                  rows={2}
+                />
               </div>
             </CardContent>
           </Card>

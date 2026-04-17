@@ -46,21 +46,28 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 min-h-screen bg-white border-r border-slate-200 flex flex-col">
+    <aside
+      className="w-64 min-h-screen flex flex-col"
+      style={{
+        background: 'linear-gradient(160deg, oklch(0.18 0.06 264) 0%, oklch(0.13 0.03 250) 60%, oklch(0.11 0.02 240) 100%)',
+      }}
+    >
       {/* Logo / Brand */}
-      <div className="px-6 py-5 border-b border-slate-200">
-        <div className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-indigo-600" />
+      <div className="px-5 py-5 border-b border-white/8">
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl p-2" style={{ background: 'oklch(0.47 0.18 264 / 0.35)' }}>
+            <Shield className="h-5 w-5 text-indigo-300" />
+          </div>
           <div>
-            <p className="font-bold text-slate-900 leading-none">NSGP Builder</p>
-            <p className="text-xs text-slate-400 mt-0.5">Security Grant Planner</p>
+            <p className="font-bold text-white leading-none tracking-tight text-sm">NSGP Builder</p>
+            <p className="text-xs mt-0.5" style={{ color: 'oklch(0.7 0.06 264)' }}>Security Grant Planner</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4">
-        <ul className="space-y-1">
+        <ul className="space-y-0.5">
           {navItems.map((item) => {
             const isActive =
               item.href === '/'
@@ -71,16 +78,26 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                    'group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                     isActive
-                      ? 'bg-indigo-50 text-indigo-700 font-medium'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      ? 'text-white'
+                      : 'text-slate-400 hover:text-white hover:bg-white/8'
                   )}
+                  style={isActive ? {
+                    background: 'oklch(0.47 0.18 264 / 0.35)',
+                    boxShadow: 'inset 0 0 0 1px oklch(0.65 0.18 264 / 0.3)',
+                  } : undefined}
                 >
-                  <item.icon className="h-4 w-4 flex-shrink-0" />
-                  {item.label}
+                  <item.icon
+                    className={cn(
+                      'h-4 w-4 flex-shrink-0 transition-colors duration-200',
+                      isActive ? 'text-indigo-300' : 'text-slate-500 group-hover:text-slate-300'
+                    )}
+                  />
+                  <span className="flex-1">{item.label}</span>
                   {(item as any).highlight && !isActive && (
-                    <span className="ml-auto text-xs font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                    <span className="text-xs font-semibold px-1.5 py-0.5 rounded-md"
+                      style={{ background: 'oklch(0.8 0.15 55 / 0.25)', color: 'oklch(0.85 0.15 55)' }}>
                       Now
                     </span>
                   )}
@@ -91,21 +108,31 @@ export function Sidebar() {
         </ul>
 
         <div className="mt-8">
-          <p className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">
+          <p className="px-3 text-xs font-semibold uppercase tracking-widest mb-2"
+            style={{ color: 'oklch(0.45 0.03 250)' }}>
             Settings
           </p>
-          <ul className="space-y-1">
+          <ul className="space-y-0.5">
             <li>
               <Link
                 href="/settings"
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                  'group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                   pathname === '/settings'
-                    ? 'bg-indigo-50 text-indigo-700 font-medium'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-white/8'
                 )}
+                style={pathname === '/settings' ? {
+                  background: 'oklch(0.47 0.18 264 / 0.35)',
+                  boxShadow: 'inset 0 0 0 1px oklch(0.65 0.18 264 / 0.3)',
+                } : undefined}
               >
-                <Settings className="h-4 w-4 flex-shrink-0" />
+                <Settings
+                  className={cn(
+                    'h-4 w-4 flex-shrink-0 transition-colors duration-200',
+                    pathname === '/settings' ? 'text-indigo-300' : 'text-slate-500 group-hover:text-slate-300'
+                  )}
+                />
                 Settings
               </Link>
             </li>
@@ -114,8 +141,10 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-6 py-4 border-t border-slate-200">
-        <p className="text-xs text-slate-400">Local-first. Your data stays here.</p>
+      <div className="px-5 py-4 border-t border-white/8">
+        <p className="text-xs" style={{ color: 'oklch(0.42 0.03 250)' }}>
+          Local-first · Your data stays here
+        </p>
       </div>
     </aside>
   )

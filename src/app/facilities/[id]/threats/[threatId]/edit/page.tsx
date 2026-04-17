@@ -6,10 +6,10 @@ import { updateThreat } from '@/actions/threats'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/shared/page-header'
 import { Header } from '@/components/layout/header'
+import { AiAssistTextarea } from '@/components/shared/ai-assist-textarea'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { use } from 'react'
@@ -139,10 +139,12 @@ export default function EditThreatPage({ params }: { params: Promise<{ id: strin
               </div>
               <div>
                 <Label htmlFor="description">Description</Label>
-                <Textarea
+                <AiAssistTextarea
                   id="description"
                   name="description"
-                  defaultValue={defaults.description || ''}
+                  fieldLabel="Description"
+                  context={{ 'Threat Type': defaults.threatType, 'Likelihood': `${likelihood}/5`, 'Impact': `${impact}/5` }}
+                  initialValue={defaults.description || ''}
                   placeholder="Describe how this threat manifests at this facility..."
                   className="mt-1"
                   rows={3}
@@ -252,10 +254,12 @@ export default function EditThreatPage({ params }: { params: Promise<{ id: strin
             <CardContent className="grid gap-4">
               <div>
                 <Label htmlFor="vulnerabilityNotes">Why is this facility vulnerable?</Label>
-                <Textarea
+                <AiAssistTextarea
                   id="vulnerabilityNotes"
                   name="vulnerabilityNotes"
-                  defaultValue={defaults.vulnerabilityNotes || ''}
+                  fieldLabel="Why is this facility vulnerable?"
+                  context={{ 'Threat Type': defaults.threatType, 'Likelihood': `${likelihood}/5`, 'Impact': `${impact}/5` }}
+                  initialValue={defaults.vulnerabilityNotes || ''}
                   placeholder="Describe the specific conditions that make this threat more likely or impactful here..."
                   className="mt-1"
                   rows={3}
@@ -264,10 +268,12 @@ export default function EditThreatPage({ params }: { params: Promise<{ id: strin
               </div>
               <div>
                 <Label htmlFor="incidentHistory">Incident History</Label>
-                <Textarea
+                <AiAssistTextarea
                   id="incidentHistory"
                   name="incidentHistory"
-                  defaultValue={defaults.incidentHistory || ''}
+                  fieldLabel="Incident History"
+                  context={{ 'Threat Type': defaults.threatType, 'Likelihood': `${likelihood}/5`, 'Impact': `${impact}/5` }}
+                  initialValue={defaults.incidentHistory || ''}
                   placeholder="Describe any prior incidents, near-misses, or reports related to this threat..."
                   className="mt-1"
                   rows={3}

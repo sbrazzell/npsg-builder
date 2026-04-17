@@ -6,10 +6,10 @@ import { createThreat } from '@/actions/threats'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/shared/page-header'
 import { Header } from '@/components/layout/header'
+import { AiAssistTextarea } from '@/components/shared/ai-assist-textarea'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { use } from 'react'
@@ -37,6 +37,7 @@ export default function NewThreatPage({ params }: { params: Promise<{ id: string
   const [likelihood, setLikelihood] = useState(3)
   const [impact, setImpact] = useState(3)
   const [source, setSource] = useState('self_assessed')
+  const [threatType, setThreatType] = useState('')
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -68,6 +69,13 @@ export default function NewThreatPage({ params }: { params: Promise<{ id: string
   const level = score <= 4 ? 'Low' : score <= 9 ? 'Medium' : score <= 16 ? 'High' : 'Critical'
   const levelColor = score <= 4 ? 'text-green-700 bg-green-50' : score <= 9 ? 'text-yellow-700 bg-yellow-50' : score <= 16 ? 'text-orange-700 bg-orange-50' : 'text-red-700 bg-red-50'
 
+  const aiContext = {
+    'Threat Type': threatType,
+    'Likelihood': `${likelihood}/5`,
+    'Impact': `${impact}/5`,
+    'Assessment Source': THREAT_SOURCES.find(s => s.value === source)?.label,
+  }
+
   return (
     <div>
       <Header breadcrumbs={[
@@ -97,6 +105,8 @@ export default function NewThreatPage({ params }: { params: Promise<{ id: string
                   list="threatTypeList"
                   placeholder="Select or type a threat type"
                   className="mt-1"
+                  value={threatType}
+                  onChange={(e) => setThreatType(e.target.value)}
                 />
                 <datalist id="threatTypeList">
                   {THREAT_TYPES.map((t) => <option key={t} value={t} />)}
@@ -105,9 +115,11 @@ export default function NewThreatPage({ params }: { params: Promise<{ id: string
               </div>
               <div>
                 <Label htmlFor="description">Description</Label>
-                <Textarea
+                <AiAssistTextarea
                   id="description"
                   name="description"
+                  fieldLabel="Description"
+                  context={aiContext}
                   placeholder="Describe how this threat manifests at this facility..."
                   className="mt-1"
                   rows={3}
@@ -206,9 +218,11 @@ export default function NewThreatPage({ params }: { params: Promise<{ id: string
             <CardContent className="grid gap-4">
               <div>
                 <Label htmlFor="vulnerabilityNotes">Why is this facility vulnerable?</Label>
-                <Textarea
+                <AiAssistTextarea
                   id="vulnerabilityNotes"
                   name="vulnerabilityNotes"
+                  fieldLabel="Why is this facility vulnerable?"
+                  context={aiContext}
                   placeholder="Describe the specific conditions that make this threat more likely or impactful here..."
                   className="mt-1"
                   rows={3}
@@ -217,9 +231,11 @@ export default function NewThreatPage({ params }: { params: Promise<{ id: string
               </div>
               <div>
                 <Label htmlFor="incidentHistory">Incident History</Label>
-                <Textarea
+                <AiAssistTextarea
                   id="incidentHistory"
                   name="incidentHistory"
+                  fieldLabel="Incident History"
+                  context={aiContext}
                   placeholder="Describe any prior incidents, near-misses, or reports related to this threat..."
                   className="mt-1"
                   rows={3}
