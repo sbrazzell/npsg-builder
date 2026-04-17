@@ -37,8 +37,8 @@ export default function RootLayout({
           <div className="hidden md:flex md:flex-shrink-0">
             <Sidebar />
           </div>
-          <div className="flex-1 flex flex-col bg-slate-50 overflow-auto min-w-0">
-            <header className="h-12 border-b border-slate-200 bg-white shadow-sm flex items-center justify-between px-4 shrink-0">
+          <div className="flex-1 flex flex-col bg-background overflow-auto min-w-0">
+            <header className="h-12 border-b border-border bg-white/80 backdrop-blur-sm flex items-center justify-between px-4 shrink-0 sticky top-0 z-30">
               <MobileNav />
               <UserMenu />
             </header>
