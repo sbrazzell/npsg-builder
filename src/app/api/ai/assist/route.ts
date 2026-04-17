@@ -72,7 +72,7 @@ Write ONLY the field content — no preamble, no labels, no explanation. Write i
     const client = new Anthropic({ apiKey })
 
     const message = await client.messages.create({
-      model: 'claude-haiku-4-5',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     })
@@ -81,8 +81,30 @@ Write ONLY the field content — no preamble, no labels, no explanation. Write i
       message.content[0].type === 'text' ? message.content[0].text.trim() : ''
 
     return NextResponse.json({ suggestion })
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('AI assist error:', err)
-    return NextResponse.json({ error: 'AI generation failed. Check your API key and try again.' }, { status: 500 })
+    // Surface a specific message for common API errors
+    if (err && typeof err === 'object' && 'status' in err) {
+      const status = (err as { status: number }).status
+      if (status === 401) {
+        return NextResponse.json(
+          { error: 'Invalid API key (401). Generate a new key at console.anthropic.com and update ANTHROPIC_API_KEY in .env.', noKey: true },
+          { status: 503 }
+        )
+      }
+      if (status === 404) {
+        return NextResponse.json(
+          { error: 'Model not found (404). Check that your API account has access to Claude.' },
+          { status: 503 }
+        )
+      }
+      if (status === 429) {
+        return NextResponse.json(
+          { error: 'Rate limited (429). Wait a moment and try again.' },
+          { status: 429 }
+        )
+      }
+    }
+    return NextResponse.json({ error: 'AI generation failed. Check server logs for details.' }, { status: 500 })
   }
 }
