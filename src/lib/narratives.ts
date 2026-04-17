@@ -117,40 +117,89 @@ function generateExecutiveSummary(facility: any): string {
 export async function generateNarrative(req: NarrativeRequest): Promise<NarrativeResult> {
   const provider = (process.env.NARRATIVE_PROVIDER as NarrativeProvider) || 'template'
 
-  if (provider === 'template') {
-    let text = ''
-
-    switch (req.section) {
-      case 'threat_overview':
-        text = generateThreatOverview(req.facility)
-        break
-      case 'vulnerability_statement':
-        text = generateVulnerabilityStatement(req.facility)
-        break
-      case 'project_justification':
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        text = generateProjectJustification(req.facility?.projectProposals?.[0] || req.context || {})
-        break
-      case 'budget_rationale':
-        text = generateBudgetRationale(req.facility?.projectProposals?.[0]?.budgetItems || [])
-        break
-      case 'implementation_approach':
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        text = generateImplementationApproach(req.facility?.projectProposals?.[0] || req.context || {})
-        break
-      case 'executive_summary':
-        text = generateExecutiveSummary(req.facility)
-        break
-      default:
-        text = `This section covers ${req.section.replace(/_/g, ' ')} for ${req.facility?.facilityName || 'the facility'}. Please edit this draft to reflect specific details about your organization's security needs and proposed solutions.`
+  if (provider === 'anthropic') {
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (apiKey) {
+      const text = await generateNarrativeWithClaude(req, apiKey)
+      return { text, provider: 'anthropic' }
     }
-
-    return { text, provider: 'template' }
   }
 
-  // Future: openai / anthropic implementations
-  return {
-    text: `Narrative generation via ${provider} is not yet configured. Please set the appropriate API key in your environment variables.`,
-    provider: 'template',
+  // Template fallback
+  let text = ''
+
+  switch (req.section) {
+    case 'threat_overview':
+      text = generateThreatOverview(req.facility)
+      break
+    case 'vulnerability_statement':
+      text = generateVulnerabilityStatement(req.facility)
+      break
+    case 'project_justification':
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      text = generateProjectJustification(req.facility?.projectProposals?.[0] || req.context || {})
+      break
+    case 'budget_rationale':
+      text = generateBudgetRationale(req.facility?.projectProposals?.[0]?.budgetItems || [])
+      break
+    case 'implementation_approach':
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      text = generateImplementationApproach(req.facility?.projectProposals?.[0] || req.context || {})
+      break
+    case 'executive_summary':
+      text = generateExecutiveSummary(req.facility)
+      break
+    default:
+      text = `This section covers ${req.section.replace(/_/g, ' ')} for ${req.facility?.facilityName || 'the facility'}. Please edit this draft to reflect specific details about your organization's security needs and proposed solutions.`
   }
+
+  return { text, provider: 'template' }
+}
+
+async function generateNarrativeWithClaude(req: NarrativeRequest, apiKey: string): Promise<string> {
+  const { default: Anthropic } = await import('@anthropic-ai/sdk')
+  const client = new Anthropic({ apiKey })
+
+  const facility = req.facility
+  const sectionLabel = req.section.replace(/_/g, ' ')
+
+  const threats = facility?.threatAssessments || []
+  const projects = facility?.projectProposals || []
+  const measures = facility?.securityMeasures || []
+
+  let totalBudget = 0
+  for (const p of projects) {
+    for (const b of (p.budgetItems || [])) { totalBudget += b.totalCost }
+  }
+
+  const prompt = `You are a professional grant writer specializing in FEMA Nonprofit Security Grant Program (NSGP) applications. Write the "${sectionLabel}" section for the following facility.
+
+Write 2-4 paragraphs of polished, grant-ready prose. Be specific, use the data provided, and write in formal professional English. Do not include headers or section labels — only the body text.
+
+Facility: ${facility?.facilityName ?? 'Unknown'}
+Organization: ${facility?.organization?.name ?? 'Unknown'}
+Address: ${facility?.address ?? 'Not provided'}
+Population served: ${facility?.populationServed ?? 'Not specified'}
+Days/hours of operation: ${facility?.daysHoursOfOperation ?? 'Not specified'}
+Known security concerns: ${facility?.knownSecurityConcerns ?? 'None listed'}
+Surrounding area notes: ${facility?.surroundingAreaNotes ?? 'None'}
+
+Threats documented (${threats.length}): ${threats.map((t: { threatType: string; likelihood: number; impact: number }) => `${t.threatType} (likelihood ${t.likelihood}, impact ${t.impact})`).join('; ') || 'None'}
+
+Existing security measures (${measures.length}): ${measures.map((m: { category: string; effectivenessRating: number }) => `${m.category} (effectiveness ${m.effectivenessRating}/5)`).join('; ') || 'None'}
+
+Projects proposed (${projects.length}): ${projects.map((p: { title: string; category: string }) => `${p.title} (${p.category})`).join('; ') || 'None'}
+Total budget requested: $${totalBudget.toLocaleString()}
+
+${req.context ? `Additional context: ${req.context}` : ''}
+
+Write the "${sectionLabel}" section now:`
+
+  const message = await client.messages.create({
+    model: 'claude-opus-4-6',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  return message.content[0].type === 'text' ? message.content[0].text : ''
 }

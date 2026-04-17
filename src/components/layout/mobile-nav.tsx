@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   BarChart2,
+  ClipboardList,
 } from 'lucide-react'
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
   { href: '/organizations', label: 'Organizations', icon: Building2 },
   { href: '/facilities', label: 'Facilities', icon: MapPin },
   { href: '/analyzer', label: 'Analyzer', icon: BarChart2 },
+  { href: '/readiness', label: 'Readiness', icon: ClipboardList },
 ]
 
 export function MobileNav() {

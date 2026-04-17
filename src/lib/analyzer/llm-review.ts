@@ -1,12 +1,6 @@
+import Anthropic from '@anthropic-ai/sdk'
 import { AnalysisResult } from './types'
 
-/**
- * Run an LLM-powered review of the facility grant application data.
- *
- * MVP: function shell that validates API key presence and returns a graceful
- * fallback result if keys are not yet configured. Commented stubs show exactly
- * how to wire in Anthropic and OpenAI when keys are available.
- */
 export async function runLLMReview(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   facilityData: any,
@@ -17,22 +11,19 @@ export async function runLLMReview(
     if (!apiKey) {
       return {
         strengthsSummary:
-          '[LLM review mode is set to "anthropic" but ANTHROPIC_API_KEY is not configured. ' +
-          'Add your API key to .env to enable AI-powered review. Showing rule-based strengths above.]',
+          '[LLM review mode is set to "anthropic" but ANTHROPIC_API_KEY is not configured.]',
       }
     }
 
-    // --- Anthropic implementation (uncomment and install @anthropic-ai/sdk to enable) ---
-    // import Anthropic from '@anthropic-ai/sdk'
-    // const client = new Anthropic({ apiKey })
-    // const prompt = buildReviewPrompt(facilityData)
-    // const message = await client.messages.create({
-    //   model: 'claude-opus-4-5',
-    //   max_tokens: 1024,
-    //   messages: [{ role: 'user', content: prompt }],
-    // })
-    // const text = message.content[0].type === 'text' ? message.content[0].text : ''
-    // return parseReviewResponse(text)
+    const client = new Anthropic({ apiKey })
+    const prompt = buildReviewPrompt(facilityData)
+    const message = await client.messages.create({
+      model: 'claude-opus-4-6',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const text = message.content[0].type === 'text' ? message.content[0].text : ''
+    return parseReviewResponse(text)
   }
 
   if (provider === 'openai') {
@@ -40,59 +31,62 @@ export async function runLLMReview(
     if (!apiKey) {
       return {
         strengthsSummary:
-          '[LLM review mode is set to "openai" but OPENAI_API_KEY is not configured. ' +
-          'Add your API key to .env to enable AI-powered review. Showing rule-based strengths above.]',
+          '[LLM review mode is set to "openai" but OPENAI_API_KEY is not configured.]',
       }
     }
-
-    // --- OpenAI implementation (uncomment and install openai to enable) ---
-    // import OpenAI from 'openai'
-    // const client = new OpenAI({ apiKey })
-    // const prompt = buildReviewPrompt(facilityData)
-    // const completion = await client.chat.completions.create({
-    //   model: 'gpt-4o',
-    //   messages: [{ role: 'user', content: prompt }],
-    //   max_tokens: 1024,
-    // })
-    // const text = completion.choices[0]?.message?.content ?? ''
-    // return parseReviewResponse(text)
+    // OpenAI not yet wired — fall through
   }
 
   return {}
 }
 
-/**
- * Build the review prompt for LLM evaluation.
- * Uncomment and adapt when wiring in a real LLM provider.
- */
-// function buildReviewPrompt(facilityData: any): string {
-//   return `You are an expert grant reviewer for nonprofit security grant applications.
-// Review the following facility data and provide:
-// 1. A strengths summary (2-3 sentences)
-// 2. A weaknesses summary (2-3 sentences)
-// 3. Three priority fixes (numbered list)
-//
-// Facility: ${facilityData?.facilityName ?? 'Unknown'}
-// Threat count: ${facilityData?.threatAssessments?.length ?? 0}
-// Project count: ${facilityData?.projectProposals?.length ?? 0}
-// Narrative count: ${facilityData?.narrativeDrafts?.length ?? 0}
-//
-// Respond in JSON: { "strengthsSummary": "...", "weaknessesSummary": "...", "priorityFixesSummary": "..." }`
-// }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildReviewPrompt(facilityData: any): string {
+  const threats = facilityData?.threatAssessments || []
+  const projects = facilityData?.projectProposals || []
+  const measures = facilityData?.securityMeasures || []
+  const narratives = facilityData?.narrativeDrafts || []
 
-/**
- * Parse the LLM response JSON into a partial AnalysisResult.
- * Uncomment and adapt when wiring in a real LLM provider.
- */
-// function parseReviewResponse(text: string): Partial<AnalysisResult> {
-//   try {
-//     const json = JSON.parse(text)
-//     return {
-//       strengthsSummary: json.strengthsSummary,
-//       weaknessesSummary: json.weaknessesSummary,
-//       priorityFixesSummary: json.priorityFixesSummary,
-//     }
-//   } catch {
-//     return { strengthsSummary: text }
-//   }
-// }
+  const highRiskThreats = threats.filter(
+    (t: { likelihood: number; impact: number }) => t.likelihood * t.impact >= 12
+  )
+
+  let totalBudget = 0
+  for (const p of projects) {
+    for (const b of (p.budgetItems || [])) { totalBudget += b.totalCost }
+  }
+
+  return `You are an expert reviewer for the FEMA Nonprofit Security Grant Program (NSGP). Evaluate this facility's grant application data and provide actionable feedback.
+
+Facility: ${facilityData?.facilityName ?? 'Unknown'}
+Population served: ${facilityData?.populationServed ?? 'Not specified'}
+Known security concerns: ${facilityData?.knownSecurityConcerns ?? 'None listed'}
+
+Threats documented: ${threats.length} (${highRiskThreats.length} high-risk)
+Existing security measures: ${measures.length}
+Projects proposed: ${projects.length}
+Total budget requested: $${totalBudget.toLocaleString()}
+Narrative sections drafted: ${narratives.length}
+
+Project titles: ${projects.map((p: { title: string }) => p.title).join(', ') || 'None'}
+
+Respond ONLY with valid JSON in this exact shape:
+{
+  "strengthsSummary": "2-3 sentences on what this application does well",
+  "weaknessesSummary": "2-3 sentences on the biggest gaps or weaknesses",
+  "priorityFixesSummary": "3 numbered action items the applicant should address before submission"
+}`
+}
+
+function parseReviewResponse(text: string): Partial<AnalysisResult> {
+  try {
+    const json = JSON.parse(text)
+    return {
+      strengthsSummary: json.strengthsSummary,
+      weaknessesSummary: json.weaknessesSummary,
+      priorityFixesSummary: json.priorityFixesSummary,
+    }
+  } catch {
+    return { strengthsSummary: text }
+  }
+}

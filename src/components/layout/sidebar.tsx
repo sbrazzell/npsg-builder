@@ -10,6 +10,7 @@ import {
   Shield,
   Settings,
   BarChart2,
+  ClipboardList,
 } from 'lucide-react'
 
 const navItems = [
@@ -32,6 +33,12 @@ const navItems = [
     href: '/analyzer',
     label: 'Analyzer',
     icon: BarChart2,
+  },
+  {
+    href: '/readiness',
+    label: 'Readiness',
+    icon: ClipboardList,
+    highlight: true,
   },
 ]
 
@@ -72,6 +79,11 @@ export function Sidebar() {
                 >
                   <item.icon className="h-4 w-4 flex-shrink-0" />
                   {item.label}
+                  {(item as any).highlight && !isActive && (
+                    <span className="ml-auto text-xs font-semibold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                      Now
+                    </span>
+                  )}
                 </Link>
               </li>
             )

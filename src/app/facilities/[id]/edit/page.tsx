@@ -49,6 +49,11 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
       publicAccessNotes: formData.get('publicAccessNotes') as string || undefined,
       knownSecurityConcerns: formData.get('knownSecurityConcerns') as string || undefined,
       notes: formData.get('notes') as string || undefined,
+      lawEnforcementAgency: formData.get('lawEnforcementAgency') as string || undefined,
+      lawEnforcementContactName: formData.get('lawEnforcementContactName') as string || undefined,
+      lawEnforcementContactDate: formData.get('lawEnforcementContactDate') as string || undefined,
+      lawEnforcementResponseDate: formData.get('lawEnforcementResponseDate') as string || undefined,
+      lawEnforcementFindings: formData.get('lawEnforcementFindings') as string || undefined,
     })
 
     if (result.success) {
@@ -148,6 +153,81 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
               <div>
                 <Label htmlFor="notes">Additional Notes</Label>
                 <Textarea id="notes" name="notes" defaultValue={facility.notes || ''} className="mt-1" rows={2} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                🚔 Law Enforcement Threat Assessment
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-800">
+                <strong>NSGP tip:</strong> Reaching out to your local Police or Sheriff&apos;s Department for a threat assessment strengthens your application. Document that outreach here once completed.
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="lawEnforcementAgency">Agency Name</Label>
+                  <Input
+                    id="lawEnforcementAgency"
+                    name="lawEnforcementAgency"
+                    defaultValue={facility.lawEnforcementAgency || ''}
+                    placeholder="e.g., Springfield Police Dept."
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lawEnforcementContactName">Officer / Contact Name</Label>
+                  <Input
+                    id="lawEnforcementContactName"
+                    name="lawEnforcementContactName"
+                    defaultValue={facility.lawEnforcementContactName || ''}
+                    placeholder="Name of officer or liaison"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="lawEnforcementContactDate">Date Requested</Label>
+                  <Input
+                    id="lawEnforcementContactDate"
+                    name="lawEnforcementContactDate"
+                    type="date"
+                    defaultValue={facility.lawEnforcementContactDate
+                      ? new Date(facility.lawEnforcementContactDate).toISOString().split('T')[0]
+                      : ''}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lawEnforcementResponseDate">Date Assessment Received</Label>
+                  <Input
+                    id="lawEnforcementResponseDate"
+                    name="lawEnforcementResponseDate"
+                    type="date"
+                    defaultValue={facility.lawEnforcementResponseDate
+                      ? new Date(facility.lawEnforcementResponseDate).toISOString().split('T')[0]
+                      : ''}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="lawEnforcementFindings">Key Findings / Summary</Label>
+                <Textarea
+                  id="lawEnforcementFindings"
+                  name="lawEnforcementFindings"
+                  defaultValue={facility.lawEnforcementFindings || ''}
+                  placeholder="Summarize the threats or vulnerabilities identified by law enforcement..."
+                  className="mt-1"
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  These findings can be cited in your Threat Overview narrative and give FEMA reviewers confidence in your risk assessment.
+                </p>
               </div>
             </CardContent>
           </Card>
