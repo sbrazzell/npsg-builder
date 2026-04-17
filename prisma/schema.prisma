@@ -42,6 +42,12 @@ model Facility {
   publicAccessNotes     String?
   knownSecurityConcerns String?
   notes                 String?
+  // Law enforcement threat assessment tracking
+  lawEnforcementAgency         String?
+  lawEnforcementContactName    String?
+  lawEnforcementContactDate    DateTime?
+  lawEnforcementResponseDate   DateTime?
+  lawEnforcementFindings       String?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   threatAssessments     ThreatAssessment[]
@@ -51,6 +57,7 @@ model Facility {
   narrativeDrafts       NarrativeDraft[]
   applicationPackets    ApplicationPacket[]
   grantAnalyses         GrantAnalysis[]
+  applicationDrafts     ApplicationDraft[]
 }
 
 model ThreatAssessment {
@@ -63,6 +70,9 @@ model ThreatAssessment {
   impact              Int       @default(3)
   vulnerabilityNotes  String?
   incidentHistory     String?
+  // Source of this threat assessment
+  source              String    @default("self_assessed")
+  sourceAgency        String?
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   projectLinks        ProjectThreatLink[]
@@ -162,6 +172,19 @@ model ApplicationPacket {
   status      String    @default("draft")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+model ApplicationDraft {
+  id           String   @id @default(cuid())
+  facilityId   String
+  facility     Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  version      Int
+  status       String   @default("draft")
+  title        String
+  notes        String?
+  snapshotJson String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model GrantAnalysis {

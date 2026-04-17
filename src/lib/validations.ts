@@ -29,9 +29,23 @@ export const facilitySchema = z.object({
   publicAccessNotes: z.string().optional(),
   knownSecurityConcerns: z.string().optional(),
   notes: z.string().optional(),
+  lawEnforcementAgency: z.string().optional(),
+  lawEnforcementContactName: z.string().optional(),
+  lawEnforcementContactDate: z.string().optional(),
+  lawEnforcementResponseDate: z.string().optional(),
+  lawEnforcementFindings: z.string().optional(),
 })
 
 export type FacilityInput = z.infer<typeof facilitySchema>
+
+export const THREAT_SOURCES = [
+  { value: 'self_assessed', label: 'Self-Assessed' },
+  { value: 'law_enforcement', label: 'Law Enforcement' },
+  { value: 'third_party', label: 'Third-Party Assessment' },
+  { value: 'media_reports', label: 'Media / Public Reports' },
+] as const
+
+export type ThreatSource = typeof THREAT_SOURCES[number]['value']
 
 export const threatAssessmentSchema = z.object({
   facilityId: z.string().min(1, 'Facility is required'),
@@ -41,6 +55,8 @@ export const threatAssessmentSchema = z.object({
   impact: z.number().int().min(1).max(5).default(3),
   vulnerabilityNotes: z.string().optional(),
   incidentHistory: z.string().optional(),
+  source: z.string().default('self_assessed'),
+  sourceAgency: z.string().optional(),
 })
 
 export type ThreatAssessmentInput = z.infer<typeof threatAssessmentSchema>

@@ -8,8 +8,9 @@ import { Header } from '@/components/layout/header'
 import { EmptyState } from '@/components/shared/empty-state'
 import { RiskBadge } from '@/components/shared/risk-badge'
 import { calculateRiskScore, getRiskLevel, getRiskColor } from '@/lib/scoring'
-import { AlertTriangle, Plus } from 'lucide-react'
+import { AlertTriangle, BadgeCheck, Plus } from 'lucide-react'
 import { ThreatActions } from './threat-actions'
+import { THREAT_SOURCES } from '@/lib/validations'
 
 export default async function ThreatsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -74,9 +75,22 @@ export default async function ThreatsPage({ params }: { params: Promise<{ id: st
                   <CardContent className="pt-4 pb-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h3 className="font-semibold text-gray-900">{threat.threatType}</h3>
                           <RiskBadge likelihood={threat.likelihood} impact={threat.impact} />
+                          {(threat as any).source && (threat as any).source !== 'self_assessed' && (
+                            <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                              (threat as any).source === 'law_enforcement'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                : (threat as any).source === 'third_party'
+                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                : 'bg-slate-50 text-slate-600 border border-slate-200'
+                            }`}>
+                              {(threat as any).source === 'law_enforcement' && <BadgeCheck className="h-3 w-3" />}
+                              {THREAT_SOURCES.find(s => s.value === (threat as any).source)?.label ?? (threat as any).source}
+                              {(threat as any).sourceAgency ? ` — ${(threat as any).sourceAgency}` : ''}
+                            </span>
+                          )}
                         </div>
                         {threat.description && (
                           <p className="text-sm text-muted-foreground mb-2">{threat.description}</p>

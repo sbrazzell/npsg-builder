@@ -10,7 +10,7 @@ import { RiskBadge } from '@/components/shared/risk-badge'
 import { calculateRiskScore, getRiskLevel, formatCurrency } from '@/lib/scoring'
 import {
   Edit, Plus, AlertTriangle, Shield, FileText, MessageSquare, Eye, Download,
-  ClipboardCheck, MapPin, ChevronRight, DollarSign,
+  ClipboardCheck, MapPin, ChevronRight, DollarSign, BadgeCheck, FolderOpen,
 } from 'lucide-react'
 
 export default async function FacilityPage({ params }: { params: Promise<{ id: string }> }) {
@@ -27,6 +27,7 @@ export default async function FacilityPage({ params }: { params: Promise<{ id: s
       },
       siteObservations: { orderBy: { createdAt: 'desc' }, take: 3 },
       narrativeDrafts: { orderBy: { updatedAt: 'desc' }, take: 5 },
+      applicationDrafts: { orderBy: { version: 'desc' }, take: 1 },
     },
   })
 
@@ -42,12 +43,16 @@ export default async function FacilityPage({ params }: { params: Promise<{ id: s
     return level === 'high' || level === 'critical'
   }).length
 
+  const latestDraft = (facility as any).applicationDrafts?.[0] ?? null
+  const finalDraft = latestDraft?.status === 'final' ? latestDraft : null
+
   const navItems = [
     { label: 'Threat Assessments', href: `/facilities/${id}/threats`, icon: AlertTriangle, count: facility.threatAssessments.length, color: 'text-red-600', bg: 'bg-red-50' },
     { label: 'Security Measures', href: `/facilities/${id}/measures`, icon: Shield, count: facility.securityMeasures.length, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Projects', href: `/facilities/${id}/projects`, icon: FileText, count: facility.projectProposals.length, color: 'text-violet-600', bg: 'bg-violet-50' },
     { label: 'Narratives', href: `/facilities/${id}/narratives`, icon: MessageSquare, count: facility.narrativeDrafts.length, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Site Observations', href: `/facilities/${id}/observations`, icon: Eye, count: facility.siteObservations.length, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Filings & Forms', href: `/facilities/${id}/filings`, icon: FolderOpen, count: (facility as any).applicationDrafts?.length ?? 0, color: finalDraft ? 'text-emerald-600' : 'text-indigo-600', bg: finalDraft ? 'bg-emerald-50' : 'bg-indigo-50' },
     { label: 'Review & Scorecard', href: `/facilities/${id}/review`, icon: ClipboardCheck, count: null, color: 'text-slate-600', bg: 'bg-slate-50' },
     { label: 'Export', href: `/facilities/${id}/export`, icon: Download, count: null, color: 'text-gray-600', bg: 'bg-gray-50' },
   ]
@@ -123,6 +128,43 @@ export default async function FacilityPage({ params }: { params: Promise<{ id: s
             </Link>
           ))}
         </div>
+
+        {/* Law Enforcement Assessment Banner */}
+        {!(facility as any).lawEnforcementAgency ? (
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
+            <BadgeCheck className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-800">Law enforcement threat assessment not yet on file</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Contact your local Police or Sheriff&apos;s Department to request a facility threat assessment — this significantly strengthens your NSGP application.
+              </p>
+            </div>
+            <Button asChild size="sm" variant="outline" className="shrink-0 border-amber-300 text-amber-800 hover:bg-amber-100">
+              <Link href={`/facilities/${id}/edit#law-enforcement`}>Log Outreach</Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 flex items-start gap-3">
+            <BadgeCheck className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-blue-800">
+                Law Enforcement Assessment — {(facility as any).lawEnforcementAgency}
+                {(facility as any).lawEnforcementContactName ? ` · ${(facility as any).lawEnforcementContactName}` : ''}
+              </p>
+              <p className="text-xs text-blue-700 mt-0.5">
+                {(facility as any).lawEnforcementResponseDate
+                  ? `Received ${new Date((facility as any).lawEnforcementResponseDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+                  : (facility as any).lawEnforcementContactDate
+                  ? `Requested ${new Date((facility as any).lawEnforcementContactDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} — awaiting response`
+                  : 'Outreach on file'}
+                {(facility as any).lawEnforcementFindings ? ` · Findings documented` : ''}
+              </p>
+            </div>
+            <Button asChild size="sm" variant="ghost" className="shrink-0 text-blue-700">
+              <Link href={`/facilities/${id}/edit`}>Edit</Link>
+            </Button>
+          </div>
+        )}
 
         {/* Details & Recent */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

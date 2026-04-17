@@ -57,7 +57,14 @@ export async function createFacility(input: FacilityInput) {
   }
 
   try {
-    const facility = await prisma.facility.create({ data: parsed.data })
+    const { lawEnforcementContactDate, lawEnforcementResponseDate, ...rest } = parsed.data
+    const facility = await prisma.facility.create({
+      data: {
+        ...rest,
+        lawEnforcementContactDate: lawEnforcementContactDate ? new Date(lawEnforcementContactDate) : null,
+        lawEnforcementResponseDate: lawEnforcementResponseDate ? new Date(lawEnforcementResponseDate) : null,
+      },
+    })
     revalidatePath('/facilities')
     revalidatePath(`/organizations/${parsed.data.organizationId}`)
     return { success: true, data: facility }
@@ -73,9 +80,14 @@ export async function updateFacility(id: string, input: FacilityInput) {
   }
 
   try {
+    const { lawEnforcementContactDate, lawEnforcementResponseDate, ...rest } = parsed.data
     const facility = await prisma.facility.update({
       where: { id },
-      data: parsed.data,
+      data: {
+        ...rest,
+        lawEnforcementContactDate: lawEnforcementContactDate ? new Date(lawEnforcementContactDate) : null,
+        lawEnforcementResponseDate: lawEnforcementResponseDate ? new Date(lawEnforcementResponseDate) : null,
+      },
     })
     revalidatePath('/facilities')
     revalidatePath(`/facilities/${id}`)
