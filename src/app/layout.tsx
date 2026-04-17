@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
@@ -17,6 +17,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  axes: ["opsz"],
+  style: ["normal", "italic"],
+});
+
 export const metadata: Metadata = {
   title: "NSGP Builder",
   description: "Nonprofit Security Grant Program Application Builder",
@@ -30,7 +37,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full flex">
         <AuthSessionProvider>
@@ -38,7 +45,7 @@ export default function RootLayout({
             <Sidebar />
           </div>
           <div className="flex-1 flex flex-col bg-background overflow-auto min-w-0">
-            <header className="h-12 border-b border-border bg-white/80 backdrop-blur-sm flex items-center justify-between px-4 shrink-0 sticky top-0 z-30">
+            <header className="h-12 border-b border-border bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 shrink-0 sticky top-0 z-30">
               <MobileNav />
               <UserMenu />
             </header>

@@ -8,20 +8,20 @@ import {
   LayoutDashboard,
   Building2,
   MapPin,
-  Shield,
   Settings,
   Menu,
   X,
   BarChart2,
   ClipboardList,
+  FileText,
 } from 'lucide-react'
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/organizations', label: 'Organizations', icon: Building2 },
-  { href: '/facilities', label: 'Facilities', icon: MapPin },
-  { href: '/analyzer', label: 'Analyzer', icon: BarChart2 },
-  { href: '/readiness', label: 'Readiness', icon: ClipboardList },
+  { href: '/',              label: 'Dashboard',       icon: LayoutDashboard },
+  { href: '/organizations', label: 'Organizations',   icon: Building2 },
+  { href: '/facilities',    label: 'Facilities',      icon: MapPin },
+  { href: '/analyzer',      label: 'Analyzer',        icon: BarChart2 },
+  { href: '/readiness',     label: 'Readiness',       icon: ClipboardList },
 ]
 
 export function MobileNav() {
@@ -32,7 +32,8 @@ export function MobileNav() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="p-2 rounded-md text-slate-600 hover:bg-slate-100 md:hidden"
+        className="p-1.5 rounded-sm hover:bg-black/5 md:hidden transition-colors"
+        style={{ color: 'var(--ink-3)' }}
         aria-label="Open menu"
       >
         <Menu className="h-5 w-5" />
@@ -41,7 +42,8 @@ export function MobileNav() {
       {/* Backdrop */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 z-40 md:hidden"
+          style={{ background: 'rgba(26,24,20,0.4)', backdropFilter: 'blur(2px)' }}
           onClick={() => setOpen(false)}
         />
       )}
@@ -49,101 +51,119 @@ export function MobileNav() {
       {/* Drawer */}
       <div
         className={cn(
-          'fixed top-0 left-0 h-full w-64 z-50 flex flex-col transition-transform duration-250 md:hidden',
+          'fixed top-0 left-0 h-full w-[248px] z-50 flex flex-col transition-transform duration-200 md:hidden',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
-        style={{
-          background: 'linear-gradient(160deg, oklch(0.18 0.06 264) 0%, oklch(0.13 0.03 250) 60%, oklch(0.11 0.02 240) 100%)',
-        }}
+        style={{ background: 'var(--paper-2)', borderRight: '1px solid var(--rule)' }}
       >
-        <div className="px-5 py-5 border-b border-white/8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl p-2" style={{ background: 'oklch(0.47 0.18 264 / 0.35)' }}>
-              <Shield className="h-5 w-5 text-indigo-300" />
+        {/* Brand */}
+        <div className="px-[22px] py-[18px] border-b flex gap-3 items-start justify-between"
+          style={{ borderColor: 'var(--rule)' }}>
+          <div className="flex gap-3 items-start">
+            <div
+              className="w-[34px] h-[34px] flex-shrink-0 flex items-center justify-center rounded-sm relative"
+              style={{ background: 'var(--nav-accent)', color: '#fff' }}
+            >
+              <span className="font-serif font-bold text-[18px] leading-none">N</span>
+              <span className="absolute inset-[3px] border border-white/20 rounded-[1px] pointer-events-none" />
             </div>
             <div>
-              <p className="font-bold text-white leading-none tracking-tight text-sm">NSGP Builder</p>
-              <p className="text-xs mt-0.5" style={{ color: 'oklch(0.7 0.06 264)' }}>Security Grant Planner</p>
+              <p className="font-serif font-semibold text-[15px] leading-[1.15]"
+                style={{ color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+                NSGP Builder
+              </p>
+              <p className="text-[10.5px] mt-0.5" style={{ color: 'var(--ink-3)' }}>
+                Security Grant Planner
+              </p>
             </div>
           </div>
           <button
             onClick={() => setOpen(false)}
-            className="text-slate-500 hover:text-white transition-colors p-1 rounded"
+            className="p-1 rounded-sm transition-colors mt-0.5"
+            style={{ color: 'var(--ink-4)' }}
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-4">
-          <ul className="space-y-0.5">
-            {navItems.map((item) => {
-              const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      'group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                      isActive
-                        ? 'text-white'
-                        : 'text-slate-400 hover:text-white hover:bg-white/8'
-                    )}
-                    style={isActive ? {
-                      background: 'oklch(0.47 0.18 264 / 0.35)',
-                      boxShadow: 'inset 0 0 0 1px oklch(0.65 0.18 264 / 0.3)',
-                    } : undefined}
-                  >
-                    <item.icon
-                      className={cn(
-                        'h-4 w-4 flex-shrink-0 transition-colors duration-200',
-                        isActive ? 'text-indigo-300' : 'text-slate-500 group-hover:text-slate-300'
-                      )}
-                    />
-                    {item.label}
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
-
-          <div className="mt-8">
-            <p className="px-3 text-xs font-semibold uppercase tracking-widest mb-2"
-              style={{ color: 'oklch(0.45 0.03 250)' }}>
-              Settings
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-3.5 overflow-y-auto">
+          <div className="mb-1">
+            <p className="px-3 mb-2 font-mono-label" style={{ color: 'var(--ink-4)', fontSize: '10px' }}>
+              Workspace
             </p>
             <ul className="space-y-0.5">
+              {navItems.map((item) => {
+                const isActive = item.href === '/'
+                  ? pathname === '/'
+                  : pathname.startsWith(item.href)
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        'relative flex items-center gap-2.5 px-3 py-1.5 rounded-sm text-[13px] font-medium transition-colors duration-150',
+                        isActive
+                          ? 'bg-white text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--rule)]'
+                          : 'text-[var(--ink-3)] hover:bg-black/5 hover:text-[var(--ink)]'
+                      )}
+                    >
+                      {isActive && (
+                        <span className="absolute left-0 top-[8px] bottom-[8px] w-[2px] rounded-r-[1px]"
+                          style={{ background: 'var(--nav-accent)', transform: 'translateX(-12px)' }} />
+                      )}
+                      <item.icon className={cn('h-[15px] w-[15px] flex-shrink-0',
+                        isActive ? 'text-[var(--nav-accent)]' : 'text-[var(--ink-4)]'
+                      )} />
+                      <span className="flex-1">{item.label}</span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+
+          <div className="mt-6">
+            <p className="px-3 mb-2 font-mono-label" style={{ color: 'var(--ink-4)', fontSize: '10px' }}>
+              Review
+            </p>
+            <ul className="space-y-0.5">
+              <li>
+                <Link
+                  href="/facilities"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-1.5 rounded-sm text-[13px] font-medium text-[var(--ink-3)] hover:bg-black/5 hover:text-[var(--ink)] transition-colors duration-150"
+                >
+                  <FileText className="h-[15px] w-[15px] flex-shrink-0 text-[var(--ink-4)]" />
+                  <span>Filings &amp; Drafts</span>
+                </Link>
+              </li>
               <li>
                 <Link
                   href="/settings"
                   onClick={() => setOpen(false)}
                   className={cn(
-                    'group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                    'relative flex items-center gap-2.5 px-3 py-1.5 rounded-sm text-[13px] font-medium transition-colors duration-150',
                     pathname === '/settings'
-                      ? 'text-white'
-                      : 'text-slate-400 hover:text-white hover:bg-white/8'
+                      ? 'bg-white text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--rule)]'
+                      : 'text-[var(--ink-3)] hover:bg-black/5 hover:text-[var(--ink)]'
                   )}
-                  style={pathname === '/settings' ? {
-                    background: 'oklch(0.47 0.18 264 / 0.35)',
-                    boxShadow: 'inset 0 0 0 1px oklch(0.65 0.18 264 / 0.3)',
-                  } : undefined}
                 >
-                  <Settings
-                    className={cn(
-                      'h-4 w-4 flex-shrink-0',
-                      pathname === '/settings' ? 'text-indigo-300' : 'text-slate-500 group-hover:text-slate-300'
-                    )}
-                  />
-                  Settings
+                  <Settings className={cn('h-[15px] w-[15px] flex-shrink-0',
+                    pathname === '/settings' ? 'text-[var(--nav-accent)]' : 'text-[var(--ink-4)]'
+                  )} />
+                  <span>Settings</span>
                 </Link>
               </li>
             </ul>
           </div>
         </nav>
 
-        <div className="px-5 py-4 border-t border-white/8">
-          <p className="text-xs" style={{ color: 'oklch(0.42 0.03 250)' }}>
-            Local-first · Your data stays here
+        {/* Footer */}
+        <div className="px-5 py-3 border-t" style={{ borderColor: 'var(--rule-2)' }}>
+          <p className="text-[10.5px]" style={{ color: 'var(--ink-4)' }}>
+            FY2026 Application Cycle
           </p>
         </div>
       </div>
