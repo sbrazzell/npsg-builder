@@ -71,7 +71,6 @@ function SiteMap({ address }: { address?: string | null }) {
       href={mapsUrl}
       target="_blank"
       rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
       className="w-[160px] h-[105px] flex-shrink-0 rounded-sm overflow-hidden border block hover:opacity-90 transition-opacity"
       style={{ borderColor: 'var(--rule)' }}
       title={`Open ${address} in Google Maps`}
