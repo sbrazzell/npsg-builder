@@ -11,6 +11,7 @@ import {
   BarChart2,
   ClipboardList,
   FileText,
+  BookOpen,
 } from 'lucide-react'
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
   { href: '/facilities',    label: 'Facilities',   icon: MapPin },
   { href: '/analyzer',      label: 'Analyzer',     icon: BarChart2 },
   { href: '/readiness',     label: 'Readiness',    icon: ClipboardList },
+  { href: '/guide',         label: 'Guide',        icon: BookOpen },
 ]
 
 // Days remaining until the NSGP deadline (hardcoded to FY26 target)
