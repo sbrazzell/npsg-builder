@@ -12,7 +12,21 @@ function SiteMap({ address }: { address?: string | null }) {
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
     : null
 
-  const thumbnail = (
+  // Real map via Google Maps Static API — enabled when GOOGLE_MAPS_STATIC_KEY is set.
+  // Key lives server-side only; it's never sent to the browser.
+  const staticKey = process.env.GOOGLE_MAPS_STATIC_KEY
+  const staticMapUrl = address && staticKey
+    ? `https://maps.googleapis.com/maps/api/staticmap` +
+      `?center=${encodeURIComponent(address)}` +
+      `&zoom=15&size=320x210&scale=2&maptype=roadmap` +
+      // Suppress clutter at thumbnail scale
+      `&style=feature:poi%7Cvisibility:off` +
+      `&style=feature:transit%7Cvisibility:off` +
+      `&style=feature:administrative.neighborhood%7Cvisibility:off` +
+      `&key=${staticKey}`
+    : null
+
+  const svgFallback = (
     <svg
       viewBox="0 0 160 105"
       xmlns="http://www.w3.org/2000/svg"
@@ -57,11 +71,16 @@ function SiteMap({ address }: { address?: string | null }) {
     </svg>
   )
 
+  // eslint-disable-next-line @next/next/no-img-element
+  const mapContent = staticMapUrl
+    ? <img src={staticMapUrl} alt={address ?? 'Site map'} className="w-full h-full object-cover" />
+    : svgFallback
+
   if (!mapsUrl) {
     return (
       <div className="w-[160px] h-[105px] flex-shrink-0 rounded-sm overflow-hidden border"
         style={{ borderColor: 'var(--rule)' }}>
-        {thumbnail}
+        {mapContent}
       </div>
     )
   }
@@ -75,7 +94,7 @@ function SiteMap({ address }: { address?: string | null }) {
       style={{ borderColor: 'var(--rule)' }}
       title={`Open ${address} in Google Maps`}
     >
-      {thumbnail}
+      {mapContent}
     </a>
   )
 }
