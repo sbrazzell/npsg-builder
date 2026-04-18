@@ -63,8 +63,8 @@ export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnap
             <InfoRow label="Contact Phone" value={org.contactPhone} />
             <InfoRow label="Contact Email" value={org.contactEmail} />
             <InfoRow label="Organization Type" value="Nonprofit — 501(c)(3)" />
-            <InfoRow label="Facility Name" value={site.siteName} />
-            <InfoRow label="Facility Address" value={site.address || orgAddress} />
+            <InfoRow label="Site Name" value={site.siteName} />
+            <InfoRow label="Site Address" value={site.address || orgAddress} />
             <InfoRow label="Population Served" value={site.populationServed} />
             <InfoRow label="Hours of Operation" value={site.daysHoursOfOperation} />
           </div>

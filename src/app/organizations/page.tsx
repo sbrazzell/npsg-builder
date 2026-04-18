@@ -59,7 +59,7 @@ export default async function OrganizationsPage() {
                   <div className="flex items-center gap-3">
                     <Badge variant="secondary" className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
-                      {org.sites.length} {org.sites.length === 1 ? 'facility' : 'facilities'}
+                      {org.sites.length} {org.sites.length === 1 ? 'site' : 'sites'}
                     </Badge>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </div>

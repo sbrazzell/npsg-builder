@@ -48,7 +48,7 @@ export default async function AnalyzerListPage() {
       <div className="p-4 md:p-8 max-w-5xl mx-auto">
         <PageHeader
           title="Grant Strength Analyzer"
-          description="Select a facility to analyze its grant application strength across five key dimensions."
+          description="Select a site to analyze its grant application strength across five key dimensions."
           action={
             <Link
               href="/analyzer/benchmark"
@@ -121,11 +121,11 @@ export default async function AnalyzerListPage() {
         {unanalyzed.length > 0 && (
           <div>
             <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-3">
-              {analyzed.length > 0 ? 'Not Yet Analyzed' : 'Select a Facility'}
+              {analyzed.length > 0 ? 'Not Yet Analyzed' : 'Select a Site'}
             </h2>
             <div className="grid gap-3">
-              {unanalyzed.map((facility) => (
-                <Link key={facility.id} href={`/analyzer/${facility.id}`}>
+              {unanalyzed.map((site) => (
+                <Link key={site.id} href={`/analyzer/${site.id}`}>
                   <Card className="bg-white border border-slate-200 shadow-sm rounded-xl hover:shadow-md transition-shadow cursor-pointer">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
@@ -134,8 +134,8 @@ export default async function AnalyzerListPage() {
                             <Building2 className="h-4 w-4 text-slate-500" />
                           </div>
                           <div>
-                            <p className="font-semibold text-slate-900 text-sm">{facility.siteName}</p>
-                            <p className="text-xs text-slate-400">{facility.organization.name}</p>
+                            <p className="font-semibold text-slate-900 text-sm">{site.siteName}</p>
+                            <p className="text-xs text-slate-400">{site.organization.name}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -157,9 +157,9 @@ export default async function AnalyzerListPage() {
           <Card className="bg-white border border-slate-200 shadow-sm rounded-xl">
             <CardContent className="py-12 text-center">
               <Building2 className="h-8 w-8 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500 text-sm">No facilities found. Add a facility first before running an analysis.</p>
+              <p className="text-slate-500 text-sm">No sites found. Add a site first before running an analysis.</p>
               <Button asChild variant="outline" className="mt-4" size="sm">
-                <Link href="/sites/new">Add Facility</Link>
+                <Link href="/sites/new">Add Site</Link>
               </Button>
             </CardContent>
           </Card>

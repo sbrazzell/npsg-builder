@@ -26,14 +26,14 @@ function generateThreatOverview(facility: any): string {
     highRisk.length > 0
       ? `Of particular concern are ${highRisk.length} threat(s) rated at high or critical risk levels, indicating both significant likelihood of occurrence and potential for serious harm.`
       : 'Current threat assessments indicate moderate risk levels that, without mitigation, have the potential to escalate.'
-  } The facility${facility.surroundingAreaNotes ? `, situated in an area where ${facility.surroundingAreaNotes.toLowerCase()},` : ''} requires targeted security improvements to adequately protect the populations it serves.`
+  } The site${facility.surroundingAreaNotes ? `, situated in an area where ${facility.surroundingAreaNotes.toLowerCase()},` : ''} requires targeted security improvements to adequately protect the populations it serves.`
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function generateVulnerabilityStatement(facility: any): string {
-  const measures = facility.securityMeasures || []
-  const threats = facility.threatAssessments || []
-  const concerns = facility.knownSecurityConcerns
+function generateVulnerabilityStatement(site: any): string {
+  const measures = site.securityMeasures || []
+  const threats = site.threatAssessments || []
+  const concerns = site.knownSecurityConcerns
 
   const lowEffectiveness = measures.filter((m: { effectivenessRating: number }) => m.effectivenessRating <= 2)
   const gapsText = measures
@@ -41,11 +41,11 @@ function generateVulnerabilityStatement(facility: any): string {
     .map((m: { gapsRemaining: string }) => m.gapsRemaining)
     .join(' ')
 
-  return `Despite existing security measures${measures.length > 0 ? ` including ${measures.map((m: { category: string }) => m.category).join(', ')}` : ''}, ${facility.siteName} retains critical vulnerabilities that leave occupants exposed to foreseeable harm. ${
+  return `Despite existing security measures${measures.length > 0 ? ` including ${measures.map((m: { category: string }) => m.category).join(', ')}` : ''}, ${site.siteName} retains critical vulnerabilities that leave occupants exposed to foreseeable harm. ${
     lowEffectiveness.length > 0
       ? `${lowEffectiveness.length} of the current measures are rated as low effectiveness, indicating significant gaps in the security posture.`
       : ''
-  }${gapsText ? ` Key gaps include: ${gapsText}` : ''} ${concerns ? `Facility staff have identified the following known security concerns: ${concerns}` : ''} ${
+  }${gapsText ? ` Key gaps include: ${gapsText}` : ''} ${concerns ? `Site staff have identified the following known security concerns: ${concerns}` : ''} ${
     threats.length > 0
       ? `The identified threats—${threats.map((t: { threatType: string }) => t.threatType).join(', ')}—exploit these vulnerabilities directly, and without corrective investment, the risk of a security incident remains elevated.`
       : 'Without targeted investment in security infrastructure, the organization cannot ensure a reasonable standard of safety for those in its care.'
@@ -56,10 +56,10 @@ function generateVulnerabilityStatement(facility: any): string {
 function generateProjectJustification(project: any): string {
   const threatCount = project.threatLinks?.length || 0
 
-  return `The proposed project, "${project.title}", directly addresses${threatCount > 0 ? ` ${threatCount} documented threat(s)` : ' identified security vulnerabilities'} at the facility. ${
+  return `The proposed project, "${project.title}", directly addresses${threatCount > 0 ? ` ${threatCount} documented threat(s)` : ' identified security vulnerabilities'} at the site. ${
     project.problemStatement
       ? `The core problem is as follows: ${project.problemStatement}`
-      : 'The current security infrastructure is insufficient to adequately protect the facility.'
+      : 'The current security infrastructure is insufficient to adequately protect the site.'
   } ${
     project.proposedSolution
       ? `The proposed solution—${project.proposedSolution}—represents a targeted, cost-effective response to the identified risk.`
@@ -82,12 +82,12 @@ function generateBudgetRationale(items: any[]): string {
   const categories = [...new Set(items.map((i: { category: string | null }) => i.category).filter(Boolean))]
   const itemNames = items.map((i: { itemName: string }) => i.itemName).slice(0, 3).join(', ')
 
-  return `The total project budget of $${total.toLocaleString()} reflects current market pricing and is organized across ${categories.length > 0 ? `${categories.length} budget categories: ${categories.join(', ')}` : 'the following line items'}. Key expenditures include ${itemNames}${items.length > 3 ? `, and ${items.length - 3} additional items` : ''}. Each budget line item has been selected based on operational necessity and community pricing. The requested funding represents a targeted investment that would bring the facility into alignment with recommended non-profit security standards.`
+  return `The total project budget of $${total.toLocaleString()} reflects current market pricing and is organized across ${categories.length > 0 ? `${categories.length} budget categories: ${categories.join(', ')}` : 'the following line items'}. Key expenditures include ${itemNames}${items.length > 3 ? `, and ${items.length - 3} additional items` : ''}. Each budget line item has been selected based on operational necessity and community pricing. The requested funding represents a targeted investment that would bring the site into alignment with recommended non-profit security standards.`
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function generateImplementationApproach(project: any): string {
-  return `Implementation of "${project.title}" will follow a structured approach to minimize disruption to facility operations and ensure the long-term effectiveness of security improvements. ${
+  return `Implementation of "${project.title}" will follow a structured approach to minimize disruption to site operations and ensure the long-term effectiveness of security improvements. ${
     project.implementationNotes
       ? project.implementationNotes
       : 'The organization will engage qualified vendors through a competitive bid process, ensuring cost accountability and quality assurance throughout the installation.'
@@ -106,11 +106,11 @@ function generateExecutiveSummary(facility: any): string {
   return `${org?.name || 'The applicant organization'} respectfully submits this application for Nonprofit Security Grant Program funding to support security improvements at ${facility.siteName}${facility.address ? ` located at ${facility.address}` : ''}. ${
     facility.populationServed
       ? `The facility serves ${facility.populationServed}, representing a population that deserves the protection of a secure environment.`
-      : 'The facility serves community members who depend on a safe environment to access essential programs and services.'
+      : 'The site serves community members who depend on a safe environment to access essential programs and services.'
   } ${
     projects.length > 0
       ? `This application encompasses ${projects.length} security project${projects.length > 1 ? 's' : ''} totaling $${totalBudget.toLocaleString()} in requested funding.`
-      : 'This application outlines the security needs of the facility and the organization\'s commitment to addressing them.'
+      : 'This application outlines the security needs of the site and the organization\'s commitment to addressing them.'
   } The proposed improvements will meaningfully reduce the risk of targeted violence, unauthorized access, and other security incidents, allowing the organization to fulfill its mission with greater confidence in the safety of those it serves.`
 }
 
@@ -160,12 +160,12 @@ async function generateNarrativeWithClaude(req: NarrativeRequest, apiKey: string
   const { default: Anthropic } = await import('@anthropic-ai/sdk')
   const client = new Anthropic({ apiKey })
 
-  const facility = req.facility
+  const site = req.facility
   const sectionLabel = req.section.replace(/_/g, ' ')
 
-  const threats = facility?.threatAssessments || []
-  const projects = facility?.projectProposals || []
-  const measures = facility?.securityMeasures || []
+  const threats = site?.threatAssessments || []
+  const projects = site?.projectProposals || []
+  const measures = site?.securityMeasures || []
 
   let totalBudget = 0
   for (const p of projects) {
@@ -176,13 +176,13 @@ async function generateNarrativeWithClaude(req: NarrativeRequest, apiKey: string
 
 Write 2-4 paragraphs of polished, grant-ready prose. Be specific, use the data provided, and write in formal professional English. Do not include headers or section labels — only the body text.
 
-Facility: ${facility?.siteName ?? 'Unknown'}
-Organization: ${facility?.organization?.name ?? 'Unknown'}
-Address: ${facility?.address ?? 'Not provided'}
-Population served: ${facility?.populationServed ?? 'Not specified'}
-Days/hours of operation: ${facility?.daysHoursOfOperation ?? 'Not specified'}
-Known security concerns: ${facility?.knownSecurityConcerns ?? 'None listed'}
-Surrounding area notes: ${facility?.surroundingAreaNotes ?? 'None'}
+Facility: ${site?.siteName ?? 'Unknown'}
+Organization: ${site?.organization?.name ?? 'Unknown'}
+Address: ${site?.address ?? 'Not provided'}
+Population served: ${site?.populationServed ?? 'Not specified'}
+Days/hours of operation: ${site?.daysHoursOfOperation ?? 'Not specified'}
+Known security concerns: ${site?.knownSecurityConcerns ?? 'None listed'}
+Surrounding area notes: ${site?.surroundingAreaNotes ?? 'None'}
 
 Threats documented (${threats.length}): ${threats.map((t: { threatType: string; likelihood: number; impact: number }) => `${t.threatType} (likelihood ${t.likelihood}, impact ${t.impact})`).join('; ') || 'None'}
 

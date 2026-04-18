@@ -23,8 +23,8 @@ export default async function FacilitiesPage() {
   return (
     <div className="p-4 md:p-8">
       <PageHeader
-        title="Facilities"
-        description="All facilities across all organizations."
+        title="Sites"
+        description="All sites across all organizations."
         action={
           <Button asChild>
             <Link href="/sites/new">
@@ -38,9 +38,9 @@ export default async function FacilitiesPage() {
       {facilities.length === 0 ? (
         <EmptyState
           icon={MapPin}
-          title="No facilities yet"
-          description="Add a facility to get started with your security assessment."
-          actionLabel="Add Facility"
+          title="No sites yet"
+          description="Add a site to get started with your security assessment."
+          actionLabel="Add Site"
           actionHref="/sites/new"
         />
       ) : (

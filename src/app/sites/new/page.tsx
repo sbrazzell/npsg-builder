@@ -52,10 +52,10 @@ function NewFacilityForm() {
     })
 
     if (result.success && result.data) {
-      toast.success('Facility created')
+      toast.success('Site created')
       router.push(`/sites/${result.data.id}`)
     } else {
-      toast.error(result.error || 'Failed to create facility')
+      toast.error(result.error || 'Failed to create site')
       setLoading(false)
     }
   }
@@ -63,8 +63,8 @@ function NewFacilityForm() {
   return (
     <div className="p-8 max-w-2xl">
       <PageHeader
-        title="Add Facility"
-        description="Document a facility for which you are requesting security grant funding."
+        title="Add Site"
+        description="Document a site for which you are requesting security grant funding."
       />
 
       <form onSubmit={handleSubmit}>
@@ -87,7 +87,7 @@ function NewFacilityForm() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="siteName">Facility Name *</Label>
+              <Label htmlFor="siteName">Site Name *</Label>
               <Input id="siteName" name="siteName" required placeholder="Main Sanctuary Building" className="mt-1" />
             </div>
             <div>
@@ -105,7 +105,7 @@ function NewFacilityForm() {
             <div>
               <Label htmlFor="populationServed">Population Served</Label>
               <Input id="populationServed" name="populationServed" placeholder="e.g., 400 weekly worship attendees, daycare with 60 children" className="mt-1" />
-              <p className="text-xs text-muted-foreground mt-1">Describe who uses this facility. Specific numbers strengthen the grant narrative.</p>
+              <p className="text-xs text-muted-foreground mt-1">Describe who uses this site. Specific numbers strengthen the grant narrative.</p>
             </div>
             <div>
               <Label htmlFor="daysHoursOfOperation">Days / Hours of Operation</Label>
@@ -137,7 +137,7 @@ function NewFacilityForm() {
             </div>
             <div>
               <Label htmlFor="publicAccessNotes">Public Access</Label>
-              <Textarea id="publicAccessNotes" name="publicAccessNotes" placeholder="How does the public access this facility? Open entry, controlled access, etc." className="mt-1" rows={2} />
+              <Textarea id="publicAccessNotes" name="publicAccessNotes" placeholder="How does the public access this site? Open entry, controlled access, etc." className="mt-1" rows={2} />
             </div>
             <div>
               <Label htmlFor="knownSecurityConcerns">Known Security Concerns</Label>
@@ -146,14 +146,14 @@ function NewFacilityForm() {
             </div>
             <div>
               <Label htmlFor="notes">Additional Notes</Label>
-              <Textarea id="notes" name="notes" placeholder="Any other relevant information about this facility." className="mt-1" rows={2} />
+              <Textarea id="notes" name="notes" placeholder="Any other relevant information about this site." className="mt-1" rows={2} />
             </div>
           </CardContent>
         </Card>
 
         <div className="flex gap-3">
           <Button type="submit" disabled={loading}>
-            {loading ? 'Creating...' : 'Create Facility'}
+            {loading ? 'Creating...' : 'Create Site'}
           </Button>
           <Button type="button" variant="outline" asChild>
             <Link href='/sites'>Cancel</Link>

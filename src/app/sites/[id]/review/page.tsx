@@ -118,7 +118,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
 
   const sections: SectionScore[] = [
     { label: 'Organization Profile', score: orgScore, max: 4, notes: [] },
-    { label: 'Facility Profile', score: facScore, max: 4, notes: [] },
+    { label: 'Site Profile', score: facScore, max: 4, notes: [] },
     { label: 'Threat Assessment', score: threatScore, max: maxThreatScore, notes: [] },
     { label: 'Security Measures', score: measScore, max: maxMeasScore, notes: [] },
     { label: 'Project Proposals', score: projScore, max: maxProjScore, notes: [] },
@@ -135,7 +135,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
+        { label: 'Sites', href: '/sites' },
         { label: facility.siteName, href: `/sites/${id}` },
         { label: 'Review & Scorecard' },
       ]} />

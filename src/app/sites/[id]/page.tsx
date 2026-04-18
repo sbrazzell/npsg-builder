@@ -60,7 +60,7 @@ export default async function FacilityPage({ params }: { params: Promise<{ id: s
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
+        { label: 'Sites', href: '/sites' },
         { label: facility.organization.name, href: `/organizations/${facility.organizationId}` },
         { label: facility.siteName },
       ]} />
@@ -136,7 +136,7 @@ export default async function FacilityPage({ params }: { params: Promise<{ id: s
             <div className="flex-1">
               <p className="text-sm font-semibold text-amber-800">Law enforcement threat assessment not yet on file</p>
               <p className="text-xs text-amber-700 mt-0.5">
-                Contact your local Police or Sheriff&apos;s Department to request a facility threat assessment — this significantly strengthens your NSGP application.
+                Contact your local Police or Sheriff&apos;s Department to request a site threat assessment — this significantly strengthens your NSGP application.
               </p>
             </div>
             <Button asChild size="sm" variant="outline" className="shrink-0 border-amber-300 text-amber-800 hover:bg-amber-100">
@@ -168,10 +168,10 @@ export default async function FacilityPage({ params }: { params: Promise<{ id: s
 
         {/* Details & Recent */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Facility Details */}
+          {/* Site Details */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Facility Details</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Site Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               {facility.populationServed && (

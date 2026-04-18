@@ -110,7 +110,7 @@ export default async function ThreatsPage({ params }: { params: Promise<{ id: st
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
+        { label: 'Sites', href: '/sites' },
         { label: facility.siteName, href: `/sites/${id}` },
         { label: 'Threat Assessments' },
       ]} />

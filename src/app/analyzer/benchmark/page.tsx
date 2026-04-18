@@ -32,7 +32,7 @@ export default async function BenchmarkPage() {
   const result = await getBenchmarkData()
   const rows = result.success && result.data ? result.data : []
 
-  // Sort by overallScore desc to find the top facility
+  // Sort by overallScore desc to find the top site
   const sorted = [...rows].sort((a, b) => b.analysis.overallScore - a.analysis.overallScore)
   const topScore = sorted[0]?.analysis.overallScore ?? -1
 
@@ -58,7 +58,7 @@ export default async function BenchmarkPage() {
       <div className="p-4 md:p-8 max-w-6xl mx-auto">
         <PageHeader
           title="Comparative Benchmarking"
-          description="Compare grant strength scores across all facilities."
+          description="Compare grant strength scores across all sites."
         />
 
         {rows.length === 0 ? (
@@ -66,7 +66,7 @@ export default async function BenchmarkPage() {
             <CardContent className="py-12 text-center">
               <BarChart2 className="h-8 w-8 text-slate-300 mx-auto mb-3" />
               <p className="text-slate-500 text-sm">
-                No facilities have been analyzed yet. Run the analyzer on at least one facility to see benchmark data.
+                No sites have been analyzed yet. Run the analyzer on at least one site to see benchmark data.
               </p>
             </CardContent>
           </Card>
@@ -75,7 +75,7 @@ export default async function BenchmarkPage() {
             <CardHeader className="pb-2 border-b border-slate-100">
               <CardTitle className="text-base text-slate-800 flex items-center gap-2">
                 <BarChart2 className="h-4 w-4 text-indigo-600" />
-                All Analyzed Facilities ({rows.length})
+                All Analyzed Sites ({rows.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -83,7 +83,7 @@ export default async function BenchmarkPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-100">
-                      <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Facility</th>
+                      <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Site</th>
                       <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Organization</th>
                       <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Overall</th>
                       <th className="text-center px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Risk</th>

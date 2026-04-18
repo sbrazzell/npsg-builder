@@ -60,7 +60,7 @@ export default function EditOrganizationPage({ params }: { params: Promise<{ id:
   }
 
   async function handleDelete() {
-    if (!confirm('Delete this organization and all its facilities? This cannot be undone.')) return
+    if (!confirm('Delete this organization and all its sites? This cannot be undone.')) return
     setDeleting(true)
     const result = await deleteOrganization(id)
     if (result.success) {
@@ -167,7 +167,7 @@ export default function EditOrganizationPage({ params }: { params: Promise<{ id:
 
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <h3 className="text-sm font-semibold text-red-800 mb-1">Danger Zone</h3>
-          <p className="text-xs text-red-700 mb-3">Deleting this organization will permanently remove all associated facilities, threats, projects, and budget items.</p>
+          <p className="text-xs text-red-700 mb-3">Deleting this organization will permanently remove all associated sites, threats, projects, and budget items.</p>
           <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
             {deleting ? 'Deleting...' : 'Delete Organization'}
           </Button>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getFacility, updateFacility, deleteFacility } from '@/actions/sites'
+import { getFacility, updateSite, deleteSite } from '@/actions/sites'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,7 +33,7 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
 
   // Context passed to AI assist — enriches suggestions with facility info
   const aiContext = {
-    'Facility Name': facility.siteName,
+    'Site Name': facility.siteName,
     'Organization': facility.organization?.name,
     'Address': facility.address,
     'Population Served': facility.populationServed,
@@ -45,7 +45,7 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
     setLoading(true)
     const formData = new FormData(e.currentTarget)
 
-    const result = await updateFacility(id, {
+    const result = await updateSite(id, {
       organizationId: facility.organizationId,
       siteName: formData.get('siteName') as string,
       address: formData.get('address') as string || undefined,
@@ -66,20 +66,20 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
     })
 
     if (result.success) {
-      toast.success('Facility updated')
+      toast.success('Site updated')
       router.push(`/sites/${id}`)
     } else {
-      toast.error(result.error || 'Failed to update facility')
+      toast.error(result.error || 'Failed to update site')
       setLoading(false)
     }
   }
 
   async function handleDelete() {
-    if (!confirm('Delete this facility and all associated data? This cannot be undone.')) return
+    if (!confirm('Delete this site and all associated data? This cannot be undone.')) return
     setDeleting(true)
-    const result = await deleteFacility(id)
+    const result = await deleteSite(id)
     if (result.success) {
-      toast.success('Facility deleted')
+      toast.success('Site deleted')
       router.push('/sites')
     } else {
       toast.error(result.error || 'Failed to delete')
@@ -90,12 +90,12 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
+        { label: 'Sites', href: '/sites' },
         { label: facility.siteName, href: `/sites/${id}` },
         { label: 'Edit' },
       ]} />
       <div className="p-8 max-w-2xl">
-        <PageHeader title="Edit Facility" />
+        <PageHeader title="Edit Site" />
 
         <form onSubmit={handleSubmit}>
           <Card className="mb-4">
@@ -104,7 +104,7 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
             </CardHeader>
             <CardContent className="grid gap-4">
               <div>
-                <Label htmlFor="siteName">Facility Name *</Label>
+                <Label htmlFor="siteName">Site Name *</Label>
                 <Input id="siteName" name="siteName" required defaultValue={facility.siteName} className="mt-1" />
               </div>
               <div>
@@ -322,9 +322,9 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
         <Separator className="my-8" />
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <h3 className="text-sm font-semibold text-red-800 mb-1">Danger Zone</h3>
-          <p className="text-xs text-red-700 mb-3">Deleting this facility will permanently remove all threats, projects, budget items, and narratives.</p>
+          <p className="text-xs text-red-700 mb-3">Deleting this site will permanently remove all threats, projects, budget items, and narratives.</p>
           <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
-            {deleting ? 'Deleting...' : 'Delete Facility'}
+            {deleting ? 'Deleting...' : 'Delete Site'}
           </Button>
         </div>
       </div>

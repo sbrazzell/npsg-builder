@@ -74,7 +74,7 @@ export function FormSF424({ snapshot }: { snapshot: FilingSnapshot }) {
           <Field label="Contact Phone" value={org.contactPhone || ''} />
           <Field label="Contact Email" value={org.contactEmail || ''} wide />
 
-          <SectionHeader number="5" title="Project / Facility Information" />
+          <SectionHeader number="5" title="Project / Site Information" />
           <Field label="Federal Agency" value={FEDERAL_AGENCY} wide />
           <Field label="Program Title" value={PROGRAM_TITLE} wide />
           <Field
@@ -82,7 +82,7 @@ export function FormSF424({ snapshot }: { snapshot: FilingSnapshot }) {
             value={`Security enhancements for ${site.siteName}: ${projectTitles || 'Physical security improvements'}`}
             wide
           />
-          <Field label="Project Location — Facility Name" value={site.siteName} />
+          <Field label="Project Location — Site Name" value={site.siteName} />
           <Field label="Project Location — Address" value={site.address || org.address || ''} />
           <Field label="Areas Affected by Project" value={[org.city, org.state].filter(Boolean).join(', ')} />
           <Field label="Congressional District of Applicant" value="(Enter district — required at submission)" />

@@ -55,7 +55,7 @@ function getCategoryBadge(category: string): string {
     case 'project': return 'bg-indigo-50 text-indigo-700 border-indigo-200'
     case 'budget': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
     case 'narrative': return 'bg-violet-50 text-violet-700 border-violet-200'
-    case 'facility': return 'bg-blue-50 text-blue-700 border-blue-200'
+    case 'site': return 'bg-blue-50 text-blue-700 border-blue-200'
     default: return 'bg-slate-100 text-slate-700 border-slate-200'
   }
 }
@@ -104,7 +104,7 @@ export default async function AnalyzerFacilityPage({ params }: PageProps) {
           label: 'Vulnerability Specificity',
           score: analysis.vulnerabilitySpecificityScore,
           icon: MapPin,
-          description: 'Completeness of facility vulnerability documentation',
+          description: 'Completeness of site vulnerability documentation',
           color: 'text-orange-600',
           bg: 'bg-orange-50',
         },
@@ -232,7 +232,7 @@ export default async function AnalyzerFacilityPage({ params }: PageProps) {
               <BarChart2 className="h-10 w-10 text-slate-300 mx-auto mb-3" />
               <p className="text-slate-500 font-medium mb-1">No analysis run yet</p>
               <p className="text-sm text-slate-400">
-                Click &ldquo;Run Analysis&rdquo; above to score this facility&rsquo;s grant application strength.
+                Click &ldquo;Run Analysis&rdquo; above to score this site&rsquo;s grant application strength.
               </p>
             </CardContent>
           </Card>
@@ -524,7 +524,7 @@ const IMPROVEMENT_SECTIONS = [
 ]
 
 async function NarrativeImprovementsPanel({ siteId }: { siteId: string }) {
-  const facility = await prisma.site.findUnique({
+  const site = await prisma.site.findUnique({
     where: { id: siteId },
     include: {
       threatAssessments: true,
@@ -535,11 +535,11 @@ async function NarrativeImprovementsPanel({ siteId }: { siteId: string }) {
     },
   })
 
-  if (!facility) return null
+  if (!site) return null
 
   // Get latest draft per section
   const latestDrafts = new Map<string, { id: string; editedText: string | null; generatedText: string | null }>()
-  for (const draft of facility.narrativeDrafts) {
+  for (const draft of site.narrativeDrafts) {
     if (!latestDrafts.has(draft.sectionName)) {
       latestDrafts.set(draft.sectionName, draft)
     }
@@ -557,7 +557,7 @@ async function NarrativeImprovementsPanel({ siteId }: { siteId: string }) {
   for (const section of IMPROVEMENT_SECTIONS) {
     const draft = latestDrafts.get(section.key)
     const currentText = draft?.editedText || draft?.generatedText || ''
-    const result = generateNarrativeImprovements(section.key, currentText, facility)
+    const result = generateNarrativeImprovements(section.key, currentText, site)
     if (result.detectedWeaknesses.length > 0) {
       const preview = currentText.length > 100
         ? currentText.slice(0, 100).trimEnd() + '…'
@@ -629,7 +629,7 @@ async function NarrativeImprovementsPanel({ siteId }: { siteId: string }) {
 
 // Server component for section readiness (reads live data)
 async function SectionReadinessPanel({ siteId }: { siteId: string }) {
-  const facility = await prisma.site.findUnique({
+  const site = await prisma.site.findUnique({
     where: { id: siteId },
     include: {
       threatAssessments: true,
@@ -644,27 +644,27 @@ async function SectionReadinessPanel({ siteId }: { siteId: string }) {
     },
   })
 
-  if (!facility) return null
+  if (!site) return null
 
   // Build section readiness inline (same logic as scoring.ts for display)
   const sections = []
 
-  // Facility profile
+  // Site profile
   {
     const issues: string[] = []
     let score = 0
-    if (facility.siteName) score += 20
-    if (facility.address) score += 20; else issues.push('Address missing')
-    if (facility.populationServed) score += 20; else issues.push('Population served not documented')
-    if (facility.daysHoursOfOperation) score += 20; else issues.push('Operating hours not documented')
-    if (facility.occupancyNotes) score += 20; else issues.push('Occupancy notes missing')
-    sections.push({ label: 'Facility Profile', ready: score >= 80, score, issues })
+    if (site.siteName) score += 20
+    if (site.address) score += 20; else issues.push('Address missing')
+    if (site.populationServed) score += 20; else issues.push('Population served not documented')
+    if (site.daysHoursOfOperation) score += 20; else issues.push('Operating hours not documented')
+    if (site.occupancyNotes) score += 20; else issues.push('Occupancy notes missing')
+    sections.push({ label: 'Site Profile', ready: score >= 80, score, issues })
   }
 
   // Threat assessment
   {
     const issues: string[] = []
-    const threats = facility.threatAssessments
+    const threats = site.threatAssessments
     let score = 0
     if (threats.length >= 2) score += 40; else if (threats.length === 1) { score += 20; issues.push('Only 1 threat — add more') } else issues.push('No threats documented')
     const withHistory = threats.filter((t) => t.incidentHistory && t.incidentHistory.trim().length > 0)
@@ -677,7 +677,7 @@ async function SectionReadinessPanel({ siteId }: { siteId: string }) {
   // Project proposals
   {
     const issues: string[] = []
-    const projects = facility.projectProposals
+    const projects = site.projectProposals
     let score = 0
     if (projects.length > 0) score += 30; else issues.push('No project proposals')
     const withThreats = projects.filter((p) => (p.threatLinks || []).length > 0)
@@ -692,7 +692,7 @@ async function SectionReadinessPanel({ siteId }: { siteId: string }) {
   // Narratives
   {
     const issues: string[] = []
-    const narrativeSections = new Set(facility.narrativeDrafts.map((n) => n.sectionName))
+    const narrativeSections = new Set(site.narrativeDrafts.map((n) => n.sectionName))
     const required = ['executive_summary', 'threat_overview', 'vulnerability_statement', 'project_justification']
     let score = 0
     for (const req of required) {
@@ -704,7 +704,7 @@ async function SectionReadinessPanel({ siteId }: { siteId: string }) {
   // Security measures
   {
     const issues: string[] = []
-    const measures = facility.securityMeasures
+    const measures = site.securityMeasures
     let score = 0
     if (measures.length > 0) score += 50; else issues.push('No security measures documented')
     const withGaps = measures.filter((m) => m.gapsRemaining && m.gapsRemaining.trim().length > 0)

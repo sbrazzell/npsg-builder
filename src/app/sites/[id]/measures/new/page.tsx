@@ -62,15 +62,15 @@ export default function NewMeasurePage({ params }: { params: Promise<{ id: strin
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
-        { label: 'Facility', href: `/sites/${id}` },
+        { label: 'Sites', href: '/sites' },
+        { label: 'Site', href: `/sites/${id}` },
         { label: 'Security Measures', href: `/sites/${id}/measures` },
         { label: 'Add Measure' },
       ]} />
       <div className="p-8 max-w-2xl">
         <PageHeader
           title="Add Security Measure"
-          description="Document an existing security control or measure at this facility."
+          description="Document an existing security control or measure at this site."
         />
 
         <form onSubmit={handleSubmit}>

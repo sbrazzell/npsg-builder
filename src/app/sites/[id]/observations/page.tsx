@@ -26,7 +26,7 @@ export default async function ObservationsPage({ params }: { params: Promise<{ i
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
+        { label: 'Sites', href: '/sites' },
         { label: facility.siteName, href: `/sites/${id}` },
         { label: 'Site Observations' },
       ]} />

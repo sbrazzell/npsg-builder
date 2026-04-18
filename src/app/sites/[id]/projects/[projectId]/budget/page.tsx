@@ -33,7 +33,7 @@ export default async function BudgetPage({
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
+        { label: 'Sites', href: '/sites' },
         { label: project.site.siteName, href: `/sites/${id}` },
         { label: 'Projects', href: `/sites/${id}/projects` },
         { label: project.title, href: `/sites/${id}/projects/${projectId}` },

@@ -48,7 +48,7 @@ export default function NewOrganizationPage() {
     <div className="p-8 max-w-2xl">
       <PageHeader
         title="Add Organization"
-        description="Create a new organization to associate facilities and grant applications with."
+        description="Create a new organization to associate sites and grant applications with."
       />
 
       <form onSubmit={handleSubmit}>

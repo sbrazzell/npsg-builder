@@ -66,7 +66,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
               </Button>
               <Button asChild size="sm">
                 <Link href={`/sites/new?organizationId=${org.id}`}>
-                  <Plus className="h-4 w-4 mr-1" /> Add Facility
+                  <Plus className="h-4 w-4 mr-1" /> Add Site
                 </Link>
               </Button>
             </div>
@@ -78,7 +78,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
           <Card>
             <CardContent className="pt-4 pb-3">
               <p className="text-2xl font-bold">{org.sites.length}</p>
-              <p className="text-xs text-muted-foreground">Facilities</p>
+              <p className="text-xs text-muted-foreground">Sites</p>
             </CardContent>
           </Card>
           <Card>
@@ -144,10 +144,10 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
             </CardContent>
           </Card>
 
-          {/* Facilities */}
+          {/* Sites */}
           <div className="lg:col-span-2">
             <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center justify-between">
-              Facilities
+              Sites
               <Button asChild size="sm" variant="ghost">
                 <Link href={`/sites/new?organizationId=${org.id}`}>
                   <Plus className="h-3.5 w-3.5 mr-1" /> Add
@@ -158,42 +158,42 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
             {org.sites.length === 0 ? (
               <EmptyState
                 icon={MapPin}
-                title="No facilities yet"
-                description="Add facilities to this organization to start building grant applications."
-                actionLabel="Add Facility"
+                title="No sites yet"
+                description="Add sites to this organization to start building grant applications."
+                actionLabel="Add Site"
                 actionHref={`/sites/new?organizationId=${org.id}`}
               />
             ) : (
               <div className="space-y-3">
-                {org.sites.map((facility) => {
+                {org.sites.map((site) => {
                   let budget = 0
-                  for (const p of facility.projectProposals) {
+                  for (const p of site.projectProposals) {
                     for (const b of p.budgetItems) { budget += b.totalCost }
                   }
                   return (
-                    <Link key={facility.id} href={`/sites/${facility.id}`}>
+                    <Link key={site.id} href={`/sites/${site.id}`}>
                       <Card className="hover:shadow-md transition-shadow cursor-pointer">
                         <CardContent className="flex items-center gap-3 py-3">
                           <div className="p-2 bg-violet-50 rounded-lg">
                             <MapPin className="h-4 w-4 text-violet-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900">{facility.siteName}</p>
-                            {facility.address && (
-                              <p className="text-xs text-muted-foreground truncate">{facility.address}</p>
+                            <p className="font-medium text-gray-900">{site.siteName}</p>
+                            {site.address && (
+                              <p className="text-xs text-muted-foreground truncate">{site.address}</p>
                             )}
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            {facility.threatAssessments.length > 0 && (
+                            {site.threatAssessments.length > 0 && (
                               <span className="flex items-center gap-1">
                                 <AlertTriangle className="h-3 w-3" />
-                                {facility.threatAssessments.length}
+                                {site.threatAssessments.length}
                               </span>
                             )}
-                            {facility.projectProposals.length > 0 && (
+                            {site.projectProposals.length > 0 && (
                               <span className="flex items-center gap-1">
                                 <FileText className="h-3 w-3" />
-                                {facility.projectProposals.length}
+                                {site.projectProposals.length}
                               </span>
                             )}
                             {budget > 0 && (

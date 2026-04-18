@@ -46,7 +46,7 @@ export function generateNarrativeImprovements(
   }
 
   // Generate a suggested rewrite template based on section
-  const siteName = facility?.siteName || 'the facility'
+  const siteName = facility?.siteName || 'the site'
   const threatTypes =
     (facility?.threatAssessments || [])
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,13 +68,13 @@ export function generateNarrativeImprovements(
       suggestedRewrite = `[Organization name] respectfully submits this application for Nonprofit Security Grant Program funding to address documented security vulnerabilities at ${siteName}. The facility serves [describe population], who depend on a safe environment to access [describe services]. Following a formal security assessment identifying threats including ${threatTypes}, the organization is requesting funding for ${projectTitles}. The proposed improvements will reduce the risk of serious security incidents and allow the organization to continue serving its community without the ongoing threat of harm.`
       break
     case 'threat_overview':
-      suggestedRewrite = `${siteName} faces documented security threats that represent a credible risk to staff, congregation members, and program participants. The formal threat assessment has identified [N] specific threat categories, including ${threatTypes}. These threats are elevated because [explain specific conditions — location, prior incidents, physical vulnerabilities]. [Describe 1-2 specific prior incidents or near-misses]. Without targeted security improvements, the facility remains exposed to foreseeable harm that could have been prevented.`
+      suggestedRewrite = `${siteName} faces documented security threats that represent a credible risk to staff, congregation members, and program participants. The formal threat assessment has identified [N] specific threat categories, including ${threatTypes}. These threats are elevated because [explain specific conditions — location, prior incidents, physical vulnerabilities]. [Describe 1-2 specific prior incidents or near-misses]. Without targeted security improvements, the site remains exposed to foreseeable harm that could have been prevented.`
       break
     case 'vulnerability_statement':
       suggestedRewrite = `Despite existing security measures, ${siteName} retains significant vulnerabilities that create unacceptable risk. The current measures are insufficient because [specific gaps — no cameras in X area, doors are unlocked, no access control, etc.]. These vulnerabilities are directly exploited by the documented threats of ${threatTypes}. [Reference specific incident or observation that demonstrates the gap]. The proposed investments in ${projectTitles} will close these gaps by [specific mechanism — adding cameras, installing access control, etc.].`
       break
     case 'project_justification':
-      suggestedRewrite = `The proposed project directly addresses [specific threat(s)] that have been documented at ${siteName}. The current security posture is insufficient because [specific gap the project fixes]. [Cite specific incident or vulnerability]. The proposed solution — [specific hardware/system with vendor/model] — will reduce risk by [specific mechanism: deterring access, detecting intrusions, enabling rapid response, etc.]. This investment is cost-effective because [brief justification], and represents the most targeted response to the highest-priority vulnerability at this facility.`
+      suggestedRewrite = `The proposed project directly addresses [specific threat(s)] that have been documented at ${siteName}. The current security posture is insufficient because [specific gap the project fixes]. [Cite specific incident or vulnerability]. The proposed solution — [specific hardware/system with vendor/model] — will reduce risk by [specific mechanism: deterring access, detecting intrusions, enabling rapid response, etc.]. This investment is cost-effective because [brief justification], and represents the most targeted response to the highest-priority vulnerability at this site.`
       break
     default:
       suggestedRewrite = `[Write a specific, detailed narrative for ${sectionName.replace(/_/g, ' ')} at ${siteName}. Include: specific threat context, prior incidents, current gaps, proposed solution with specific details, and how the investment reduces risk.]`

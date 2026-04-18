@@ -94,9 +94,9 @@ export function scoreRiskClarity(
       category: 'threat',
       title: 'No threat assessments recorded',
       explanation:
-        'The facility has no documented threat assessments. Grant reviewers require a formal threat assessment as the foundation of the application.',
+        'The site has no documented threat assessments. Grant reviewers require a formal threat assessment as the foundation of the application.',
       suggestedFix:
-        'Add at least 2–3 threat assessments covering the most realistic risks to your facility (e.g., unauthorized entry, vandalism, targeted violence).',
+        'Add at least 2–3 threat assessments covering the most realistic risks to your site (e.g., unauthorized entry, vandalism, targeted violence).',
     })
     return { score: 0, flags }
   }
@@ -110,7 +110,7 @@ export function scoreRiskClarity(
       category: 'threat',
       title: 'Only one threat documented',
       explanation:
-        'A single threat assessment does not provide a comprehensive picture of the facility\'s risk environment. Most facilities face multiple categories of threat.',
+        'A single threat assessment does not provide a comprehensive picture of the site\'s risk environment. Most facilities face multiple categories of threat.',
       suggestedFix:
         'Document at least 3–5 distinct threat types to demonstrate a thorough risk analysis.',
     })
@@ -129,7 +129,7 @@ export function scoreRiskClarity(
         relatedEntityId: threat.id,
         title: `Threat description too brief: "${threat.threatType}"`,
         explanation: `The description for "${threat.threatType}" is fewer than 15 words. A brief description doesn't demonstrate meaningful threat analysis.`,
-        suggestedFix: `Expand the description to explain how and why this threat applies to your facility. Include specific vulnerability mechanisms.`,
+        suggestedFix: `Expand the description to explain how and why this threat applies to your site. Include specific vulnerability mechanisms.`,
       })
     }
   }
@@ -148,7 +148,7 @@ export function scoreRiskClarity(
         relatedEntityId: threat.id,
         title: `No incident history recorded for threat: "${threat.threatType}"`,
         explanation: `No prior incident history has been documented for "${threat.threatType}". Reviewers expect documented history to validate need.`,
-        suggestedFix: `Document any prior incidents, near-misses, or relevant incidents from similar facilities in the area. Even "no direct incident but area context" is better than blank.`,
+        suggestedFix: `Document any prior incidents, near-misses, or relevant incidents from similar sites in the area. Even "no direct incident but area context" is better than blank.`,
       })
     }
   }
@@ -167,7 +167,7 @@ export function scoreRiskClarity(
       category: 'threat',
       title: `${defaultCount} threat(s) have not been rated (using defaults)`,
       explanation: `${defaultCount} threat(s) still have the default likelihood and impact ratings of 3/3, suggesting they haven't been individually assessed.`,
-      suggestedFix: "Review each threat and assign a specific likelihood (1-5) and impact (1-5) rating based on your facility's actual risk exposure.",
+      suggestedFix: "Review each threat and assign a specific likelihood (1-5) and impact (1-5) rating based on your site's actual risk exposure.",
     })
   }
 
@@ -182,27 +182,27 @@ export function scoreRiskClarity(
 // ---------------------------------------------------------------------------
 export function scoreVulnerabilitySpecificity(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  facility: any,
+  site: any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _threatAssessments: any[]
 ): { score: number; flags: AnalysisFlag[] } {
   const flags: AnalysisFlag[] = []
   let score = 0
 
-  if (facility.siteName) score += 1
-  if (facility.address) {
+  if (site.siteName) score += 1
+  if (site.address) {
     score += 1
   } else {
     flags.push({
       severity: 'low',
-      category: 'facility',
-      title: 'Facility address not entered',
-      explanation: 'The facility address is missing from the profile.',
-      suggestedFix: 'Add the full street address to the facility profile.',
+      category: 'site',
+      title: 'Site address not entered',
+      explanation: 'The site address is missing from the profile.',
+      suggestedFix: 'Add the full street address to the site profile.',
     })
   }
 
-  const notedFields: Array<{ key: keyof typeof facility; label: string; pts: number }> = [
+  const notedFields: Array<{ key: keyof typeof site; label: string; pts: number }> = [
     { key: 'surroundingAreaNotes', label: 'Surrounding area notes', pts: 3 },
     { key: 'publicAccessNotes', label: 'Public access notes', pts: 3 },
     { key: 'parkingLotNotes', label: 'Parking lot notes', pts: 3 },
@@ -212,7 +212,7 @@ export function scoreVulnerabilitySpecificity(
   ]
 
   for (const field of notedFields) {
-    const val = facility[field.key] as string | null | undefined
+    const val = site[field.key] as string | null | undefined
     if (val && wordCount(val) >= 10) {
       score += field.pts
     } else {
@@ -221,7 +221,7 @@ export function scoreVulnerabilitySpecificity(
         category: 'vulnerability',
         title: `${field.label} is missing or too brief`,
         explanation: `"${field.label}" needs at least 10 words to provide meaningful context for grant reviewers.`,
-        suggestedFix: `Describe the specific conditions, concerns, or observations relevant to ${field.label.toLowerCase()} at your facility.`,
+        suggestedFix: `Describe the specific conditions, concerns, or observations relevant to ${field.label.toLowerCase()} at your site.`,
       })
     }
   }
@@ -245,7 +245,7 @@ export function scoreProjectAlignment(
       severity: 'high',
       category: 'project',
       title: 'No project proposals created',
-      explanation: 'There are no project proposals for this facility. Projects are the core of the grant request.',
+      explanation: 'There are no project proposals for this site. Projects are the core of the grant request.',
       suggestedFix: 'Create at least one project proposal that addresses a documented threat.',
     })
     return { score: 0, flags }
@@ -420,7 +420,7 @@ export function scoreNarrativeQuality(
       severity: 'high',
       category: 'narrative',
       title: 'No narrative drafts generated',
-      explanation: 'No narrative sections have been drafted for this facility. Narratives are critical for grant applications.',
+      explanation: 'No narrative sections have been drafted for this site. Narratives are critical for grant applications.',
       suggestedFix: 'Generate narrative drafts for all key sections: executive summary, threat overview, vulnerability statement, and project justification.',
     })
     return { score: 0, flags }
@@ -476,7 +476,7 @@ export function scoreNarrativeQuality(
         relatedEntityId: narrative.id,
         title: `Narrative "${narrative.sectionName}" is too short`,
         explanation: `The "${narrative.sectionName}" narrative is only ${words} words. Grant reviewers expect substantive, detailed narrative sections.`,
-        suggestedFix: 'Expand this narrative to at least 100 words, incorporating specific facility details, threat context, and proposed solutions.',
+        suggestedFix: 'Expand this narrative to at least 100 words, incorporating specific site details, threat context, and proposed solutions.',
       })
     }
 
@@ -556,21 +556,21 @@ export function analyzeProject(
 // Section readiness
 // ---------------------------------------------------------------------------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildSectionReadiness(facility: any): SectionReadiness[] {
+export function buildSectionReadiness(site: any): SectionReadiness[] {
   const sections: SectionReadiness[] = []
 
-  // Facility profile
+  // Site profile
   {
     const issues: string[] = []
     let score = 0
-    if (facility.siteName) score += 20
-    if (facility.address) { score += 20 } else issues.push('Address missing')
-    if (facility.populationServed) { score += 20 } else issues.push('Population served not documented')
-    if (facility.daysHoursOfOperation) { score += 20 } else issues.push('Operating hours not documented')
-    if (facility.occupancyNotes) { score += 20 } else issues.push('Occupancy notes missing')
+    if (site.siteName) score += 20
+    if (site.address) { score += 20 } else issues.push('Address missing')
+    if (site.populationServed) { score += 20 } else issues.push('Population served not documented')
+    if (site.daysHoursOfOperation) { score += 20 } else issues.push('Operating hours not documented')
+    if (site.occupancyNotes) { score += 20 } else issues.push('Occupancy notes missing')
     sections.push({
-      section: 'facility_profile',
-      label: 'Facility Profile',
+      section: 'site_profile',
+      label: 'Site Profile',
       ready: score >= 80,
       score,
       issues,
@@ -580,7 +580,7 @@ export function buildSectionReadiness(facility: any): SectionReadiness[] {
   // Threat assessment
   {
     const issues: string[] = []
-    const threats = facility.threatAssessments || []
+    const threats = site.threatAssessments || []
     let score = 0
     if (threats.length >= 2) { score += 40 } else if (threats.length === 1) { score += 20; issues.push('Only 1 threat documented — add more') } else { issues.push('No threats documented') }
     const threatsWithHistory = threats.filter((t: { incidentHistory: string | null }) => t.incidentHistory && t.incidentHistory.trim().length > 0)
@@ -599,7 +599,7 @@ export function buildSectionReadiness(facility: any): SectionReadiness[] {
   // Project proposals
   {
     const issues: string[] = []
-    const projects = facility.projectProposals || []
+    const projects = site.projectProposals || []
     let score = 0
     if (projects.length > 0) { score += 30 } else { issues.push('No project proposals created') }
     const projWithThreats = projects.filter((p: { threatLinks: unknown[] }) => (p.threatLinks || []).length > 0)
@@ -620,7 +620,7 @@ export function buildSectionReadiness(facility: any): SectionReadiness[] {
   // Narratives
   {
     const issues: string[] = []
-    const narratives = facility.narrativeDrafts || []
+    const narratives = site.narrativeDrafts || []
     const narrativeSections = new Set(narratives.map((n: { sectionName: string }) => n.sectionName))
     const required = ['executive_summary', 'threat_overview', 'vulnerability_statement', 'project_justification']
     let score = 0
@@ -643,7 +643,7 @@ export function buildSectionReadiness(facility: any): SectionReadiness[] {
   // Security measures
   {
     const issues: string[] = []
-    const measures = facility.securityMeasures || []
+    const measures = site.securityMeasures || []
     let score = 0
     if (measures.length > 0) { score += 50 } else { issues.push('No existing security measures documented') }
     const withGaps = measures.filter((m: { gapsRemaining: string | null }) => m.gapsRemaining && m.gapsRemaining.trim().length > 0)
@@ -676,7 +676,7 @@ interface DimScores {
 export function generateStrengths(result: DimScores): string {
   const strengths: string[] = []
   if (result.riskClarityScore >= 15) strengths.push('strong threat assessment with detailed descriptions and incident history')
-  if (result.vulnerabilitySpecificityScore >= 15) strengths.push('comprehensive vulnerability documentation across all facility areas')
+  if (result.vulnerabilitySpecificityScore >= 15) strengths.push('comprehensive vulnerability documentation across all site areas')
   if (result.projectAlignmentScore >= 15) strengths.push('well-aligned project proposals that directly address documented threats')
   if (result.budgetDefensibilityScore >= 15) strengths.push('detailed and defensible budget with specific line items and justifications')
   if (result.narrativeQualityScore >= 10) strengths.push('substantive narrative content that supports the grant narrative')
@@ -692,7 +692,7 @@ export function generateStrengths(result: DimScores): string {
 export function generateWeaknesses(result: DimScores): string {
   const weaknesses: string[] = []
   if (result.riskClarityScore < 8) weaknesses.push('the threat assessment lacks sufficient detail and incident documentation')
-  if (result.vulnerabilitySpecificityScore < 8) weaknesses.push('vulnerability documentation is incomplete or missing key facility context')
+  if (result.vulnerabilitySpecificityScore < 8) weaknesses.push('vulnerability documentation is incomplete or missing key site context')
   if (result.projectAlignmentScore < 8) weaknesses.push('project proposals are not adequately linked to documented threats')
   if (result.budgetDefensibilityScore < 8) weaknesses.push('budget items lack specificity, justification, or are missing entirely')
   if (result.narrativeQualityScore < 8) weaknesses.push('narrative sections are missing, too short, or contain vague language')

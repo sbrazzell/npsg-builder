@@ -135,7 +135,7 @@ async function getDashboardData() {
   if (missingThreats.length > 0) {
     blockers.push({
       severity: 'bad',
-      text: `${missingThreats.length} ${missingThreats.length === 1 ? 'facility has' : 'facilities have'} no threat assessments documented.`,
+      text: `${missingThreats.length} ${missingThreats.length === 1 ? 'site has' : 'sites have'} no threat assessments documented.`,
       href: '/sites',
       cta: 'Fix →',
     })
@@ -182,13 +182,13 @@ async function getDashboardData() {
   if (narrativesNeeded > 0) {
     blockers.push({
       severity: 'warn',
-      text: `${narrativesNeeded} ${narrativesNeeded === 1 ? 'facility has' : 'facilities have'} no narrative drafts generated.`,
+      text: `${narrativesNeeded} ${narrativesNeeded === 1 ? 'site has' : 'sites have'} no narrative drafts generated.`,
       href: '/sites',
       cta: 'Draft →',
     })
   }
 
-  // ── Per-facility roster ──
+  // ── Per-site roster ──
   const roster = facilities.map(f => {
     const scores = f.threatAssessments.map(t => calculateRiskScore(t.likelihood, t.impact))
     const maxScore = scores.length > 0 ? Math.max(...scores) : 0
@@ -197,11 +197,11 @@ async function getDashboardData() {
       const level = getRiskLevel(calculateRiskScore(t.likelihood, t.impact))
       return level === 'critical'
     }).length
-    const facilityBudget = f.projectProposals.flatMap(p => p.budgetItems).reduce((s, b) => s + b.totalCost, 0)
+    const siteBudget = f.projectProposals.flatMap(p => p.budgetItems).reduce((s, b) => s + b.totalCost, 0)
 
-    // Per-facility readiness
-    const orgForFacility = orgs.find(o => o.id === f.organizationId)
-    const fOrgPct = (orgForFacility?.einOrTaxId && orgForFacility?.contactName) ? 100 : 50
+    // Per-site readiness
+    const orgForSite = orgs.find(o => o.id === f.organizationId)
+    const fOrgPct = (orgForSite?.einOrTaxId && orgForSite?.contactName) ? 100 : 50
     const fThreatPct = f.threatAssessments.length > 0 ? 100 : 0
     const fMeasurePct = f.securityMeasures.length > 0 ? 100 : 0
     const fProposalPct = f.projectProposals.length > 0 ? 100 : 0
@@ -213,7 +213,7 @@ async function getDashboardData() {
       (fOrgPct * 0.05 + fThreatPct * 0.25 + fMeasurePct * 0.20 + fProposalPct * 0.25 + fBudgetPct * 0.15 + fNarrativePct * 0.10)
     )
 
-    // Blockers for this facility
+    // Blockers for this site
     const fBlockers: string[] = []
     if (f.threatAssessments.length === 0) fBlockers.push('No threats')
     if (f.projectProposals.some(p => p.threatLinks.length === 0)) fBlockers.push('Unlinked project')
@@ -227,7 +227,7 @@ async function getDashboardData() {
       topLevel,
       criticalCount,
       threatCount: f.threatAssessments.length,
-      budget: facilityBudget,
+      budget: siteBudget,
       projectCount: f.projectProposals.length,
       readiness: fReadiness,
       blockers: fBlockers,
@@ -282,7 +282,7 @@ export default async function DashboardPage() {
               Grant Portfolio
             </h1>
             <p className="mt-2.5 text-[14.5px]" style={{ color: 'var(--ink-3)', maxWidth: '580px' }}>
-              {siteCount} {siteCount === 1 ? 'facility' : 'facilities'} in the portfolio
+              {siteCount} {siteCount === 1 ? 'site' : 'sites'} in the portfolio
               {' · '}{submittedProposals > 0 ? `${submittedProposals} submitted` : 'none submitted yet'}
               {blockers.filter(b => b.severity === 'bad').length > 0
                 ? ` · ${blockers.filter(b => b.severity === 'bad').length} outstanding blockers`
@@ -296,7 +296,7 @@ export default async function DashboardPage() {
               style={{ border: '1px solid var(--rule)', background: 'white', color: 'var(--ink)' }}
             >
               <Plus className="h-3.5 w-3.5" />
-              New facility
+              New site
             </Link>
             <Link
               href="/readiness"
@@ -423,7 +423,7 @@ export default async function DashboardPage() {
             Portfolio at a glance
           </p>
           <p className="text-[12.5px] mt-0.5" style={{ color: 'var(--ink-3)' }}>
-            Totals across all active facilities and proposals
+            Totals across all active sites and proposals
           </p>
         </div>
       </div>
@@ -439,7 +439,7 @@ export default async function DashboardPage() {
       >
         {[
           {
-            label: 'Facilities',
+            label: 'Sites',
             value: siteCount,
             sub: `${orgCount} ${orgCount === 1 ? 'organization' : 'organizations'}`,
             href: '/sites',
@@ -459,7 +459,7 @@ export default async function DashboardPage() {
           {
             label: 'Total requested',
             value: formatCurrency(totalBudget),
-            sub: siteCount > 0 ? `avg ${formatCurrency(Math.round(totalBudget / siteCount))} / facility` : 'no budget yet',
+            sub: siteCount > 0 ? `avg ${formatCurrency(Math.round(totalBudget / siteCount))} / site` : 'no budget yet',
             href: '/sites',
           },
         ].map(stat => (
@@ -524,7 +524,7 @@ export default async function DashboardPage() {
             borderBottom: '1px solid var(--rule)',
           }}
         >
-          {['Facility', 'Risk', 'Threats', 'Budget', 'Readiness', 'Status'].map(col => (
+          {['Site', 'Risk', 'Threats', 'Budget', 'Readiness', 'Status'].map(col => (
             <span
               key={col}
               className="font-mono-label"

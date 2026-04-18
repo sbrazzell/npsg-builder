@@ -90,8 +90,8 @@ export default function EditThreatPage({ params }: { params: Promise<{ id: strin
     return (
       <div>
         <Header breadcrumbs={[
-          { label: 'Facilities', href: '/sites' },
-          { label: 'Facility', href: `/sites/${id}` },
+          { label: 'Sites', href: '/sites' },
+          { label: 'Site', href: `/sites/${id}` },
           { label: 'Threats', href: `/sites/${id}/threats` },
           { label: 'Edit' },
         ]} />
@@ -105,8 +105,8 @@ export default function EditThreatPage({ params }: { params: Promise<{ id: strin
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
-        { label: 'Facility', href: `/sites/${id}` },
+        { label: 'Sites', href: '/sites' },
+        { label: 'Site', href: `/sites/${id}` },
         { label: 'Threats', href: `/sites/${id}/threats` },
         { label: 'Edit Threat' },
       ]} />
@@ -145,7 +145,7 @@ export default function EditThreatPage({ params }: { params: Promise<{ id: strin
                   fieldLabel="Description"
                   context={{ 'Threat Type': defaults.threatType, 'Likelihood': `${likelihood}/5`, 'Impact': `${impact}/5` }}
                   initialValue={defaults.description || ''}
-                  placeholder="Describe how this threat manifests at this facility..."
+                  placeholder="Describe how this threat manifests at this site..."
                   className="mt-1"
                   rows={3}
                 />
@@ -253,11 +253,11 @@ export default function EditThreatPage({ params }: { params: Promise<{ id: strin
             </CardHeader>
             <CardContent className="grid gap-4">
               <div>
-                <Label htmlFor="vulnerabilityNotes">Why is this facility vulnerable?</Label>
+                <Label htmlFor="vulnerabilityNotes">Why is this site vulnerable?</Label>
                 <AiAssistTextarea
                   id="vulnerabilityNotes"
                   name="vulnerabilityNotes"
-                  fieldLabel="Why is this facility vulnerable?"
+                  fieldLabel="Why is this site vulnerable?"
                   context={{ 'Threat Type': defaults.threatType, 'Likelihood': `${likelihood}/5`, 'Impact': `${impact}/5` }}
                   initialValue={defaults.vulnerabilityNotes || ''}
                   placeholder="Describe the specific conditions that make this threat more likely or impactful here..."

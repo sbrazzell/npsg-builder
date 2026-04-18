@@ -273,7 +273,7 @@ export async function updateDraftStatus(id: string, status: 'draft' | 'final') {
   try {
     const draft = await prisma.applicationDraft.findUniqueOrThrow({ where: { id } })
 
-    // If marking as final, demote any existing final for this facility
+    // If marking as final, demote any existing final for this site
     if (status === 'final') {
       await prisma.applicationDraft.updateMany({
         where: { siteId: draft.siteId, status: 'final' },

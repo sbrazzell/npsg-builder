@@ -38,7 +38,7 @@ export async function runAnalysis(siteId: string): Promise<AnalysisResult> {
   })
 
   if (!facility) {
-    throw new Error(`Facility not found: ${siteId}`)
+    throw new Error(`Site not found: ${siteId}`)
   }
 
   const threats = facility.threatAssessments

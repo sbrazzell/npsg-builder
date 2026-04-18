@@ -71,8 +71,8 @@ export default function NewProjectPage({ params }: { params: Promise<{ id: strin
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
-        { label: 'Facility', href: `/sites/${id}` },
+        { label: 'Sites', href: '/sites' },
+        { label: 'Site', href: `/sites/${id}` },
         { label: 'Projects', href: `/sites/${id}/projects` },
         { label: 'New Project' },
       ]} />

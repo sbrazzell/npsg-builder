@@ -42,7 +42,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ id: s
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
+        { label: 'Sites', href: '/sites' },
         { label: facility.siteName, href: `/sites/${id}` },
         { label: 'Project Proposals' },
       ]} />

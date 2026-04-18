@@ -65,7 +65,7 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
+        { label: 'Sites', href: '/sites' },
         { label: facility.siteName, href: `/sites/${id}` },
         { label: 'Export' },
       ]} />
@@ -113,9 +113,9 @@ export default async function ExportPage({ params }: { params: Promise<{ id: str
                 </section>
               ))}
 
-              {/* Facility Details */}
+              {/* Site Details */}
               <section>
-                <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b">Facility Profile</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-3 pb-2 border-b">Site Profile</h2>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   {facility.populationServed && (
                     <div>

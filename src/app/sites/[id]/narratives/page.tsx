@@ -9,8 +9,8 @@ import { NarrativeSection } from './narrative-section'
 import { generateNarrativeImprovements } from '@/lib/analyzer/recommendations'
 
 const NARRATIVE_SECTIONS = [
-  { key: 'executive_summary', label: 'Executive Summary', description: 'High-level overview of the organization, facility, and grant request.' },
-  { key: 'threat_overview', label: 'Threat Overview', description: 'Description of the threat environment facing this facility.' },
+  { key: 'executive_summary', label: 'Executive Summary', description: 'High-level overview of the organization, site, and grant request.' },
+  { key: 'threat_overview', label: 'Threat Overview', description: 'Description of the threat environment facing this site.' },
   { key: 'vulnerability_statement', label: 'Vulnerability Statement', description: 'Analysis of existing gaps and why current measures are insufficient.' },
   { key: 'project_justification', label: 'Project Justification', description: 'Why the proposed projects are necessary and appropriate.' },
   { key: 'implementation_approach', label: 'Implementation Approach', description: 'How projects will be carried out and sustained.' },
@@ -55,7 +55,7 @@ export default async function NarrativesPage({ params }: { params: Promise<{ id:
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
+        { label: 'Sites', href: '/sites' },
         { label: facility.siteName, href: `/sites/${id}` },
         { label: 'Narrative Studio' },
       ]} />

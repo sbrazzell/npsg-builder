@@ -16,7 +16,7 @@ export async function getFacilities() {
     })
     return { success: true, data: facilities }
   } catch (error) {
-    return { success: false, error: 'Failed to fetch facilities' }
+    return { success: false, error: 'Failed to fetch sites' }
   }
 }
 
@@ -43,10 +43,10 @@ export async function getFacility(id: string) {
         applicationPackets: { orderBy: { createdAt: 'desc' } },
       },
     })
-    if (!facility) return { success: false, error: 'Facility not found' }
+    if (!facility) return { success: false, error: 'Site not found' }
     return { success: true, data: facility }
   } catch (error) {
-    return { success: false, error: 'Failed to fetch facility' }
+    return { success: false, error: 'Failed to fetch site' }
   }
 }
 
@@ -69,11 +69,11 @@ export async function createFacility(input: FacilityInput) {
     revalidatePath(`/organizations/${parsed.data.organizationId}`)
     return { success: true, data: facility }
   } catch (error) {
-    return { success: false, error: 'Failed to create facility' }
+    return { success: false, error: 'Failed to create site' }
   }
 }
 
-export async function updateFacility(id: string, input: FacilityInput) {
+export async function updateSite(id: string, input: FacilityInput) {
   const parsed = facilitySchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -81,7 +81,7 @@ export async function updateFacility(id: string, input: FacilityInput) {
 
   try {
     const { lawEnforcementContactDate, lawEnforcementResponseDate, ...rest } = parsed.data
-    const facility = await prisma.site.update({
+    const site = await prisma.site.update({
       where: { id },
       data: {
         ...rest,
@@ -91,20 +91,20 @@ export async function updateFacility(id: string, input: FacilityInput) {
     })
     revalidatePath('/sites')
     revalidatePath(`/sites/${id}`)
-    return { success: true, data: facility }
+    return { success: true, data: site }
   } catch (error) {
-    return { success: false, error: 'Failed to update facility' }
+    return { success: false, error: 'Failed to update site' }
   }
 }
 
-export async function deleteFacility(id: string) {
+export async function deleteSite(id: string) {
   try {
-    const facility = await prisma.site.findUnique({ where: { id } })
+    const site = await prisma.site.findUnique({ where: { id } })
     await prisma.site.delete({ where: { id } })
     revalidatePath('/sites')
-    if (facility) revalidatePath(`/organizations/${facility.organizationId}`)
+    if (site) revalidatePath(`/organizations/${site.organizationId}`)
     return { success: true }
   } catch (error) {
-    return { success: false, error: 'Failed to delete facility' }
+    return { success: false, error: 'Failed to delete site' }
   }
 }

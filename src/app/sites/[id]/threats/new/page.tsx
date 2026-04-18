@@ -79,15 +79,15 @@ export default function NewThreatPage({ params }: { params: Promise<{ id: string
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
-        { label: 'Facility', href: `/sites/${id}` },
+        { label: 'Sites', href: '/sites' },
+        { label: 'Site', href: `/sites/${id}` },
         { label: 'Threats', href: `/sites/${id}/threats` },
         { label: 'New Threat' },
       ]} />
       <div className="p-8 max-w-2xl">
         <PageHeader
           title="Add Threat Assessment"
-          description="Document a specific threat to this facility."
+          description="Document a specific threat to this site."
         />
 
         <form onSubmit={handleSubmit}>
@@ -120,7 +120,7 @@ export default function NewThreatPage({ params }: { params: Promise<{ id: string
                   name="description"
                   fieldLabel="Description"
                   context={aiContext}
-                  placeholder="Describe how this threat manifests at this facility..."
+                  placeholder="Describe how this threat manifests at this site..."
                   className="mt-1"
                   rows={3}
                 />
@@ -217,11 +217,11 @@ export default function NewThreatPage({ params }: { params: Promise<{ id: string
             </CardHeader>
             <CardContent className="grid gap-4">
               <div>
-                <Label htmlFor="vulnerabilityNotes">Why is this facility vulnerable?</Label>
+                <Label htmlFor="vulnerabilityNotes">Why is this site vulnerable?</Label>
                 <AiAssistTextarea
                   id="vulnerabilityNotes"
                   name="vulnerabilityNotes"
-                  fieldLabel="Why is this facility vulnerable?"
+                  fieldLabel="Why is this site vulnerable?"
                   context={aiContext}
                   placeholder="Describe the specific conditions that make this threat more likely or impactful here..."
                   className="mt-1"

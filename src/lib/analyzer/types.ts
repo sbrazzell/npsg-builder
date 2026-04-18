@@ -1,5 +1,5 @@
 export type Severity = 'low' | 'medium' | 'high'
-export type FlagCategory = 'facility' | 'threat' | 'vulnerability' | 'project' | 'budget' | 'narrative'
+export type FlagCategory = 'site' | 'threat' | 'vulnerability' | 'project' | 'budget' | 'narrative'
 
 export interface AnalysisFlag {
   severity: Severity

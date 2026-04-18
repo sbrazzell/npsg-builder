@@ -31,7 +31,7 @@ export async function generateAndSaveNarrative(siteId: string, sectionName: stri
       },
     })
 
-    if (!facility) return { success: false, error: 'Facility not found' }
+    if (!facility) return { success: false, error: 'Site not found' }
 
     const result = await generateNarrative({
       section: sectionName,

@@ -33,7 +33,7 @@ export default async function DraftPage({
   return (
     <div>
       <Header breadcrumbs={[
-        { label: 'Facilities', href: '/sites' },
+        { label: 'Sites', href: '/sites' },
         { label: facility.siteName, href: `/sites/${id}` },
         { label: 'Filings', href: `/sites/${id}/filings` },
         { label: draft.title },
