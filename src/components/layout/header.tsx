@@ -15,8 +15,8 @@ export function Header({ breadcrumbs }: HeaderProps) {
 
   return (
     <header
-      className="border-b px-8 py-2.5 sticky top-[48px] z-20 backdrop-blur-sm"
-      style={{ borderColor: 'var(--rule)', background: 'rgba(247,245,240,0.90)' }}
+      className="border-b px-8 py-2.5 sticky top-12 z-20"
+      style={{ borderColor: 'var(--rule)', background: 'var(--paper)' }}
     >
       <nav className="flex items-center gap-1">
         {breadcrumbs.map((crumb, i) => (

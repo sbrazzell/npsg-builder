@@ -45,11 +45,11 @@ export default function RootLayout({
             <Sidebar />
           </div>
           <div className="flex-1 flex flex-col bg-background overflow-auto min-w-0">
-            <header className="h-12 border-b border-border bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 shrink-0 sticky top-0 z-30">
+            <header className="h-12 border-b border-border bg-card flex items-center justify-between px-4 shrink-0 sticky top-0 z-30">
               <MobileNav />
               <UserMenu />
             </header>
-            <main className="flex-1 overflow-auto">
+            <main className="flex-1">
               {children}
             </main>
           </div>
