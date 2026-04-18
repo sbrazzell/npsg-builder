@@ -4,10 +4,10 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { siteObservationSchema, type SiteObservationInput } from '@/lib/validations'
 
-export async function getObservations(facilityId: string) {
+export async function getObservations(siteId: string) {
   try {
     const observations = await prisma.siteObservation.findMany({
-      where: { facilityId },
+      where: { siteId },
       orderBy: { createdAt: 'desc' },
     })
     return { success: true, data: observations }
@@ -24,8 +24,8 @@ export async function createObservation(input: SiteObservationInput) {
 
   try {
     const observation = await prisma.siteObservation.create({ data: parsed.data })
-    revalidatePath(`/facilities/${parsed.data.facilityId}/observations`)
-    revalidatePath(`/facilities/${parsed.data.facilityId}`)
+    revalidatePath(`/sites/${parsed.data.siteId}/observations`)
+    revalidatePath(`/sites/${parsed.data.siteId}`)
     return { success: true, data: observation }
   } catch (error) {
     return { success: false, error: 'Failed to create observation' }
@@ -43,17 +43,17 @@ export async function updateObservation(id: string, input: SiteObservationInput)
       where: { id },
       data: parsed.data,
     })
-    revalidatePath(`/facilities/${parsed.data.facilityId}/observations`)
+    revalidatePath(`/sites/${parsed.data.siteId}/observations`)
     return { success: true, data: observation }
   } catch (error) {
     return { success: false, error: 'Failed to update observation' }
   }
 }
 
-export async function deleteObservation(id: string, facilityId: string) {
+export async function deleteObservation(id: string, siteId: string) {
   try {
     await prisma.siteObservation.delete({ where: { id } })
-    revalidatePath(`/facilities/${facilityId}/observations`)
+    revalidatePath(`/sites/${siteId}/observations`)
     return { success: true }
   } catch (error) {
     return { success: false, error: 'Failed to delete observation' }

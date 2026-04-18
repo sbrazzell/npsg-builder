@@ -20,7 +20,7 @@ import {
 const navItems = [
   { href: '/',              label: 'Dashboard',       icon: LayoutDashboard },
   { href: '/organizations', label: 'Organizations',   icon: Building2 },
-  { href: '/facilities',    label: 'Facilities',      icon: MapPin },
+  { href: '/sites',         label: 'Sites',           icon: MapPin },
   { href: '/analyzer',      label: 'Analyzer',        icon: BarChart2 },
   { href: '/readiness',     label: 'Readiness',       icon: ClipboardList },
   { href: '/guide',         label: 'Guide',           icon: BookOpen },
@@ -133,7 +133,7 @@ export function MobileNav() {
             <ul className="space-y-0.5">
               <li>
                 <Link
-                  href="/facilities"
+                  href='/sites'
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-2.5 px-3 py-1.5 rounded-sm text-[13px] font-medium text-[var(--ink-3)] hover:bg-black/5 hover:text-[var(--ink)] transition-colors duration-150"
                 >

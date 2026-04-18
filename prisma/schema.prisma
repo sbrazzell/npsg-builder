@@ -24,14 +24,15 @@ model Organization {
   notes                 String?
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
-  facilities            Facility[]
+  sites                 Site[]
 }
 
-model Facility {
+model Site {
   id                    String                  @id @default(cuid())
   organizationId        String
   organization          Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  facilityName          String
+  siteName              String
+  targetCycleYear       Int                     @default(2026)
   address               String?
   occupancyNotes        String?
   populationServed      String?
@@ -62,8 +63,8 @@ model Facility {
 
 model ThreatAssessment {
   id                  String    @id @default(cuid())
-  facilityId          String
-  facility            Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  siteId              String
+  site                Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
   threatType          String
   description         String?
   likelihood          Int       @default(3)
@@ -80,8 +81,8 @@ model ThreatAssessment {
 
 model ExistingSecurityMeasure {
   id                  String    @id @default(cuid())
-  facilityId          String
-  facility            Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  siteId              String
+  site                Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
   category            String
   description         String?
   effectivenessRating Int       @default(3)
@@ -93,8 +94,8 @@ model ExistingSecurityMeasure {
 
 model ProjectProposal {
   id                      String    @id @default(cuid())
-  facilityId              String
-  facility                Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  siteId                  String
+  site                    Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
   title                   String
   category                String?
   problemStatement        String?
@@ -138,8 +139,8 @@ model BudgetItem {
 
 model NarrativeDraft {
   id              String    @id @default(cuid())
-  facilityId      String
-  facility        Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  siteId          String
+  site            Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
   sectionName     String
   promptContext   String?
   generatedText   String?
@@ -151,8 +152,8 @@ model NarrativeDraft {
 
 model SiteObservation {
   id                  String    @id @default(cuid())
-  facilityId          String
-  facility            Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  siteId              String
+  site                Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
   title               String
   locationDescription String?
   observationType     String?
@@ -165,8 +166,8 @@ model SiteObservation {
 
 model ApplicationPacket {
   id          String    @id @default(cuid())
-  facilityId  String
-  facility    Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  siteId      String
+  site        Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
   title       String
   summary     String?
   status      String    @default("draft")
@@ -176,8 +177,8 @@ model ApplicationPacket {
 
 model ApplicationDraft {
   id           String   @id @default(cuid())
-  facilityId   String
-  facility     Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  siteId       String
+  site         Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   version      Int
   status       String   @default("draft")
   title        String
@@ -189,8 +190,8 @@ model ApplicationDraft {
 
 model GrantAnalysis {
   id                            String   @id @default(cuid())
-  facilityId                    String
-  facility                      Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  siteId                        String
+  site                          Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   overallScore                  Int      @default(0)
   riskClarityScore              Int      @default(0)
   vulnerabilitySpecificityScore Int      @default(0)

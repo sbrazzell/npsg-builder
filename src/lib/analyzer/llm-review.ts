@@ -58,7 +58,7 @@ function buildReviewPrompt(facilityData: any): string {
 
   return `You are an expert reviewer for the FEMA Nonprofit Security Grant Program (NSGP). Evaluate this facility's grant application data and provide actionable feedback.
 
-Facility: ${facilityData?.facilityName ?? 'Unknown'}
+Facility: ${facilityData?.siteName ?? 'Unknown'}
 Population served: ${facilityData?.populationServed ?? 'Not specified'}
 Known security concerns: ${facilityData?.knownSecurityConcerns ?? 'None listed'}
 

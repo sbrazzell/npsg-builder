@@ -21,9 +21,9 @@ export interface FilingSnapshot {
     contactPhone?: string | null
     einOrTaxId?: string | null
   }
-  facility: {
+  site: {
     id: string
-    facilityName: string
+    siteName: string
     address?: string | null
     occupancyNotes?: string | null
     populationServed?: string | null
@@ -91,9 +91,9 @@ export interface FilingSnapshot {
 
 // ─── Build snapshot from live DB data ────────────────────────────────────────
 
-async function buildSnapshot(facilityId: string): Promise<FilingSnapshot> {
-  const facility = await prisma.facility.findUniqueOrThrow({
-    where: { id: facilityId },
+async function buildSnapshot(siteId: string): Promise<FilingSnapshot> {
+  const facility = await prisma.site.findUniqueOrThrow({
+    where: { id: siteId },
     include: {
       organization: true,
       threatAssessments: { orderBy: [{ likelihood: 'desc' }, { impact: 'desc' }] },
@@ -145,9 +145,9 @@ async function buildSnapshot(facilityId: string): Promise<FilingSnapshot> {
       contactPhone: facility.organization.contactPhone,
       einOrTaxId: facility.organization.einOrTaxId,
     },
-    facility: {
+    site: {
       id: facility.id,
-      facilityName: facility.facilityName,
+      siteName: facility.siteName,
       address: facility.address,
       occupancyNotes: facility.occupancyNotes,
       populationServed: facility.populationServed,
@@ -218,20 +218,20 @@ async function buildSnapshot(facilityId: string): Promise<FilingSnapshot> {
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
 
-export async function createDraft(facilityId: string, title: string, notes?: string) {
+export async function createDraft(siteId: string, title: string, notes?: string) {
   try {
-    const snapshot = await buildSnapshot(facilityId)
+    const snapshot = await buildSnapshot(siteId)
 
     // Next version number
     const last = await prisma.applicationDraft.findFirst({
-      where: { facilityId },
+      where: { siteId },
       orderBy: { version: 'desc' },
     })
     const version = (last?.version ?? 0) + 1
 
     const draft = await prisma.applicationDraft.create({
       data: {
-        facilityId,
+        siteId,
         version,
         title,
         notes: notes || null,
@@ -239,7 +239,7 @@ export async function createDraft(facilityId: string, title: string, notes?: str
         snapshotJson: JSON.stringify(snapshot),
       },
     })
-    revalidatePath(`/facilities/${facilityId}/filings`)
+    revalidatePath(`/sites/${siteId}/filings`)
     return { success: true, data: draft }
   } catch (error) {
     console.error(error)
@@ -247,10 +247,10 @@ export async function createDraft(facilityId: string, title: string, notes?: str
   }
 }
 
-export async function listDrafts(facilityId: string) {
+export async function listDrafts(siteId: string) {
   try {
     const drafts = await prisma.applicationDraft.findMany({
-      where: { facilityId },
+      where: { siteId },
       orderBy: { version: 'desc' },
     })
     return { success: true, data: drafts }
@@ -276,13 +276,13 @@ export async function updateDraftStatus(id: string, status: 'draft' | 'final') {
     // If marking as final, demote any existing final for this facility
     if (status === 'final') {
       await prisma.applicationDraft.updateMany({
-        where: { facilityId: draft.facilityId, status: 'final' },
+        where: { siteId: draft.siteId, status: 'final' },
         data: { status: 'draft' },
       })
     }
 
     await prisma.applicationDraft.update({ where: { id }, data: { status } })
-    revalidatePath(`/facilities/${draft.facilityId}/filings`)
+    revalidatePath(`/sites/${draft.siteId}/filings`)
     return { success: true }
   } catch {
     return { success: false, error: 'Failed to update status' }
@@ -292,7 +292,7 @@ export async function updateDraftStatus(id: string, status: 'draft' | 'final') {
 export async function updateDraftNotes(id: string, notes: string) {
   try {
     const draft = await prisma.applicationDraft.update({ where: { id }, data: { notes } })
-    revalidatePath(`/facilities/${draft.facilityId}/filings`)
+    revalidatePath(`/sites/${draft.siteId}/filings`)
     return { success: true }
   } catch {
     return { success: false, error: 'Failed to update notes' }
@@ -303,8 +303,8 @@ export async function deleteDraft(id: string) {
   try {
     const draft = await prisma.applicationDraft.findUniqueOrThrow({ where: { id } })
     await prisma.applicationDraft.delete({ where: { id } })
-    revalidatePath(`/facilities/${draft.facilityId}/filings`)
-    return { success: true, facilityId: draft.facilityId }
+    revalidatePath(`/sites/${draft.siteId}/filings`)
+    return { success: true, siteId: draft.siteId }
   } catch {
     return { success: false, error: 'Failed to delete draft' }
   }

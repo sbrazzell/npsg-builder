@@ -5,10 +5,10 @@ import { prisma } from '@/lib/prisma'
 import { generateNarrative } from '@/lib/narratives'
 import { narrativeDraftSchema, type NarrativeDraftInput } from '@/lib/validations'
 
-export async function getNarratives(facilityId: string) {
+export async function getNarratives(siteId: string) {
   try {
     const narratives = await prisma.narrativeDraft.findMany({
-      where: { facilityId },
+      where: { siteId },
       orderBy: [{ sectionName: 'asc' }, { versionNumber: 'desc' }],
     })
     return { success: true, data: narratives }
@@ -17,10 +17,10 @@ export async function getNarratives(facilityId: string) {
   }
 }
 
-export async function generateAndSaveNarrative(facilityId: string, sectionName: string) {
+export async function generateAndSaveNarrative(siteId: string, sectionName: string) {
   try {
-    const facility = await prisma.facility.findUnique({
-      where: { id: facilityId },
+    const facility = await prisma.site.findUnique({
+      where: { id: siteId },
       include: {
         organization: true,
         threatAssessments: true,
@@ -40,13 +40,13 @@ export async function generateAndSaveNarrative(facilityId: string, sectionName: 
 
     // Find existing draft for this section or create new one
     const existing = await prisma.narrativeDraft.findFirst({
-      where: { facilityId, sectionName },
+      where: { siteId, sectionName },
       orderBy: { versionNumber: 'desc' },
     })
 
     const narrative = await prisma.narrativeDraft.create({
       data: {
-        facilityId,
+        siteId,
         sectionName,
         generatedText: result.text,
         editedText: result.text,
@@ -54,7 +54,7 @@ export async function generateAndSaveNarrative(facilityId: string, sectionName: 
       },
     })
 
-    revalidatePath(`/facilities/${facilityId}/narratives`)
+    revalidatePath(`/sites/${siteId}/narratives`)
     return { success: true, data: narrative }
   } catch (error) {
     return { success: false, error: 'Failed to generate narrative' }
@@ -67,17 +67,17 @@ export async function updateNarrative(id: string, editedText: string) {
       where: { id },
       data: { editedText },
     })
-    revalidatePath(`/facilities/${narrative.facilityId}/narratives`)
+    revalidatePath(`/sites/${narrative.siteId}/narratives`)
     return { success: true, data: narrative }
   } catch (error) {
     return { success: false, error: 'Failed to update narrative' }
   }
 }
 
-export async function deleteNarrative(id: string, facilityId: string) {
+export async function deleteNarrative(id: string, siteId: string) {
   try {
     await prisma.narrativeDraft.delete({ where: { id } })
-    revalidatePath(`/facilities/${facilityId}/narratives`)
+    revalidatePath(`/sites/${siteId}/narratives`)
     return { success: true }
   } catch (error) {
     return { success: false, error: 'Failed to delete narrative' }
@@ -100,7 +100,7 @@ export async function applyNarrativeRewrite(
       },
     })
 
-    revalidatePath(`/facilities/${existing.facilityId}/narratives`)
+    revalidatePath(`/sites/${existing.siteId}/narratives`)
     return { success: true }
   } catch (error) {
     return { success: false, error: 'Failed to apply rewrite' }
@@ -108,13 +108,13 @@ export async function applyNarrativeRewrite(
 }
 
 export async function applyGeneratedRewrite(
-  facilityId: string,
+  siteId: string,
   sectionName: string,
   rewriteText: string
 ): Promise<{ success: boolean; narrativeId?: string; error?: string }> {
   try {
     const existing = await prisma.narrativeDraft.findFirst({
-      where: { facilityId, sectionName },
+      where: { siteId, sectionName },
       orderBy: { versionNumber: 'desc' },
     })
 
@@ -126,19 +126,19 @@ export async function applyGeneratedRewrite(
           versionNumber: existing.versionNumber + 1,
         },
       })
-      revalidatePath(`/facilities/${facilityId}/narratives`)
+      revalidatePath(`/sites/${siteId}/narratives`)
       return { success: true, narrativeId: updated.id }
     } else {
       const created = await prisma.narrativeDraft.create({
         data: {
-          facilityId,
+          siteId,
           sectionName,
           generatedText: rewriteText,
           editedText: rewriteText,
           versionNumber: 1,
         },
       })
-      revalidatePath(`/facilities/${facilityId}/narratives`)
+      revalidatePath(`/sites/${siteId}/narratives`)
       return { success: true, narrativeId: created.id }
     }
   } catch (error) {

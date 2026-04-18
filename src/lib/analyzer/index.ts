@@ -15,9 +15,9 @@ import {
 import { getAnalyzerProvider } from './llm-provider'
 import { runLLMReview } from './llm-review'
 
-export async function runAnalysis(facilityId: string): Promise<AnalysisResult> {
-  const facility = await prisma.facility.findUnique({
-    where: { id: facilityId },
+export async function runAnalysis(siteId: string): Promise<AnalysisResult> {
+  const facility = await prisma.site.findUnique({
+    where: { id: siteId },
     include: {
       organization: true,
       threatAssessments: {
@@ -38,7 +38,7 @@ export async function runAnalysis(facilityId: string): Promise<AnalysisResult> {
   })
 
   if (!facility) {
-    throw new Error(`Facility not found: ${facilityId}`)
+    throw new Error(`Facility not found: ${siteId}`)
   }
 
   const threats = facility.threatAssessments
@@ -118,8 +118,8 @@ export async function runAnalysis(facilityId: string): Promise<AnalysisResult> {
   }
 
   const analysisJson = JSON.stringify({
-    facilityId,
-    facilityName: facility.facilityName,
+    siteId,
+    siteName: facility.siteName,
     scores: {
       overall: overallScore,
       riskClarity: riskClarityScore,

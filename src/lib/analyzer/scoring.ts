@@ -189,7 +189,7 @@ export function scoreVulnerabilitySpecificity(
   const flags: AnalysisFlag[] = []
   let score = 0
 
-  if (facility.facilityName) score += 1
+  if (facility.siteName) score += 1
   if (facility.address) {
     score += 1
   } else {
@@ -563,7 +563,7 @@ export function buildSectionReadiness(facility: any): SectionReadiness[] {
   {
     const issues: string[] = []
     let score = 0
-    if (facility.facilityName) score += 20
+    if (facility.siteName) score += 20
     if (facility.address) { score += 20 } else issues.push('Address missing')
     if (facility.populationServed) { score += 20 } else issues.push('Population served not documented')
     if (facility.daysHoursOfOperation) { score += 20 } else issues.push('Operating hours not documented')

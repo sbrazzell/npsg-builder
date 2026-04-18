@@ -7,7 +7,7 @@ import { BookOpen, CheckCircle2 } from 'lucide-react'
 // ─── fetch real progress ─────────────────────────────────────────────────────
 
 async function getProgress() {
-  const [orgs, facilities, threats, measures, projects, budgetItems, narratives] =
+  const [orgs, sites, threats, measures, projects, budgetItems, narratives] =
     await Promise.all([
       prisma.organization.findMany({
         select: {
@@ -17,11 +17,14 @@ async function getProgress() {
           contactName: true,
           contactEmail: true,
           address: true,
-          facilities: { select: { id: true } },
+          sites: { select: { id: true } },
         },
       }),
-      prisma.facility.findMany({
-        include: {
+      prisma.site.findMany({
+        select: {
+          id: true,
+          siteName: true,
+          targetCycleYear: true,
           threatAssessments:  { select: { id: true } },
           securityMeasures:   { select: { id: true } },
           projectProposals:   {
@@ -45,7 +48,7 @@ async function getProgress() {
       prisma.narrativeDraft.findMany({ select: { id: true, editedText: true, generatedText: true } }),
     ])
 
-  const facilityCount    = facilities.length
+  const siteCount        = sites.length
   const orgCount         = orgs.length
   const threatCount      = threats
   const measureCount     = measures
@@ -60,31 +63,34 @@ async function getProgress() {
     ? `${orgCount - orgsComplete.length} organization${orgCount - orgsComplete.length > 1 ? 's are' : ' is'} missing EIN, contact name, or address.`
     : undefined
 
-  // Step 2: At least one facility
-  const step2Done = facilityCount > 0
+  // Step 2: At least one site
+  const step2Done = siteCount > 0
 
-  // Step 3: Every facility has at least one threat
-  const facilitiesWithThreats  = facilities.filter(f => f.threatAssessments.length > 0).length
-  const step3Done              = facilityCount > 0 && facilitiesWithThreats === facilityCount
-  const step3Blocker           = facilityCount > 0 && facilitiesWithThreats < facilityCount
-    ? `${facilityCount - facilitiesWithThreats} ${facilityCount - facilitiesWithThreats === 1 ? 'facility has' : 'facilities have'} no threat assessments.`
+  // Cycle years represented across all sites
+  const cycleYears = [...new Set(sites.map(s => s.targetCycleYear ?? 2026))].sort()
+
+  // Step 3: Every site has at least one threat
+  const sitesWithThreats  = sites.filter(s => s.threatAssessments.length > 0).length
+  const step3Done         = siteCount > 0 && sitesWithThreats === siteCount
+  const step3Blocker      = siteCount > 0 && sitesWithThreats < siteCount
+    ? `${siteCount - sitesWithThreats} ${siteCount - sitesWithThreats === 1 ? 'site has' : 'sites have'} no threat assessments.`
     : undefined
 
-  // Step 4: Every facility has at least one security measure
-  const facilitiesWithMeasures = facilities.filter(f => f.securityMeasures.length > 0).length
-  const step4Done              = facilityCount > 0 && facilitiesWithMeasures === facilityCount
-  const step4Blocker           = facilityCount > 0 && facilitiesWithMeasures < facilityCount
-    ? `${facilityCount - facilitiesWithMeasures} ${facilityCount - facilitiesWithMeasures === 1 ? 'facility is' : 'facilities are'} missing security measure documentation.`
+  // Step 4: Every site has at least one security measure
+  const sitesWithMeasures = sites.filter(s => s.securityMeasures.length > 0).length
+  const step4Done         = siteCount > 0 && sitesWithMeasures === siteCount
+  const step4Blocker      = siteCount > 0 && sitesWithMeasures < siteCount
+    ? `${siteCount - sitesWithMeasures} ${siteCount - sitesWithMeasures === 1 ? 'site is' : 'sites are'} missing security measure documentation.`
     : undefined
 
-  // Step 5: Every facility has ≥1 project, every project is linked to a threat
-  const facilitiesWithProjects = facilities.filter(f => f.projectProposals.length > 0).length
+  // Step 5: Every site has ≥1 project, every project is linked to a threat
+  const sitesWithProjects      = sites.filter(s => s.projectProposals.length > 0).length
   const projectsWithoutLinks   = projects.filter(p => p.threatLinks.length === 0)
-  const step5Done              = facilityCount > 0 && facilitiesWithProjects === facilityCount && projectsWithoutLinks.length === 0
-  const step5Blocker           = facilityCount > 0 && (facilitiesWithProjects < facilityCount || projectsWithoutLinks.length > 0)
+  const step5Done              = siteCount > 0 && sitesWithProjects === siteCount && projectsWithoutLinks.length === 0
+  const step5Blocker           = siteCount > 0 && (sitesWithProjects < siteCount || projectsWithoutLinks.length > 0)
     ? [
-        facilitiesWithProjects < facilityCount
-          ? `${facilityCount - facilitiesWithProjects} ${facilityCount - facilitiesWithProjects === 1 ? 'facility needs' : 'facilities need'} at least one project proposal.`
+        sitesWithProjects < siteCount
+          ? `${siteCount - sitesWithProjects} ${siteCount - sitesWithProjects === 1 ? 'site needs' : 'sites need'} at least one project proposal.`
           : null,
         projectsWithoutLinks.length > 0
           ? `${projectsWithoutLinks.length} ${projectsWithoutLinks.length === 1 ? 'project is' : 'projects are'} not linked to any documented threat.`
@@ -107,11 +113,11 @@ async function getProgress() {
       ].filter(Boolean).join(' ')
     : undefined
 
-  // Step 7: Every facility has at least one narrative draft
-  const facilitiesWithNarratives = facilities.filter(f => f.narrativeDrafts.some(n => n.editedText || n.generatedText)).length
-  const step7Done                = facilityCount > 0 && facilitiesWithNarratives === facilityCount
-  const step7Blocker             = facilityCount > 0 && facilitiesWithNarratives < facilityCount
-    ? `${facilityCount - facilitiesWithNarratives} ${facilityCount - facilitiesWithNarratives === 1 ? 'facility has' : 'facilities have'} no drafted narratives.`
+  // Step 7: Every site has at least one narrative draft
+  const sitesWithNarratives = sites.filter(s => s.narrativeDrafts.some(n => n.editedText || n.generatedText)).length
+  const step7Done           = siteCount > 0 && sitesWithNarratives === siteCount
+  const step7Blocker        = siteCount > 0 && sitesWithNarratives < siteCount
+    ? `${siteCount - sitesWithNarratives} ${siteCount - sitesWithNarratives === 1 ? 'site has' : 'sites have'} no drafted narratives.`
     : undefined
 
   // Step 8: always actionable
@@ -139,7 +145,7 @@ async function getProgress() {
       tips: [
         'Your EIN must match exactly what\'s on file with the IRS.',
         'The contact person should be authorized to sign grant agreements.',
-        'You can manage multiple organizations — each gets its own set of facilities.',
+        'You can manage multiple organizations — each gets its own set of sites.',
       ],
       status: s(1, step1Done),
       count: orgCount > 0 ? `${orgCount} added` : undefined,
@@ -148,45 +154,48 @@ async function getProgress() {
     },
     {
       number: 2,
-      title: 'Add your facilities',
+      title: 'Add your sites',
       eyebrow: 'Physical locations seeking security improvements',
       description:
-        'Each physical building or campus that needs security upgrades is a separate facility in the system. Add the address, describe occupancy (days/hours, population served, children\'s areas), and note any existing security concerns. Each facility gets its own risk assessment and set of project proposals.',
-      why: 'FEMA evaluates facilities individually. Each facility\'s threat profile, budget, and projects are reviewed separately. Detailed occupancy information strengthens your case for funding.',
+        'Each unique physical address or building that needs security upgrades is a separate site. Add the address, describe occupancy (days/hours, population served, children\'s areas), and note any existing security concerns. Assign each site to a funding cycle year (e.g., FY2026) so the readiness tracker can group your work by application cycle. Each site gets its own risk assessment and set of project proposals.',
+      why: 'FEMA evaluates sites individually — each site\'s threat profile, budget, and projects are reviewed separately. The funding cycle year lets you plan ahead: you might submit one site this cycle and another in FY2027. Detailed occupancy information strengthens your case for funding.',
       tips: [
         'Be specific about hours of operation — "Sunday 9am–1pm" is better than "weekends."',
-        'Document whether the facility serves children — this is a scoring factor.',
-        'Add all facilities before you start documenting threats.',
+        'Document whether the site serves children — this is a scoring factor.',
+        cycleYears.length > 0
+          ? `You currently have sites in ${cycleYears.map(y => `FY${y}`).join(' and ')}. Each cycle is tracked separately in the Readiness view.`
+          : 'Set the "Target Cycle Year" on each site so the Readiness view can group your progress by application cycle.',
+        'Add all sites for a given cycle before you start documenting threats.',
       ],
       status: s(2, step2Done),
-      count: facilityCount > 0 ? `${facilityCount} added` : undefined,
-      cta: { label: facilityCount > 0 ? 'Manage facilities' : 'Add your first facility', href: facilityCount > 0 ? '/facilities' : '/facilities/new' },
-      secondaryCta: facilityCount > 0 ? { label: 'Add another facility', href: '/facilities/new' } : undefined,
+      count: siteCount > 0 ? `${siteCount} added` : undefined,
+      cta: { label: siteCount > 0 ? 'Manage sites' : 'Add your first site', href: siteCount > 0 ? '/sites' : '/sites/new' },
+      secondaryCta: siteCount > 0 ? { label: 'Add another site', href: '/sites/new' } : undefined,
     },
     {
       number: 3,
-      title: 'Document threats for each facility',
+      title: 'Document threats for each site',
       eyebrow: 'Security risks scored by likelihood × impact',
       description:
-        'For each facility, identify and score the security threats it faces. Rate each threat on likelihood (1–5) and impact (1–5) to produce a risk score. Threats can range from active shooter scenarios to vandalism, cyberattack, or natural disaster. The 5×5 risk matrix shows your threat landscape visually.',
+        'For each site, identify and score the security threats it faces. Rate each threat on likelihood (1–5) and impact (1–5) to produce a risk score. Threats can range from active shooter scenarios to vandalism, cyberattack, or natural disaster. The 5×5 risk matrix shows your threat landscape visually.',
       why: 'Threat documentation is the backbone of your application. Every project proposal must be traceable to at least one documented threat. Unlinked projects are a red flag for reviewers and a common rejection reason.',
       tips: [
         'Law enforcement assessments carry more weight — request one early.',
         'Document incident history even if no incidents occurred ("no incidents in past 3 years" is useful context).',
         'Score conservatively — overestimating likelihood is better than understating impact.',
-        'Aim for 3–8 threats per facility to show comprehensive analysis.',
+        'Aim for 3–8 threats per site to show comprehensive analysis.',
       ],
       status: s(3, step3Done),
       count: threatCount > 0 ? `${threatCount} total` : undefined,
       blocker: step3Blocker,
-      cta: { label: 'Open facilities', href: '/facilities' },
+      cta: { label: 'Open sites', href: '/sites' },
     },
     {
       number: 4,
       title: 'Record existing security measures',
       eyebrow: 'Current security infrastructure and its gaps',
       description:
-        'Document what security measures are already in place at each facility — cameras, access control, lighting, trained staff, alarm systems, etc. Rate their effectiveness and note remaining gaps. This establishes your baseline security posture before the proposed improvements.',
+        'Document what security measures are already in place at each site — cameras, access control, lighting, trained staff, alarm systems, etc. Rate their effectiveness and note remaining gaps. This establishes your baseline security posture before the proposed improvements.',
       why: 'Reviewers need to see that you understand your current state before requesting improvements. Existing measures show good stewardship; documented gaps directly justify your project proposals.',
       tips: [
         'Include "soft" measures like security policies, staff training, and emergency plans.',
@@ -196,14 +205,14 @@ async function getProgress() {
       status: s(4, step4Done),
       count: measureCount > 0 ? `${measureCount} recorded` : undefined,
       blocker: step4Blocker,
-      cta: { label: 'Open facilities', href: '/facilities' },
+      cta: { label: 'Open sites', href: '/sites' },
     },
     {
       number: 5,
       title: 'Create project proposals',
       eyebrow: 'Security improvements linked to documented threats',
       description:
-        'For each facility, define the security improvement projects you\'re requesting funding for. Each project needs a clear problem statement (derived from your threats), a proposed solution, and a rationale for how it reduces risk. Critically, each project must be linked to at least one documented threat.',
+        'For each site, define the security improvement projects you\'re requesting funding for. Each project needs a clear problem statement (derived from your threats), a proposed solution, and a rationale for how it reduces risk. Critically, each project must be linked to at least one documented threat.',
       why: 'Projects are what you\'re actually requesting money for. FEMA wants a clear line from documented threat → existing gap → proposed solution → risk reduction. Missing threat linkage is the #1 reason projects get cut during review.',
       tips: [
         'One project per security category works well (e.g., one for access control, one for cameras).',
@@ -214,7 +223,7 @@ async function getProgress() {
       status: s(5, step5Done),
       count: projectCount > 0 ? `${projectCount} created` : undefined,
       blocker: step5Blocker,
-      cta: { label: 'Open facilities', href: '/facilities' },
+      cta: { label: 'Open sites', href: '/sites' },
     },
     {
       number: 6,
@@ -232,7 +241,7 @@ async function getProgress() {
       status: s(6, step6Done),
       count: budgetItemCount > 0 ? `${budgetItemCount} items` : undefined,
       blocker: step6Blocker,
-      cta: { label: 'Open facilities', href: '/facilities' },
+      cta: { label: 'Open sites', href: '/sites' },
     },
     {
       number: 7,
@@ -244,20 +253,20 @@ async function getProgress() {
       tips: [
         'Use the ✨ sparkle button in text fields to generate an AI first draft.',
         'Reference specific threat scores and incident history in your narratives.',
-        'Write for a reviewer who has never visited your facility — be explicit and specific.',
+        'Write for a reviewer who has never visited your site — be explicit and specific.',
         'Have a non-expert read the narrative — if they understand the risk, reviewers will too.',
       ],
       status: s(7, step7Done),
       count: narrativeCount > 0 ? `${narrativeCount} drafted` : undefined,
       blocker: step7Blocker,
-      cta: { label: 'Open facilities', href: '/facilities' },
+      cta: { label: 'Open sites', href: '/sites' },
     },
     {
       number: 8,
       title: 'Review readiness & export',
       eyebrow: 'Final check before submission',
       description:
-        'Run the readiness review to get a scored assessment of each facility\'s application completeness. The review checks for missing fields, unlinked projects, unjustified budget items, and narrative gaps. Once you\'re satisfied, export your application packet for submission through the FEMA Grants Outcomes (GO) system.',
+        'Run the readiness review to get a scored assessment of each site\'s application completeness, grouped by funding cycle. The review checks for missing fields, unlinked projects, unjustified budget items, and narrative gaps. Once you\'re satisfied, export your application packet for submission through the FEMA Grants Outcomes (GO) system.',
       why: 'The NSGP application is submitted through FEMA GO, not directly from this tool. Your export gives you a structured summary of all the information you\'ll need to enter. Submitting through GO requires an authorized organization representative.',
       tips: [
         'Run the readiness review before the final week — fixes take time.',
@@ -267,7 +276,7 @@ async function getProgress() {
       ],
       status: s(8, step8Done),
       cta: { label: 'Open readiness review', href: '/readiness' },
-      secondaryCta: { label: 'View all facilities', href: '/facilities' },
+      secondaryCta: { label: 'View all sites', href: '/sites' },
     },
   ]
 

@@ -11,7 +11,7 @@ import { Building2, Plus, MapPin, ChevronRight } from 'lucide-react'
 
 export default async function OrganizationsPage() {
   const organizations = await prisma.organization.findMany({
-    include: { facilities: true },
+    include: { sites: true },
     orderBy: { name: 'asc' },
   })
 
@@ -59,7 +59,7 @@ export default async function OrganizationsPage() {
                   <div className="flex items-center gap-3">
                     <Badge variant="secondary" className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
-                      {org.facilities.length} {org.facilities.length === 1 ? 'facility' : 'facilities'}
+                      {org.sites.length} {org.sites.length === 1 ? 'facility' : 'facilities'}
                     </Badge>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </div>

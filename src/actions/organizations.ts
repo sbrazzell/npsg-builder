@@ -7,7 +7,7 @@ import { organizationSchema, type OrganizationInput } from '@/lib/validations'
 export async function getOrganizations() {
   try {
     const organizations = await prisma.organization.findMany({
-      include: { facilities: true },
+      include: { sites: true },
       orderBy: { updatedAt: 'desc' },
     })
     return { success: true, data: organizations }
@@ -21,7 +21,7 @@ export async function getOrganization(id: string) {
     const organization = await prisma.organization.findUnique({
       where: { id },
       include: {
-        facilities: {
+        sites: {
           include: {
             threatAssessments: true,
             securityMeasures: true,

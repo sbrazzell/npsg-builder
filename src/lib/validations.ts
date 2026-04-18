@@ -18,7 +18,7 @@ export type OrganizationInput = z.infer<typeof organizationSchema>
 
 export const facilitySchema = z.object({
   organizationId: z.string().min(1, 'Organization is required'),
-  facilityName: z.string().min(1, 'Facility name is required'),
+  siteName: z.string().min(1, 'Facility name is required'),
   address: z.string().optional(),
   occupancyNotes: z.string().optional(),
   populationServed: z.string().optional(),
@@ -48,7 +48,7 @@ export const THREAT_SOURCES = [
 export type ThreatSource = typeof THREAT_SOURCES[number]['value']
 
 export const threatAssessmentSchema = z.object({
-  facilityId: z.string().min(1, 'Facility is required'),
+  siteId: z.string().min(1, 'Facility is required'),
   threatType: z.string().min(1, 'Threat type is required'),
   description: z.string().optional(),
   likelihood: z.number().int().min(1).max(5).default(3),
@@ -62,7 +62,7 @@ export const threatAssessmentSchema = z.object({
 export type ThreatAssessmentInput = z.infer<typeof threatAssessmentSchema>
 
 export const securityMeasureSchema = z.object({
-  facilityId: z.string().min(1, 'Facility is required'),
+  siteId: z.string().min(1, 'Facility is required'),
   category: z.string().min(1, 'Category is required'),
   description: z.string().optional(),
   effectivenessRating: z.number().int().min(1).max(5).default(3),
@@ -73,7 +73,7 @@ export const securityMeasureSchema = z.object({
 export type SecurityMeasureInput = z.infer<typeof securityMeasureSchema>
 
 export const projectProposalSchema = z.object({
-  facilityId: z.string().min(1, 'Facility is required'),
+  siteId: z.string().min(1, 'Facility is required'),
   title: z.string().min(1, 'Project title is required'),
   category: z.string().optional(),
   problemStatement: z.string().optional(),
@@ -103,7 +103,7 @@ export const budgetItemSchema = z.object({
 export type BudgetItemInput = z.infer<typeof budgetItemSchema>
 
 export const narrativeDraftSchema = z.object({
-  facilityId: z.string().min(1, 'Facility is required'),
+  siteId: z.string().min(1, 'Facility is required'),
   sectionName: z.string().min(1, 'Section name is required'),
   promptContext: z.string().optional(),
   generatedText: z.string().optional(),
@@ -114,7 +114,7 @@ export const narrativeDraftSchema = z.object({
 export type NarrativeDraftInput = z.infer<typeof narrativeDraftSchema>
 
 export const siteObservationSchema = z.object({
-  facilityId: z.string().min(1, 'Facility is required'),
+  siteId: z.string().min(1, 'Facility is required'),
   title: z.string().min(1, 'Title is required'),
   locationDescription: z.string().optional(),
   observationType: z.string().optional(),

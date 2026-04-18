@@ -101,7 +101,7 @@ export default async function BenchmarkPage() {
                       const isTop = row.analysis.overallScore === topScore && topScore > 0
                       return (
                         <tr
-                          key={row.facilityId}
+                          key={row.siteId}
                           className={isTop ? 'bg-emerald-50' : 'hover:bg-slate-50 transition-colors'}
                         >
                           <td className="px-4 py-3">
@@ -109,7 +109,7 @@ export default async function BenchmarkPage() {
                               <div className={`inline-flex p-1.5 rounded-md ${isTop ? 'bg-emerald-100' : 'bg-slate-100'}`}>
                                 <Building2 className={`h-3.5 w-3.5 ${isTop ? 'text-emerald-600' : 'text-slate-500'}`} />
                               </div>
-                              <span className="font-medium text-slate-900">{row.facilityName}</span>
+                              <span className="font-medium text-slate-900">{row.siteName}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-slate-600">{row.organizationName}</td>
@@ -141,7 +141,7 @@ export default async function BenchmarkPage() {
                           </td>
                           <td className="px-4 py-3">
                             <Link
-                              href={`/analyzer/${row.facilityId}`}
+                              href={`/analyzer/${row.siteId}`}
                               className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-xs font-medium whitespace-nowrap"
                             >
                               View Report

@@ -46,7 +46,7 @@ async function getDashboardData() {
       prisma.organization.findMany({
         select: { id: true, name: true, einOrTaxId: true, contactName: true, address: true },
       }),
-      prisma.facility.findMany({
+      prisma.site.findMany({
         orderBy: { updatedAt: 'desc' },
         include: {
           organization: { select: { name: true } },
@@ -68,7 +68,7 @@ async function getDashboardData() {
       prisma.budgetItem.findMany({ select: { totalCost: true, justification: true } }),
     ])
 
-  const facilityCount = facilities.length
+  const siteCount = facilities.length
   const orgCount = orgs.length
 
   // High/critical threat count
@@ -92,15 +92,15 @@ async function getDashboardData() {
 
   // 2. Threat assessments: facilities with ≥1 threat
   const facilitiesWithThreats = facilities.filter(f => f.threatAssessments.length > 0).length
-  const threatPct = pct(facilitiesWithThreats, Math.max(1, facilityCount))
+  const threatPct = pct(facilitiesWithThreats, Math.max(1, siteCount))
 
   // 3. Security measures: facilities with ≥1 measure
   const facilitiesWithMeasures = facilities.filter(f => f.securityMeasures.length > 0).length
-  const measurePct = pct(facilitiesWithMeasures, Math.max(1, facilityCount))
+  const measurePct = pct(facilitiesWithMeasures, Math.max(1, siteCount))
 
   // 4. Project proposals: facilities with ≥1 proposal
   const facilitiesWithProposals = facilities.filter(f => f.projectProposals.length > 0).length
-  const proposalPct = pct(facilitiesWithProposals, Math.max(1, facilityCount))
+  const proposalPct = pct(facilitiesWithProposals, Math.max(1, siteCount))
 
   // 5. Budgets: proposals with ≥1 budget item
   const projectsWithBudgets = facilities
@@ -111,7 +111,7 @@ async function getDashboardData() {
 
   // 6. Narratives: facilities with ≥1 narrative draft
   const facilitiesWithNarratives = facilities.filter(f => f.narrativeDrafts.length > 0).length
-  const narrativePct = pct(facilitiesWithNarratives, Math.max(1, facilityCount))
+  const narrativePct = pct(facilitiesWithNarratives, Math.max(1, siteCount))
 
   // Overall portfolio readiness (weighted average)
   const overallPct = Math.round(
@@ -136,7 +136,7 @@ async function getDashboardData() {
     blockers.push({
       severity: 'bad',
       text: `${missingThreats.length} ${missingThreats.length === 1 ? 'facility has' : 'facilities have'} no threat assessments documented.`,
-      href: '/facilities',
+      href: '/sites',
       cta: 'Fix →',
     })
   }
@@ -149,7 +149,7 @@ async function getDashboardData() {
     blockers.push({
       severity: 'bad',
       text: `${projectsWithoutLinks.length} ${projectsWithoutLinks.length === 1 ? 'project is' : 'projects are'} missing threat linkage. Reviewers flag unlinked projects.`,
-      href: '/facilities',
+      href: '/sites',
       cta: 'Fix →',
     })
   }
@@ -172,18 +172,18 @@ async function getDashboardData() {
     blockers.push({
       severity: 'warn',
       text: `${formatCurrency(unjustifiedTotal)} of budget items are missing justification text.`,
-      href: '/facilities',
+      href: '/sites',
       cta: 'Review →',
     })
   }
 
   // No narratives
-  const narrativesNeeded = facilityCount - facilitiesWithNarratives
+  const narrativesNeeded = siteCount - facilitiesWithNarratives
   if (narrativesNeeded > 0) {
     blockers.push({
       severity: 'warn',
       text: `${narrativesNeeded} ${narrativesNeeded === 1 ? 'facility has' : 'facilities have'} no narrative drafts generated.`,
-      href: '/facilities',
+      href: '/sites',
       cta: 'Draft →',
     })
   }
@@ -221,7 +221,7 @@ async function getDashboardData() {
 
     return {
       id: f.id,
-      name: f.facilityName,
+      name: f.siteName,
       org: f.organization.name,
       maxScore,
       topLevel,
@@ -239,7 +239,7 @@ async function getDashboardData() {
 
   return {
     orgCount,
-    facilityCount,
+    siteCount,
     highRiskThreats,
     activeProposals,
     submittedProposals,
@@ -264,7 +264,7 @@ async function getDashboardData() {
 export default async function DashboardPage() {
   const data = await getDashboardData()
   const {
-    orgCount, facilityCount, highRiskThreats, activeProposals,
+    orgCount, siteCount, highRiskThreats, activeProposals,
     submittedProposals, totalBudget, overallPct, readinessLevel,
     readinessBars, blockers, roster,
   } = data
@@ -282,7 +282,7 @@ export default async function DashboardPage() {
               Grant Portfolio
             </h1>
             <p className="mt-2.5 text-[14.5px]" style={{ color: 'var(--ink-3)', maxWidth: '580px' }}>
-              {facilityCount} {facilityCount === 1 ? 'facility' : 'facilities'} in the portfolio
+              {siteCount} {siteCount === 1 ? 'facility' : 'facilities'} in the portfolio
               {' · '}{submittedProposals > 0 ? `${submittedProposals} submitted` : 'none submitted yet'}
               {blockers.filter(b => b.severity === 'bad').length > 0
                 ? ` · ${blockers.filter(b => b.severity === 'bad').length} outstanding blockers`
@@ -291,7 +291,7 @@ export default async function DashboardPage() {
           </div>
           <div className="flex gap-2 flex-shrink-0">
             <Link
-              href="/facilities/new"
+              href="/sites/new"
               className="inline-flex items-center gap-1.5 px-3 py-[7px] rounded-sm text-[13px] font-medium border transition-colors duration-150"
               style={{ border: '1px solid var(--rule)', background: 'white', color: 'var(--ink)' }}
             >
@@ -440,9 +440,9 @@ export default async function DashboardPage() {
         {[
           {
             label: 'Facilities',
-            value: facilityCount,
+            value: siteCount,
             sub: `${orgCount} ${orgCount === 1 ? 'organization' : 'organizations'}`,
-            href: '/facilities',
+            href: '/sites',
           },
           {
             label: 'High / critical threats',
@@ -454,13 +454,13 @@ export default async function DashboardPage() {
             label: 'Active proposals',
             value: activeProposals,
             sub: `${submittedProposals} submitted`,
-            href: '/facilities',
+            href: '/sites',
           },
           {
             label: 'Total requested',
             value: formatCurrency(totalBudget),
-            sub: facilityCount > 0 ? `avg ${formatCurrency(Math.round(totalBudget / facilityCount))} / facility` : 'no budget yet',
-            href: '/facilities',
+            sub: siteCount > 0 ? `avg ${formatCurrency(Math.round(totalBudget / siteCount))} / facility` : 'no budget yet',
+            href: '/sites',
           },
         ].map(stat => (
           <Link key={stat.label} href={stat.href} className="group block bg-white px-5 py-[18px] hover:bg-[var(--paper-2)] transition-colors duration-150">
@@ -500,7 +500,7 @@ export default async function DashboardPage() {
             New org
           </Link>
           <Link
-            href="/facilities/new"
+            href="/sites/new"
             className="inline-flex items-center gap-1.5 px-3 py-[5px] rounded-sm text-[12px] font-medium border transition-colors"
             style={{ border: '1px solid var(--rule)', background: 'white', color: 'var(--ink)' }}
           >
@@ -539,7 +539,7 @@ export default async function DashboardPage() {
           <div className="px-5 py-16 text-center">
             <p className="text-[13px]" style={{ color: 'var(--ink-3)' }}>
               No facilities yet.{' '}
-              <Link href="/facilities/new" style={{ color: 'var(--nav-accent)' }}>
+              <Link href="/sites/new" style={{ color: 'var(--nav-accent)' }}>
                 Add your first facility →
               </Link>
             </p>
@@ -554,7 +554,7 @@ export default async function DashboardPage() {
             return (
               <Link
                 key={row.id}
-                href={`/facilities/${row.id}`}
+                href={`/sites/${row.id}`}
                 className="group grid px-5 py-4 items-center transition-colors duration-100"
                 style={{
                   gridTemplateColumns: '1fr 100px 120px 120px 120px 90px',
@@ -668,7 +668,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Empty state CTA when no data at all */}
-      {facilityCount === 0 && (
+      {siteCount === 0 && (
         <div className="mt-10 px-9 py-12 text-center rounded-sm border" style={{ borderColor: 'var(--rule)', borderStyle: 'dashed' }}>
           <p className="font-serif text-[22px] font-medium mb-2" style={{ color: 'var(--ink-2)' }}>
             Start your NSGP application

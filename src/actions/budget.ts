@@ -32,7 +32,7 @@ export async function createBudgetItem(input: BudgetItemInput) {
     const item = await prisma.budgetItem.create({ data })
     const project = await prisma.projectProposal.findUnique({ where: { id: parsed.data.projectId } })
     if (project) {
-      revalidatePath(`/facilities/${project.facilityId}/projects/${parsed.data.projectId}/budget`)
+      revalidatePath(`/sites/${project.siteId}/projects/${parsed.data.projectId}/budget`)
     }
     return { success: true, data: item }
   } catch (error) {
@@ -56,7 +56,7 @@ export async function updateBudgetItem(id: string, input: BudgetItemInput) {
     const item = await prisma.budgetItem.update({ where: { id }, data })
     const project = await prisma.projectProposal.findUnique({ where: { id: parsed.data.projectId } })
     if (project) {
-      revalidatePath(`/facilities/${project.facilityId}/projects/${parsed.data.projectId}/budget`)
+      revalidatePath(`/sites/${project.siteId}/projects/${parsed.data.projectId}/budget`)
     }
     return { success: true, data: item }
   } catch (error) {
@@ -71,7 +71,7 @@ export async function deleteBudgetItem(id: string) {
     if (item) {
       const project = await prisma.projectProposal.findUnique({ where: { id: item.projectId } })
       if (project) {
-        revalidatePath(`/facilities/${project.facilityId}/projects/${item.projectId}/budget`)
+        revalidatePath(`/sites/${project.siteId}/projects/${item.projectId}/budget`)
       }
     }
     return { success: true }

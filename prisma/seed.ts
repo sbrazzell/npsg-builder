@@ -49,7 +49,7 @@ async function main() {
   const facility = await prisma.facility.create({
     data: {
       organizationId: org.id,
-      facilityName: 'Grace Community Church — Main Campus',
+      siteName: 'Grace Community Church — Main Campus',
       address: '4200 North Lincoln Avenue, Chicago, IL 60618',
       occupancyNotes: 'Peak occupancy on Sunday mornings (approx. 450 attendees across two services). The daycare center operates Monday–Friday with up to 60 children enrolled. The after-school program serves 35 students on weekday afternoons.',
       populationServed: 'Approximately 450 weekly worship attendees including families with children; 60 enrolled daycare children (ages 0–5); 35 after-school students (ages 6–12); weekly food pantry serving 120+ community members',
@@ -63,13 +63,13 @@ async function main() {
     },
   })
 
-  console.log('Created facility:', facility.facilityName)
+  console.log('Created facility:', facility.siteName)
 
   // Create Threat Assessments
   // threat1: STRONG — full description, incident history, rated
   const threat1 = await prisma.threatAssessment.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       threatType: 'Unauthorized Entry / Intrusion',
       description: 'An unauthorized individual gains access to restricted areas of the facility, particularly the children\'s daycare and after-school program areas, due to inadequate access controls and unlocked side doors.',
       likelihood: 4,
@@ -82,7 +82,7 @@ async function main() {
   // threat2: STRONG — full description, incident history, rated
   const threat2 = await prisma.threatAssessment.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       threatType: 'Targeted Violence / Hate Crime',
       description: 'An individual or group targets the congregation due to religious affiliation, motivated by hate or extremist ideology, exploiting the open-access design of the facility during high-occupancy services.',
       likelihood: 3,
@@ -95,7 +95,7 @@ async function main() {
   // threat3: STRONG — good description and history, rated
   const threat3 = await prisma.threatAssessment.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       threatType: 'Vandalism / Property Damage',
       description: 'Graffiti, broken windows, or damage to vehicles and property, particularly in the unmonitored parking lot, enabled by inadequate exterior lighting and no camera coverage.',
       likelihood: 5,
@@ -108,7 +108,7 @@ async function main() {
   // threat4: WEAK — short description (< 15 words), NO incident history (to trigger flags)
   const threat4 = await prisma.threatAssessment.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       threatType: 'Active Shooter / Armed Assault',
       description: 'Armed attacker enters facility during services.',
       likelihood: 2,
@@ -121,7 +121,7 @@ async function main() {
   // threat5: WEAK — no incident history, default likelihood/impact (to trigger flags)
   const threat5 = await prisma.threatAssessment.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       threatType: 'Harassment / Stalking',
       description: 'Congregation members are followed or confronted on-site by known or unknown individuals.',
       likelihood: 3, // default
@@ -136,7 +136,7 @@ async function main() {
   // Create Existing Security Measures
   await prisma.existingSecurityMeasure.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       category: 'Video Surveillance (CCTV)',
       description: 'Four analog CCTV cameras installed in 2014: two covering the main entrance/lobby, one in the fellowship hall, one in the parking lot. Footage recorded to a DVR on a 7-day loop.',
       effectivenessRating: 2,
@@ -147,7 +147,7 @@ async function main() {
 
   await prisma.existingSecurityMeasure.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       category: 'Access Control',
       description: 'Standard keyed deadbolt locks on all exterior doors. Main entrance uses a push-bar crash bar with exterior key access after hours.',
       effectivenessRating: 2,
@@ -158,7 +158,7 @@ async function main() {
 
   await prisma.existingSecurityMeasure.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       category: 'Staffing / Personnel',
       description: 'A volunteer greeter stands at the main entrance during Sunday worship services. No security personnel during weekday programming. Daycare staff are required to perform ID check on child pickup.',
       effectivenessRating: 2,
@@ -169,7 +169,7 @@ async function main() {
 
   await prisma.existingSecurityMeasure.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       category: 'Lighting',
       description: 'Interior lighting is adequate throughout the building. Exterior lighting consists of four pole-mounted fixtures in the parking lot and two wall sconces at the main entrance.',
       effectivenessRating: 1,
@@ -184,7 +184,7 @@ async function main() {
   // project1: STRONG — well documented, linked to threats, full budget with justifications
   const project1 = await prisma.projectProposal.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       title: 'Perimeter Security: Lighting & Vehicle Barriers',
       category: 'Physical Barriers / Perimeter',
       problemStatement: 'The facility\'s parking lot and building perimeter are inadequately lit, creating conditions that enable vandalism, loitering, and unseen approaches to the building. The parking lot also lacks any vehicle control measures, leaving the main building entrance exposed to a potential vehicle-ramming attack.',
@@ -200,7 +200,7 @@ async function main() {
   // project2: STRONG — well documented, linked to threats, full budget with justifications
   const project2 = await prisma.projectProposal.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       title: 'CCTV Expansion & Upgrade',
       category: 'Video Surveillance (CCTV)',
       problemStatement: 'The existing 4-camera analog CCTV system from 2014 provides insufficient coverage of the facility and produces low-resolution footage inadequate for identification purposes. The children\'s wing — the highest-risk area of the facility — has no camera coverage whatsoever.',
@@ -215,7 +215,7 @@ async function main() {
   // project3: ORPHAN — no threat links (to trigger flag), missing implementation notes
   const project3 = await prisma.projectProposal.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       title: 'Controlled Access: Children\'s Wing & Main Entrance',
       category: 'Access Control Systems',
       problemStatement: 'The children\'s wing of the facility is accessible to anyone who enters the main building with no access control between the public lobby and children\'s areas.',
@@ -324,7 +324,7 @@ async function main() {
   // Create Site Observations
   await prisma.siteObservation.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       title: 'Three parking lot lights non-functional',
       locationDescription: 'North and northwest parking lot area',
       observationType: 'Lighting Deficiency',
@@ -335,7 +335,7 @@ async function main() {
 
   await prisma.siteObservation.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       title: 'Daycare wing side door found propped open',
       locationDescription: 'East exterior side door, adjacent to Classroom 108',
       observationType: 'Access Control Gap',
@@ -346,7 +346,7 @@ async function main() {
 
   await prisma.siteObservation.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       title: 'No barrier between lobby and children\'s wing',
       locationDescription: 'Main lobby / east wing junction',
       observationType: 'Access Control Gap',
@@ -357,7 +357,7 @@ async function main() {
 
   await prisma.siteObservation.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       title: 'Convenience store loitering visible from parking lot',
       locationDescription: 'Southeast corner of parking lot, adjacent to convenience store',
       observationType: 'Behavioral Concern',
@@ -372,7 +372,7 @@ async function main() {
   // executive_summary: STRONG
   await prisma.narrativeDraft.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       sectionName: 'executive_summary',
       versionNumber: 1,
       generatedText: `Grace Community Church respectfully submits this application for Nonprofit Security Grant Program funding to support critical security improvements at its main campus located at 4200 North Lincoln Avenue, Chicago, Illinois. The church is a 501(c)(3) non-denominational Protestant congregation that has served the North Center neighborhood since 1987.\n\nThe facility serves approximately 450 weekly worship attendees, 60 enrolled daycare children, 35 after-school program students, and over 120 food pantry recipients each week — representing a broad cross-section of vulnerable community members who depend on this facility for essential religious, educational, and social services.\n\nThis application encompasses three security projects totaling $38,375 in requested funding. The proposed improvements — perimeter lighting and vehicle barriers, CCTV expansion, and controlled access for the children's wing — address documented vulnerabilities that culminated in an unauthorized entry incident in February 2024. These investments will meaningfully reduce the risk of targeted violence, unauthorized access, and other security incidents, allowing Grace Community Church to fulfill its mission with confidence in the safety of those it serves.`,
@@ -383,7 +383,7 @@ async function main() {
   // threat_overview: STRONG
   await prisma.narrativeDraft.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       sectionName: 'threat_overview',
       versionNumber: 1,
       generatedText: `Grace Community Church — Main Campus faces a documented range of security threats that present meaningful risk to the congregation, staff, and the children enrolled in its care programs. The facility has conducted a formal threat assessment identifying five threat categories: Unauthorized Entry/Intrusion, Targeted Violence/Hate Crime, Vandalism/Property Damage, Active Shooter/Armed Assault, and Harassment/Stalking.\n\nOf particular concern are three threats rated at high or critical risk levels: unauthorized entry (Likelihood 4, Impact 5, Score 20 — Critical), targeted violence (Likelihood 3, Impact 5, Score 15 — High), and active shooter scenarios (Likelihood 2, Impact 5, Score 10 — High). These threat ratings reflect both the specific conditions at this facility and the broader threat environment facing houses of worship nationwide.\n\nThe facility is situated adjacent to a 24-hour convenience store that has been the site of recurring public intoxication incidents and two assaults in the past 18 months, contributing directly to the unauthorized entry incident documented in February 2024. The surrounding neighborhood has experienced a 22% increase in property crime over the past three years, and the facility's open-access design and limited security infrastructure create conditions that invite rather than deter hostile actors.`,
@@ -394,7 +394,7 @@ async function main() {
   // vulnerability_statement: WEAK — very short and vague (intentional flag trigger)
   await prisma.narrativeDraft.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       sectionName: 'vulnerability_statement',
       versionNumber: 1,
       generatedText: 'The facility needs security improvements and safety measures to enhance safety for all occupants.',
@@ -407,7 +407,7 @@ async function main() {
   // Create Application Packet
   await prisma.applicationPacket.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       title: 'FY2025 NSGP Application — Grace Community Church',
       summary: 'Three-project security improvement request totaling $38,375, addressing unauthorized entry, CCTV coverage gaps, and perimeter lighting deficiencies.',
       status: 'draft',
@@ -423,7 +423,7 @@ async function main() {
 
   const grantAnalysis = await prisma.grantAnalysis.create({
     data: {
-      facilityId: facility.id,
+      siteId: facility.id,
       overallScore: 62,
       riskClarityScore: 14,
       vulnerabilitySpecificityScore: 17,
@@ -434,8 +434,8 @@ async function main() {
       weaknessesSummary: 'The most significant gaps are: project proposals are not adequately linked to documented threats (one orphan project); budget items lack specificity in project 3; the vulnerability statement narrative is too short and contains vague language. Addressing these will improve the score substantially.',
       priorityFixesSummary: '1. Project "Controlled Access: Children\'s Wing & Main Entrance" is not linked to any threat: Link this project to threats 1 (Unauthorized Entry) and 4 (Active Shooter).\n2. Budget item "Security equipment" has no justification: Replace with a descriptive item name (e.g., "Electronic Access Control Door Kit") and add vendor/model/purpose justification.\n3. No incident history recorded for "Active Shooter / Armed Assault": Add CISA advisory context or regional incident data.\n4. Narrative section "vulnerability_statement" is too short and vague: Expand to 100+ words referencing specific incidents, gaps, and proposed solutions.\n5. "Harassment / Stalking" threat uses default 3/3 risk rating: Review and assign specific likelihood and impact ratings.',
       analysisJson: JSON.stringify({
-        facilityId: facility.id,
-        facilityName: 'Grace Community Church — Main Campus',
+        siteId: facility.id,
+        siteName: 'Grace Community Church — Main Campus',
         scores: {
           overall: 62,
           riskClarity: 14,

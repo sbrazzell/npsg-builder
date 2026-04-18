@@ -3,49 +3,57 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { Header } from '@/components/layout/header'
-import { PageHeader } from '@/components/shared/page-header'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { calculateRiskScore, getRiskLevel, formatCurrency } from '@/lib/scoring'
-import {
-  CheckCircle2, Circle, AlertCircle, ChevronRight,
-  Building2, AlertTriangle, Shield, FileText,
-  MessageSquare, BadgeCheck, DollarSign, BarChart3,
-} from 'lucide-react'
+import { Check, Circle, AlertCircle, ChevronRight, MapPin } from 'lucide-react'
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
-function Check({ done, label, detail, href }: {
+const NARRATIVE_SECTIONS = [
+  'executive_summary',
+  'threat_overview',
+  'vulnerability_statement',
+  'project_justification',
+  'budget_rationale',
+  'implementation_approach',
+]
+
+const NARRATIVE_LABELS: Record<string, string> = {
+  executive_summary:        'Executive Summary',
+  threat_overview:          'Threat Overview',
+  vulnerability_statement:  'Vulnerability Statement',
+  project_justification:    'Project Justification',
+  budget_rationale:         'Budget Rationale',
+  implementation_approach:  'Implementation Approach',
+}
+
+function barColor(pct: number) {
+  if (pct >= 80) return 'var(--ok)'
+  if (pct >= 50) return 'var(--warn)'
+  return 'var(--bad)'
+}
+
+function CheckItem({ done, label, detail, href }: {
   done: boolean; label: string; detail?: string; href?: string
 }) {
   return (
-    <div className={`flex items-start gap-3 py-2.5 ${!done ? 'opacity-90' : ''}`}>
+    <div className="flex items-start gap-2.5 py-[7px]" style={{ borderBottom: '1px solid var(--rule-2)' }}>
       {done
-        ? <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
-        : <Circle className="h-4 w-4 text-slate-300 mt-0.5 shrink-0" />}
+        ? <Check className="h-3.5 w-3.5 mt-[1px] flex-shrink-0" style={{ color: 'var(--ok)' }} />
+        : <Circle className="h-3.5 w-3.5 mt-[1px] flex-shrink-0" style={{ color: 'var(--rule)' }} />
+      }
       <div className="flex-1 min-w-0">
-        <p className={`text-sm ${done ? 'text-gray-700' : 'text-gray-500'}`}>{label}</p>
-        {detail && <p className="text-xs text-muted-foreground mt-0.5">{detail}</p>}
+        <p className="text-[12.5px]" style={{ color: done ? 'var(--ink-2)' : 'var(--ink-3)' }}>{label}</p>
+        {detail && <p className="text-[11px] mt-0.5" style={{ color: 'var(--ink-4)' }}>{detail}</p>}
       </div>
       {!done && href && (
-        <Button asChild size="sm" variant="ghost" className="shrink-0 h-7 text-xs text-blue-600">
-          <Link href={href}>Fix →</Link>
-        </Button>
+        <Link
+          href={href}
+          className="text-[11.5px] font-medium flex-shrink-0 self-center transition-opacity hover:opacity-70"
+          style={{ color: 'var(--nav-accent)' }}
+        >
+          Fix →
+        </Link>
       )}
-    </div>
-  )
-}
-
-function SectionScore({ score, total }: { score: number; total: number }) {
-  const pct = total === 0 ? 0 : Math.round((score / total) * 100)
-  const color = pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-400' : 'bg-red-400'
-  return (
-    <div className="flex items-center gap-2 mt-1">
-      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-xs text-muted-foreground tabular-nums">{score}/{total}</span>
     </div>
   )
 }
@@ -53,44 +61,25 @@ function SectionScore({ score, total }: { score: number; total: number }) {
 // ─── page ──────────────────────────────────────────────────────────────────
 
 export default async function ReadinessPage() {
-  const facilities = await prisma.facility.findMany({
+  const sites = await prisma.site.findMany({
     include: {
       organization: true,
-      threatAssessments: true,
-      securityMeasures: true,
-      projectProposals: { include: { budgetItems: true, threatLinks: true } },
-      narrativeDrafts: { orderBy: [{ sectionName: 'asc' }, { versionNumber: 'desc' }] },
-      grantAnalyses: { orderBy: { createdAt: 'desc' }, take: 1 },
+      threatAssessments:  true,
+      securityMeasures:   true,
+      projectProposals:   { include: { budgetItems: true, threatLinks: true } },
+      narrativeDrafts:    { orderBy: [{ sectionName: 'asc' }, { versionNumber: 'desc' }] },
+      grantAnalyses:      { orderBy: { createdAt: 'desc' }, take: 1 },
     },
-    orderBy: { updatedAt: 'desc' },
+    orderBy: [{ targetCycleYear: 'asc' }, { updatedAt: 'desc' }],
   })
 
-  const NARRATIVE_SECTIONS = [
-    'executive_summary',
-    'threat_overview',
-    'vulnerability_statement',
-    'project_justification',
-    'budget_rationale',
-    'implementation_approach',
-  ]
-
-  const NARRATIVE_LABELS: Record<string, string> = {
-    executive_summary: 'Executive Summary',
-    threat_overview: 'Threat Overview',
-    vulnerability_statement: 'Vulnerability Statement',
-    project_justification: 'Project Justification',
-    budget_rationale: 'Budget Rationale',
-    implementation_approach: 'Implementation Approach',
-  }
-
-  // Facility-level readiness calculations
-  const facilityReadiness = facilities.map((f) => {
+  // Per-site readiness
+  const siteReadiness = sites.map((f) => {
     const highRiskThreats = f.threatAssessments.filter((t) => {
       const lvl = getRiskLevel(calculateRiskScore(t.likelihood, t.impact))
       return lvl === 'high' || lvl === 'critical'
     })
 
-    // Get latest narrative per section
     const coveredSections = new Set<string>()
     for (const d of f.narrativeDrafts) {
       if (!coveredSections.has(d.sectionName)) {
@@ -104,39 +93,36 @@ export default async function ReadinessPage() {
     )
 
     const projectsWithThreats = f.projectProposals.filter((p) => p.threatLinks.length > 0)
-    const projectsWithBudget = f.projectProposals.filter(
+    const projectsWithBudget  = f.projectProposals.filter(
       (p) => p.budgetItems.length > 0 && p.budgetItems.some((b) => b.totalCost > 0)
     )
 
     const latestAnalysis = f.grantAnalyses[0] ?? null
-
-    // LE assessment
-    const leAgency = (f as any).lawEnforcementAgency
+    const leAgency       = (f as any).lawEnforcementAgency
     const leResponseDate = (f as any).lawEnforcementResponseDate
-    const leContactDate = (f as any).lawEnforcementContactDate
+    const leContactDate  = (f as any).lawEnforcementContactDate
 
-    // Checklist items (true = done)
     const checks = {
-      orgComplete: !!(f.organization.einOrTaxId && f.organization.contactEmail && f.organization.address),
-      facilityComplete: !!(f.populationServed && f.daysHoursOfOperation && f.address),
-      hasThreats: f.threatAssessments.length >= 2,
-      hasHighRisk: highRiskThreats.length > 0,
-      hasMeasures: f.securityMeasures.length >= 1,
-      hasProjects: f.projectProposals.length >= 1,
-      projectsLinked: f.projectProposals.length > 0 && projectsWithThreats.length === f.projectProposals.length,
-      projectsBudgeted: f.projectProposals.length > 0 && projectsWithBudget.length === f.projectProposals.length,
+      orgComplete:       !!(f.organization.einOrTaxId && f.organization.contactEmail && f.organization.address),
+      siteComplete:      !!(f.populationServed && f.daysHoursOfOperation && f.address),
+      hasThreats:        f.threatAssessments.length >= 2,
+      hasHighRisk:       highRiskThreats.length > 0,
+      hasMeasures:       f.securityMeasures.length >= 1,
+      hasProjects:       f.projectProposals.length >= 1,
+      projectsLinked:    f.projectProposals.length > 0 && projectsWithThreats.length === f.projectProposals.length,
+      projectsBudgeted:  f.projectProposals.length > 0 && projectsWithBudget.length === f.projectProposals.length,
       narrativesCovered: NARRATIVE_SECTIONS.every((s) => coveredSections.has(s)),
-      leContacted: !!leAgency,
-      leResponseReceived: !!leResponseDate,
-      analysisRun: !!latestAnalysis,
-      analysisStrong: latestAnalysis ? latestAnalysis.overallScore >= 70 : false,
+      leContacted:       !!leAgency,
+      leResponseReceived:!!leResponseDate,
+      analysisRun:       !!latestAnalysis,
+      analysisStrong:    latestAnalysis ? latestAnalysis.overallScore >= 70 : false,
     }
 
     const score = Object.values(checks).filter(Boolean).length
     const total = Object.keys(checks).length
 
     return {
-      facility: f,
+      site: f,
       checks,
       score,
       total,
@@ -150,220 +136,260 @@ export default async function ReadinessPage() {
     }
   })
 
-  const overallReady = facilityReadiness.filter((r) => r.score / r.total >= 0.8).length
+  // Group by funding cycle year
+  const cycleGroups = new Map<number, typeof siteReadiness>()
+  for (const r of siteReadiness) {
+    const yr = r.site.targetCycleYear ?? 2026
+    if (!cycleGroups.has(yr)) cycleGroups.set(yr, [])
+    cycleGroups.get(yr)!.push(r)
+  }
+  const cycles = [...cycleGroups.entries()].sort(([a], [b]) => a - b)
+
+  const overallReady = siteReadiness.filter((r) => r.score / r.total >= 0.8).length
+  const totalBudgetAll = siteReadiness.reduce((s, r) => s + r.totalBudget, 0)
 
   return (
     <div>
-      <Header breadcrumbs={[{ label: 'Pre-Announcement Readiness' }]} />
-      <div className="p-4 md:p-8 max-w-5xl">
-        <PageHeader
-          title="Pre-Announcement Readiness"
-          description="Complete these steps now so you're ready to submit the moment FEMA announces the new NSGP funding opportunity."
-        />
+      <Header breadcrumbs={[{ label: 'Readiness Review' }]} />
+      <div className="px-8 pb-16">
 
-        {/* Status summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <Card className="border-2 border-blue-100">
-            <CardContent className="pt-4 pb-3">
-              <p className="text-3xl font-bold text-blue-700">{facilities.length}</p>
-              <p className="text-xs text-muted-foreground">Facilities in Progress</p>
-            </CardContent>
-          </Card>
-          <Card className={`border-2 ${overallReady > 0 ? 'border-emerald-100' : 'border-slate-100'}`}>
-            <CardContent className="pt-4 pb-3">
-              <p className={`text-3xl font-bold ${overallReady > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>{overallReady}</p>
-              <p className="text-xs text-muted-foreground">Facilities ≥ 80% Ready</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-3">
-              <p className="text-3xl font-bold text-emerald-700">
-                {formatCurrency(facilityReadiness.reduce((s, r) => s + r.totalBudget, 0))}
-              </p>
-              <p className="text-xs text-muted-foreground">Total Budget Built</p>
-            </CardContent>
-          </Card>
+        {/* Page header */}
+        <div className="pt-8 pb-6">
+          <p className="eyebrow mb-2.5">Pre-submission checklist · By site and cycle</p>
+          <h1 className="font-serif font-medium" style={{ fontSize: '28px', letterSpacing: '-0.02em', color: 'var(--ink)' }}>
+            Readiness Review
+          </h1>
+          <p className="mt-1.5 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>
+            Complete these steps before submission. Each site is reviewed independently within its funding cycle.
+          </p>
         </div>
 
-        {/* Global to-do while waiting */}
-        <Card className="mb-8 border-amber-200 bg-amber-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-amber-600" />
-              While You Wait for the Announcement
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1 text-sm text-amber-900">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1">
-              <p className="flex items-start gap-2"><span className="mt-1 text-amber-500">•</span>Contact local Police or Sheriff for each facility threat assessment</p>
-              <p className="flex items-start gap-2"><span className="mt-1 text-amber-500">•</span>Confirm 501(c)(3) status letter and EIN are readily available</p>
-              <p className="flex items-start gap-2"><span className="mt-1 text-amber-500">•</span>Gather quotes / vendor info for all proposed security equipment</p>
-              <p className="flex items-start gap-2"><span className="mt-1 text-amber-500">•</span>Collect incident reports, police reports, or letters documenting prior threats</p>
-              <p className="flex items-start gap-2"><span className="mt-1 text-amber-500">•</span>Identify an authorized organization representative for signatures</p>
-              <p className="flex items-start gap-2"><span className="mt-1 text-amber-500">•</span>Confirm your State Administrative Agency (SAA) submission portal access</p>
-              <p className="flex items-start gap-2"><span className="mt-1 text-amber-500">•</span>Review FEMA NSGP Notice of Funding Opportunity (NOFO) when released</p>
-              <p className="flex items-start gap-2"><span className="mt-1 text-amber-500">•</span>Ensure each facility has a complete set of narrative drafts ready to finalize</p>
+        {/* Summary stat row */}
+        <div
+          className="grid overflow-hidden rounded-sm mb-8"
+          style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--rule)', border: '1px solid var(--rule)' }}
+        >
+          {[
+            { label: 'Sites in Portfolio', value: sites.length.toString(), sub: `${cycles.length} funding ${cycles.length === 1 ? 'cycle' : 'cycles'}` },
+            { label: 'Sites ≥ 80% Ready',  value: overallReady.toString(), sub: `of ${sites.length} total` },
+            { label: 'Total Budget Built', value: formatCurrency(totalBudgetAll), sub: 'across all projects' },
+          ].map(stat => (
+            <div key={stat.label} className="bg-white px-5 py-[18px]">
+              <p className="font-mono-label" style={{ fontSize: '10px', color: 'var(--ink-3)' }}>{stat.label}</p>
+              <p className="font-serif font-medium tabular-nums mt-1.5" style={{ fontSize: '30px', letterSpacing: '-0.02em', color: 'var(--ink)' }}>
+                {stat.value}
+              </p>
+              <p className="text-[11.5px] mt-0.5" style={{ color: 'var(--ink-3)' }}>{stat.sub}</p>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
 
-        {/* Per-facility readiness */}
-        {facilities.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-4">No facilities yet. Start by adding an organization and facility.</p>
-              <Button asChild><Link href="/facilities/new">Add First Facility</Link></Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {facilityReadiness.map(({ facility: f, checks, score, total, coveredSections, totalBudget, latestAnalysis, leAgency, leContactDate, leResponseDate }) => {
-              const pct = Math.round((score / total) * 100)
-              const barColor = pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-400' : 'bg-red-400'
+        {/* Preparation callout */}
+        <div className="mb-8 px-5 py-4 rounded-sm" style={{ borderLeft: '3px solid var(--warn)', background: 'var(--warn-wash)' }}>
+          <p className="font-semibold text-[13px] mb-2" style={{ color: 'var(--ink)' }}>
+            <AlertCircle className="inline h-3.5 w-3.5 mr-1.5 -mt-0.5" style={{ color: 'var(--warn)' }} />
+            While you wait for the announcement
+          </p>
+          <div className="grid gap-1" style={{ gridTemplateColumns: '1fr 1fr' }}>
+            {[
+              'Contact local Police or Sheriff for each site threat assessment',
+              'Confirm 501(c)(3) status letter and EIN are readily available',
+              'Gather vendor quotes for all proposed security equipment',
+              'Collect incident reports or letters documenting prior threats',
+              'Identify an authorized representative for grant signatures',
+              'Verify SAM.gov registration is active and not expired',
+              'Review FEMA NSGP NOFO when released for eligibility changes',
+              'Ensure all narrative drafts are complete and finalized',
+            ].map((tip, i) => (
+              <p key={i} className="flex items-start gap-2 text-[12.5px]" style={{ color: 'var(--ink-2)' }}>
+                <span className="mt-1.5 w-1 h-1 rounded-full flex-shrink-0 bg-current" style={{ color: 'var(--warn)' }} />
+                {tip}
+              </p>
+            ))}
+          </div>
+        </div>
 
-              return (
-                <Card key={f.id}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <CardTitle className="text-base">{f.facilityName}</CardTitle>
-                          <span className="text-xs text-muted-foreground">{f.organization.name}</span>
-                          <Badge
-                            variant="outline"
-                            className={pct >= 80 ? 'text-emerald-700 border-emerald-200 bg-emerald-50' : pct >= 50 ? 'text-amber-700 border-amber-200 bg-amber-50' : 'text-red-700 border-red-200 bg-red-50'}
-                          >
-                            {pct}% ready
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full ${barColor} transition-all`} style={{ width: `${pct}%` }} />
-                          </div>
-                          <span className="text-xs text-muted-foreground tabular-nums">{score}/{total} checks</span>
-                        </div>
-                      </div>
-                      <Button asChild size="sm" variant="ghost" className="shrink-0">
-                        <Link href={`/facilities/${f.id}`}>
-                          Open <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 pt-0 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-                    {/* Left column */}
-                    <div className="pb-4 md:pb-0 md:pr-8 space-y-0.5">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                        <Building2 className="h-3.5 w-3.5" /> Organization & Facility
-                      </p>
-                      <Check
-                        done={checks.orgComplete}
-                        label="Organization has EIN, contact email, and address"
-                        href={`/organizations/${f.organizationId}/edit`}
-                      />
-                      <Check
-                        done={checks.facilityComplete}
-                        label="Facility has address, population served, and hours"
-                        href={`/facilities/${f.id}/edit`}
-                      />
-
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-4 mb-2 flex items-center gap-1.5">
-                        <AlertTriangle className="h-3.5 w-3.5" /> Threat Assessment
-                      </p>
-                      <Check
-                        done={checks.hasThreats}
-                        label="At least 2 threats documented"
-                        detail={`${f.threatAssessments.length} threat(s) on file`}
-                        href={`/facilities/${f.id}/threats/new`}
-                      />
-                      <Check
-                        done={checks.hasHighRisk}
-                        label="At least one High or Critical risk threat"
-                        href={`/facilities/${f.id}/threats`}
-                      />
-                      <Check
-                        done={checks.hasMeasures}
-                        label="Existing security measures documented"
-                        detail={`${f.securityMeasures.length} measure(s) on file`}
-                        href={`/facilities/${f.id}/measures/new`}
-                      />
-
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-4 mb-2 flex items-center gap-1.5">
-                        <BadgeCheck className="h-3.5 w-3.5" /> Law Enforcement
-                      </p>
-                      <Check
-                        done={checks.leContacted}
-                        label={leAgency ? `Contacted: ${leAgency}` : 'Contacted local Police or Sheriff'}
-                        detail={leContactDate ? `Requested: ${new Date(leContactDate).toLocaleDateString()}` : undefined}
-                        href={`/facilities/${f.id}/edit`}
-                      />
-                      <Check
-                        done={checks.leResponseReceived}
-                        label="Law enforcement assessment received"
-                        detail={leResponseDate ? `Received: ${new Date(leResponseDate).toLocaleDateString()}` : 'Log the date when their assessment arrives'}
-                        href={`/facilities/${f.id}/edit`}
-                      />
-                    </div>
-
-                    {/* Right column */}
-                    <div className="pt-4 md:pt-0 md:pl-8 space-y-0.5">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                        <FileText className="h-3.5 w-3.5" /> Projects & Budget
-                      </p>
-                      <Check
-                        done={checks.hasProjects}
-                        label="At least one project proposal created"
-                        detail={`${f.projectProposals.length} project(s)`}
-                        href={`/facilities/${f.id}/projects/new`}
-                      />
-                      <Check
-                        done={checks.projectsLinked}
-                        label="All projects linked to at least one threat"
-                        href={`/facilities/${f.id}/projects`}
-                      />
-                      <Check
-                        done={checks.projectsBudgeted}
-                        label="All projects have budget line items"
-                        detail={totalBudget > 0 ? `Total: ${formatCurrency(totalBudget)}` : 'No budget entered yet'}
-                        href={`/facilities/${f.id}/projects`}
-                      />
-
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-4 mb-2 flex items-center gap-1.5">
-                        <MessageSquare className="h-3.5 w-3.5" /> Narratives
-                      </p>
-                      {['executive_summary', 'threat_overview', 'vulnerability_statement', 'project_justification', 'budget_rationale', 'implementation_approach'].map((s) => (
-                        <Check
-                          key={s}
-                          done={coveredSections.has(s)}
-                          label={NARRATIVE_LABELS[s]}
-                          href={`/facilities/${f.id}/narratives`}
-                        />
-                      ))}
-
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mt-4 mb-2 flex items-center gap-1.5">
-                        <BarChart3 className="h-3.5 w-3.5" /> Grant Strength
-                      </p>
-                      <Check
-                        done={checks.analysisRun}
-                        label="Grant strength analysis run"
-                        detail={latestAnalysis ? `Score: ${latestAnalysis.overallScore}/100` : undefined}
-                        href={`/analyzer/${f.id}`}
-                      />
-                      <Check
-                        done={checks.analysisStrong}
-                        label="Overall score ≥ 70/100"
-                        detail={latestAnalysis ? `Current: ${latestAnalysis.overallScore}/100` : 'Run analysis first'}
-                        href={`/analyzer/${f.id}`}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+        {/* Empty state */}
+        {sites.length === 0 && (
+          <div className="px-9 py-14 text-center rounded-sm border" style={{ borderColor: 'var(--rule)', borderStyle: 'dashed' }}>
+            <MapPin className="h-8 w-8 mx-auto mb-3" style={{ color: 'var(--ink-4)' }} />
+            <p className="font-serif text-[18px] mb-1" style={{ color: 'var(--ink-2)' }}>No sites yet</p>
+            <p className="text-[13px] mb-5" style={{ color: 'var(--ink-3)' }}>Add an organization and site to start tracking readiness.</p>
+            <Link
+              href="/sites/new"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-sm text-[13px] font-medium"
+              style={{ background: 'var(--nav-accent)', color: '#fff' }}
+            >
+              Add First Site
+            </Link>
           </div>
         )}
+
+        {/* Cycles */}
+        {cycles.map(([year, group]) => {
+          const cycleReady   = group.filter(r => r.score / r.total >= 0.8).length
+          const cycleBudget  = group.reduce((s, r) => s + r.totalBudget, 0)
+          const cycleAvgPct  = group.length > 0
+            ? Math.round(group.reduce((s, r) => s + (r.score / r.total) * 100, 0) / group.length)
+            : 0
+
+          return (
+            <div key={year} className="mb-10">
+              {/* Cycle heading */}
+              <div className="flex items-baseline justify-between mb-4">
+                <div>
+                  <p className="font-serif font-semibold text-[22px]" style={{ letterSpacing: '-0.015em', color: 'var(--ink)' }}>
+                    FY{year} Application Cycle
+                  </p>
+                  <p className="text-[12.5px] mt-0.5" style={{ color: 'var(--ink-3)' }}>
+                    {group.length} {group.length === 1 ? 'site' : 'sites'} · {cycleReady} ready · avg {cycleAvgPct}% · {formatCurrency(cycleBudget)} total
+                  </p>
+                </div>
+                <span
+                  className="inline-flex items-center px-2.5 py-1 rounded-sm text-[12px] font-medium"
+                  style={{
+                    background: cycleAvgPct >= 80 ? 'var(--ok-wash)' : cycleAvgPct >= 50 ? 'var(--warn-wash)' : 'var(--bad-wash)',
+                    color: cycleAvgPct >= 80 ? 'var(--ok)' : cycleAvgPct >= 50 ? 'var(--warn)' : 'var(--bad)',
+                  }}
+                >
+                  {cycleAvgPct >= 80 ? 'Cycle ready' : cycleAvgPct >= 50 ? 'In progress' : 'Needs work'}
+                </span>
+              </div>
+
+              {/* Site cards */}
+              <div className="flex flex-col" style={{ gap: '1px', background: 'var(--rule)', border: '1px solid var(--rule)', borderRadius: '3px', overflow: 'hidden' }}>
+                {group.map(({ site: f, checks, score, total, coveredSections, totalBudget, latestAnalysis, leAgency, leContactDate, leResponseDate }) => {
+                  const pct = Math.round((score / total) * 100)
+
+                  return (
+                    <div key={f.id} className="bg-white">
+                      {/* Site header */}
+                      <div
+                        className="flex items-center gap-4 px-5 py-4"
+                        style={{ borderBottom: '1px solid var(--rule-2)' }}
+                      >
+                        {/* Readiness ring */}
+                        <div className="relative flex-shrink-0 w-11 h-11">
+                          <svg className="w-full h-full -rotate-90" viewBox="0 0 40 40">
+                            <circle cx="20" cy="20" r="16" fill="none" stroke="var(--rule-2)" strokeWidth="3.5" />
+                            <circle
+                              cx="20" cy="20" r="16" fill="none"
+                              stroke={barColor(pct)} strokeWidth="3.5"
+                              strokeDasharray={`${pct} 100`}
+                              strokeDashoffset="0"
+                              strokeLinecap="round"
+                              pathLength="100"
+                            />
+                          </svg>
+                          <span
+                            className="absolute inset-0 flex items-center justify-center font-semibold tabular-nums"
+                            style={{ fontSize: '10px', fontFamily: 'var(--font-geist-mono)', color: 'var(--ink)' }}
+                          >
+                            {pct}%
+                          </span>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-[14.5px]" style={{ color: 'var(--ink)' }}>
+                              {f.siteName}
+                            </p>
+                            <span
+                              className="inline-flex items-center px-1.5 py-0.5 rounded-[2px] text-[10.5px] font-medium"
+                              style={{ background: 'var(--nav-wash)', color: 'var(--nav-accent)', fontFamily: 'var(--font-geist-mono)' }}
+                            >
+                              FY{year}
+                            </span>
+                          </div>
+                          <p className="text-[12px] mt-0.5" style={{ color: 'var(--ink-3)' }}>
+                            {f.organization.name}
+                            {totalBudget > 0 && ` · ${formatCurrency(totalBudget)}`}
+                          </p>
+                        </div>
+
+                        <Link
+                          href={`/sites/${f.id}`}
+                          className="inline-flex items-center gap-1 text-[12.5px] font-medium flex-shrink-0 transition-opacity hover:opacity-70"
+                          style={{ color: 'var(--nav-accent)' }}
+                        >
+                          Open <ChevronRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
+
+                      {/* Checklist body */}
+                      <div className="grid px-5 py-4 gap-x-10" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                        {/* Left column */}
+                        <div>
+                          <p className="font-mono-label mb-1" style={{ fontSize: '9.5px', color: 'var(--ink-4)' }}>
+                            Organization &amp; Site
+                          </p>
+                          <CheckItem done={checks.orgComplete}  label="Org has EIN, contact email, address"    href={`/organizations/${f.organizationId}/edit`} />
+                          <CheckItem done={checks.siteComplete} label="Site has address, population, hours"    href={`/sites/${f.id}/edit`} />
+
+                          <p className="font-mono-label mt-4 mb-1" style={{ fontSize: '9.5px', color: 'var(--ink-4)' }}>
+                            Threat Assessment
+                          </p>
+                          <CheckItem done={checks.hasThreats}   label="≥ 2 threats documented" detail={`${f.threatAssessments.length} on file`} href={`/sites/${f.id}/threats/new`} />
+                          <CheckItem done={checks.hasHighRisk}  label="≥ 1 high or critical threat"           href={`/sites/${f.id}/threats`} />
+                          <CheckItem done={checks.hasMeasures}  label="Security measures documented" detail={`${f.securityMeasures.length} on file`} href={`/sites/${f.id}/measures/new`} />
+
+                          <p className="font-mono-label mt-4 mb-1" style={{ fontSize: '9.5px', color: 'var(--ink-4)' }}>
+                            Law Enforcement
+                          </p>
+                          <CheckItem
+                            done={checks.leContacted}
+                            label={leAgency ? `Contacted: ${leAgency}` : 'Contacted Police / Sheriff'}
+                            detail={leContactDate ? `Requested ${new Date(leContactDate).toLocaleDateString()}` : undefined}
+                            href={`/sites/${f.id}/edit`}
+                          />
+                          <CheckItem
+                            done={checks.leResponseReceived}
+                            label="Assessment received"
+                            detail={leResponseDate ? `Received ${new Date(leResponseDate).toLocaleDateString()}` : 'Log date when it arrives'}
+                            href={`/sites/${f.id}/edit`}
+                          />
+                        </div>
+
+                        {/* Right column */}
+                        <div>
+                          <p className="font-mono-label mb-1" style={{ fontSize: '9.5px', color: 'var(--ink-4)' }}>
+                            Projects &amp; Budget
+                          </p>
+                          <CheckItem done={checks.hasProjects}      label="≥ 1 project proposal" detail={`${f.projectProposals.length} created`} href={`/sites/${f.id}/projects/new`} />
+                          <CheckItem done={checks.projectsLinked}   label="All projects linked to a threat"    href={`/sites/${f.id}/projects`} />
+                          <CheckItem done={checks.projectsBudgeted} label="All projects have budget items"     href={`/sites/${f.id}/projects`} />
+
+                          <p className="font-mono-label mt-4 mb-1" style={{ fontSize: '9.5px', color: 'var(--ink-4)' }}>
+                            Narratives
+                          </p>
+                          {NARRATIVE_SECTIONS.map(s => (
+                            <CheckItem key={s} done={coveredSections.has(s)} label={NARRATIVE_LABELS[s]} href={`/sites/${f.id}/narratives`} />
+                          ))}
+
+                          <p className="font-mono-label mt-4 mb-1" style={{ fontSize: '9.5px', color: 'var(--ink-4)' }}>
+                            Grant Strength
+                          </p>
+                          <CheckItem
+                            done={checks.analysisRun}
+                            label="Analyzer run"
+                            detail={latestAnalysis ? `Score: ${latestAnalysis.overallScore}/100` : undefined}
+                            href={`/analyzer/${f.id}`}
+                          />
+                          <CheckItem
+                            done={checks.analysisStrong}
+                            label="Score ≥ 70 / 100"
+                            detail={latestAnalysis ? `Current: ${latestAnalysis.overallScore}` : 'Run analysis first'}
+                            href={`/analyzer/${f.id}`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

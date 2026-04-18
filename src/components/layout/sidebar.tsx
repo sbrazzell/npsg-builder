@@ -17,7 +17,7 @@ import {
 const navItems = [
   { href: '/',              label: 'Dashboard',    icon: LayoutDashboard },
   { href: '/organizations', label: 'Organizations', icon: Building2 },
-  { href: '/facilities',    label: 'Facilities',   icon: MapPin },
+  { href: '/sites',         label: 'Sites',        icon: MapPin },
   { href: '/analyzer',      label: 'Analyzer',     icon: BarChart2 },
   { href: '/readiness',     label: 'Readiness',    icon: ClipboardList },
   { href: '/guide',         label: 'Guide',        icon: BookOpen },
@@ -119,7 +119,7 @@ export function Sidebar() {
           <ul className="space-y-0.5">
             <li>
               <NavLink
-                href="/facilities"
+                href='/sites'
                 label="Filings & Drafts"
                 icon={FileText}
                 isActive={false}

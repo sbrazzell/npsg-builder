@@ -4,10 +4,10 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { projectProposalSchema, type ProjectProposalInput } from '@/lib/validations'
 
-export async function getProjects(facilityId: string) {
+export async function getProjects(siteId: string) {
   try {
     const projects = await prisma.projectProposal.findMany({
-      where: { facilityId },
+      where: { siteId },
       include: {
         budgetItems: true,
         threatLinks: { include: { threat: true } },
@@ -27,7 +27,7 @@ export async function getProject(id: string) {
       include: {
         budgetItems: true,
         threatLinks: { include: { threat: true } },
-        facility: { include: { organization: true } },
+        site: { include: { organization: true } },
       },
     })
     if (!project) return { success: false, error: 'Project not found' }
@@ -45,8 +45,8 @@ export async function createProject(input: ProjectProposalInput) {
 
   try {
     const project = await prisma.projectProposal.create({ data: parsed.data })
-    revalidatePath(`/facilities/${parsed.data.facilityId}/projects`)
-    revalidatePath(`/facilities/${parsed.data.facilityId}`)
+    revalidatePath(`/sites/${parsed.data.siteId}/projects`)
+    revalidatePath(`/sites/${parsed.data.siteId}`)
     return { success: true, data: project }
   } catch (error) {
     return { success: false, error: 'Failed to create project' }
@@ -64,19 +64,19 @@ export async function updateProject(id: string, input: ProjectProposalInput) {
       where: { id },
       data: parsed.data,
     })
-    revalidatePath(`/facilities/${parsed.data.facilityId}/projects`)
-    revalidatePath(`/facilities/${parsed.data.facilityId}/projects/${id}`)
+    revalidatePath(`/sites/${parsed.data.siteId}/projects`)
+    revalidatePath(`/sites/${parsed.data.siteId}/projects/${id}`)
     return { success: true, data: project }
   } catch (error) {
     return { success: false, error: 'Failed to update project' }
   }
 }
 
-export async function deleteProject(id: string, facilityId: string) {
+export async function deleteProject(id: string, siteId: string) {
   try {
     await prisma.projectProposal.delete({ where: { id } })
-    revalidatePath(`/facilities/${facilityId}/projects`)
-    revalidatePath(`/facilities/${facilityId}`)
+    revalidatePath(`/sites/${siteId}/projects`)
+    revalidatePath(`/sites/${siteId}`)
     return { success: true }
   } catch (error) {
     return { success: false, error: 'Failed to delete project' }
@@ -89,7 +89,7 @@ export async function linkThreatToProject(projectId: string, threatId: string) {
       data: { projectId, threatId },
     })
     const project = await prisma.projectProposal.findUnique({ where: { id: projectId } })
-    if (project) revalidatePath(`/facilities/${project.facilityId}/projects/${projectId}`)
+    if (project) revalidatePath(`/sites/${project.siteId}/projects/${projectId}`)
     return { success: true }
   } catch (error) {
     return { success: false, error: 'Failed to link threat to project' }
@@ -102,7 +102,7 @@ export async function unlinkThreatFromProject(projectId: string, threatId: strin
       where: { projectId, threatId },
     })
     const project = await prisma.projectProposal.findUnique({ where: { id: projectId } })
-    if (project) revalidatePath(`/facilities/${project.facilityId}/projects/${projectId}`)
+    if (project) revalidatePath(`/sites/${project.siteId}/projects/${projectId}`)
     return { success: true }
   } catch (error) {
     return { success: false, error: 'Failed to unlink threat from project' }

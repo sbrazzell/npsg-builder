@@ -4,10 +4,10 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { threatAssessmentSchema, type ThreatAssessmentInput } from '@/lib/validations'
 
-export async function getThreats(facilityId: string) {
+export async function getThreats(siteId: string) {
   try {
     const threats = await prisma.threatAssessment.findMany({
-      where: { facilityId },
+      where: { siteId },
       include: { projectLinks: { include: { project: true } } },
       orderBy: { createdAt: 'desc' },
     })
@@ -25,8 +25,8 @@ export async function createThreat(input: ThreatAssessmentInput) {
 
   try {
     const threat = await prisma.threatAssessment.create({ data: parsed.data })
-    revalidatePath(`/facilities/${parsed.data.facilityId}/threats`)
-    revalidatePath(`/facilities/${parsed.data.facilityId}`)
+    revalidatePath(`/sites/${parsed.data.siteId}/threats`)
+    revalidatePath(`/sites/${parsed.data.siteId}`)
     return { success: true, data: threat }
   } catch (error) {
     return { success: false, error: 'Failed to create threat assessment' }
@@ -44,18 +44,18 @@ export async function updateThreat(id: string, input: ThreatAssessmentInput) {
       where: { id },
       data: parsed.data,
     })
-    revalidatePath(`/facilities/${parsed.data.facilityId}/threats`)
+    revalidatePath(`/sites/${parsed.data.siteId}/threats`)
     return { success: true, data: threat }
   } catch (error) {
     return { success: false, error: 'Failed to update threat assessment' }
   }
 }
 
-export async function deleteThreat(id: string, facilityId: string) {
+export async function deleteThreat(id: string, siteId: string) {
   try {
     await prisma.threatAssessment.delete({ where: { id } })
-    revalidatePath(`/facilities/${facilityId}/threats`)
-    revalidatePath(`/facilities/${facilityId}`)
+    revalidatePath(`/sites/${siteId}/threats`)
+    revalidatePath(`/sites/${siteId}`)
     return { success: true }
   } catch (error) {
     return { success: false, error: 'Failed to delete threat assessment' }

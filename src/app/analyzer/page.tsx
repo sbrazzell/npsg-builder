@@ -18,7 +18,7 @@ function getScoreBadge(score: number): { label: string; className: string } {
 }
 
 async function getFacilitiesWithAnalysis() {
-  const facilities = await prisma.facility.findMany({
+  const facilities = await prisma.site.findMany({
     orderBy: { updatedAt: 'desc' },
     include: {
       organization: { select: { name: true } },
@@ -90,7 +90,7 @@ export default async function AnalyzerListPage() {
                               <Building2 className="h-4 w-4 text-indigo-600" />
                             </div>
                             <div>
-                              <p className="font-semibold text-slate-900 text-sm">{facility.facilityName}</p>
+                              <p className="font-semibold text-slate-900 text-sm">{facility.siteName}</p>
                               <p className="text-xs text-slate-400">{facility.organization.name}</p>
                             </div>
                           </div>
@@ -134,7 +134,7 @@ export default async function AnalyzerListPage() {
                             <Building2 className="h-4 w-4 text-slate-500" />
                           </div>
                           <div>
-                            <p className="font-semibold text-slate-900 text-sm">{facility.facilityName}</p>
+                            <p className="font-semibold text-slate-900 text-sm">{facility.siteName}</p>
                             <p className="text-xs text-slate-400">{facility.organization.name}</p>
                           </div>
                         </div>
@@ -159,7 +159,7 @@ export default async function AnalyzerListPage() {
               <Building2 className="h-8 w-8 text-slate-300 mx-auto mb-3" />
               <p className="text-slate-500 text-sm">No facilities found. Add a facility first before running an analysis.</p>
               <Button asChild variant="outline" className="mt-4" size="sm">
-                <Link href="/facilities/new">Add Facility</Link>
+                <Link href="/sites/new">Add Facility</Link>
               </Button>
             </CardContent>
           </Card>

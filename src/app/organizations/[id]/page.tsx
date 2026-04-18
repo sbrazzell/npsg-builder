@@ -27,7 +27,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
   const org = await prisma.organization.findUnique({
     where: { id },
     include: {
-      facilities: {
+      sites: {
         include: {
           threatAssessments: true,
           projectProposals: { include: { budgetItems: true } },
@@ -38,10 +38,10 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
 
   if (!org) notFound()
 
-  const totalThreats = org.facilities.reduce((s: number, f) => s + f.threatAssessments.length, 0)
-  const totalProjects = org.facilities.reduce((s: number, f) => s + f.projectProposals.length, 0)
+  const totalThreats = org.sites.reduce((s: number, f) => s + f.threatAssessments.length, 0)
+  const totalProjects = org.sites.reduce((s: number, f) => s + f.projectProposals.length, 0)
   let totalBudget = 0
-  for (const f of org.facilities) {
+  for (const f of org.sites) {
     for (const p of f.projectProposals) {
       for (const b of p.budgetItems) { totalBudget += b.totalCost }
     }
@@ -65,7 +65,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
                 </Link>
               </Button>
               <Button asChild size="sm">
-                <Link href={`/facilities/new?organizationId=${org.id}`}>
+                <Link href={`/sites/new?organizationId=${org.id}`}>
                   <Plus className="h-4 w-4 mr-1" /> Add Facility
                 </Link>
               </Button>
@@ -77,7 +77,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
         <div className="grid grid-cols-3 gap-4 mb-6">
           <Card>
             <CardContent className="pt-4 pb-3">
-              <p className="text-2xl font-bold">{org.facilities.length}</p>
+              <p className="text-2xl font-bold">{org.sites.length}</p>
               <p className="text-xs text-muted-foreground">Facilities</p>
             </CardContent>
           </Card>
@@ -149,36 +149,36 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
             <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center justify-between">
               Facilities
               <Button asChild size="sm" variant="ghost">
-                <Link href={`/facilities/new?organizationId=${org.id}`}>
+                <Link href={`/sites/new?organizationId=${org.id}`}>
                   <Plus className="h-3.5 w-3.5 mr-1" /> Add
                 </Link>
               </Button>
             </h2>
 
-            {org.facilities.length === 0 ? (
+            {org.sites.length === 0 ? (
               <EmptyState
                 icon={MapPin}
                 title="No facilities yet"
                 description="Add facilities to this organization to start building grant applications."
                 actionLabel="Add Facility"
-                actionHref={`/facilities/new?organizationId=${org.id}`}
+                actionHref={`/sites/new?organizationId=${org.id}`}
               />
             ) : (
               <div className="space-y-3">
-                {org.facilities.map((facility) => {
+                {org.sites.map((facility) => {
                   let budget = 0
                   for (const p of facility.projectProposals) {
                     for (const b of p.budgetItems) { budget += b.totalCost }
                   }
                   return (
-                    <Link key={facility.id} href={`/facilities/${facility.id}`}>
+                    <Link key={facility.id} href={`/sites/${facility.id}`}>
                       <Card className="hover:shadow-md transition-shadow cursor-pointer">
                         <CardContent className="flex items-center gap-3 py-3">
                           <div className="p-2 bg-violet-50 rounded-lg">
                             <MapPin className="h-4 w-4 text-violet-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900">{facility.facilityName}</p>
+                            <p className="font-medium text-gray-900">{facility.siteName}</p>
                             {facility.address && (
                               <p className="text-xs text-muted-foreground truncate">{facility.address}</p>
                             )}

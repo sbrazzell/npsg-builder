@@ -16,13 +16,13 @@ export interface NarrativeResult {
 function generateThreatOverview(facility: any): string {
   const threats = facility.threatAssessments || []
   if (threats.length === 0) {
-    return `${facility.facilityName} has not yet completed a formal threat assessment. A comprehensive review of potential threats should be conducted prior to submitting this grant application.`
+    return `${facility.siteName} has not yet completed a formal threat assessment. A comprehensive review of potential threats should be conducted prior to submitting this grant application.`
   }
 
   const highRisk = threats.filter((t: { likelihood: number; impact: number }) => t.likelihood * t.impact >= 10)
   const threatTypes = threats.map((t: { threatType: string }) => t.threatType).join(', ')
 
-  return `${facility.facilityName} faces a range of documented security threats that create meaningful risk to occupants, including ${threatTypes}. ${
+  return `${facility.siteName} faces a range of documented security threats that create meaningful risk to occupants, including ${threatTypes}. ${
     highRisk.length > 0
       ? `Of particular concern are ${highRisk.length} threat(s) rated at high or critical risk levels, indicating both significant likelihood of occurrence and potential for serious harm.`
       : 'Current threat assessments indicate moderate risk levels that, without mitigation, have the potential to escalate.'
@@ -41,7 +41,7 @@ function generateVulnerabilityStatement(facility: any): string {
     .map((m: { gapsRemaining: string }) => m.gapsRemaining)
     .join(' ')
 
-  return `Despite existing security measures${measures.length > 0 ? ` including ${measures.map((m: { category: string }) => m.category).join(', ')}` : ''}, ${facility.facilityName} retains critical vulnerabilities that leave occupants exposed to foreseeable harm. ${
+  return `Despite existing security measures${measures.length > 0 ? ` including ${measures.map((m: { category: string }) => m.category).join(', ')}` : ''}, ${facility.siteName} retains critical vulnerabilities that leave occupants exposed to foreseeable harm. ${
     lowEffectiveness.length > 0
       ? `${lowEffectiveness.length} of the current measures are rated as low effectiveness, indicating significant gaps in the security posture.`
       : ''
@@ -103,7 +103,7 @@ function generateExecutiveSummary(facility: any): string {
     for (const b of (p.budgetItems || [])) { totalBudget += b.totalCost }
   }
 
-  return `${org?.name || 'The applicant organization'} respectfully submits this application for Nonprofit Security Grant Program funding to support security improvements at ${facility.facilityName}${facility.address ? ` located at ${facility.address}` : ''}. ${
+  return `${org?.name || 'The applicant organization'} respectfully submits this application for Nonprofit Security Grant Program funding to support security improvements at ${facility.siteName}${facility.address ? ` located at ${facility.address}` : ''}. ${
     facility.populationServed
       ? `The facility serves ${facility.populationServed}, representing a population that deserves the protection of a secure environment.`
       : 'The facility serves community members who depend on a safe environment to access essential programs and services.'
@@ -150,7 +150,7 @@ export async function generateNarrative(req: NarrativeRequest): Promise<Narrativ
       text = generateExecutiveSummary(req.facility)
       break
     default:
-      text = `This section covers ${req.section.replace(/_/g, ' ')} for ${req.facility?.facilityName || 'the facility'}. Please edit this draft to reflect specific details about your organization's security needs and proposed solutions.`
+      text = `This section covers ${req.section.replace(/_/g, ' ')} for ${req.facility?.siteName || 'the facility'}. Please edit this draft to reflect specific details about your organization's security needs and proposed solutions.`
   }
 
   return { text, provider: 'template' }
@@ -176,7 +176,7 @@ async function generateNarrativeWithClaude(req: NarrativeRequest, apiKey: string
 
 Write 2-4 paragraphs of polished, grant-ready prose. Be specific, use the data provided, and write in formal professional English. Do not include headers or section labels — only the body text.
 
-Facility: ${facility?.facilityName ?? 'Unknown'}
+Facility: ${facility?.siteName ?? 'Unknown'}
 Organization: ${facility?.organization?.name ?? 'Unknown'}
 Address: ${facility?.address ?? 'Not provided'}
 Population served: ${facility?.populationServed ?? 'Not specified'}

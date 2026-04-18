@@ -5,18 +5,18 @@ import { runAnalysis } from '@/lib/analyzer'
 import { revalidatePath } from 'next/cache'
 
 export async function runGrantAnalysis(
-  facilityId: string
+  siteId: string
 ): Promise<{ success: boolean; analysisId?: string; error?: string }> {
   try {
-    const result = await runAnalysis(facilityId)
+    const result = await runAnalysis(siteId)
 
     // Delete any previous analyses for this facility (keep only latest)
-    await prisma.grantAnalysis.deleteMany({ where: { facilityId } })
+    await prisma.grantAnalysis.deleteMany({ where: { siteId } })
 
     // Create new analysis record
     const analysis = await prisma.grantAnalysis.create({
       data: {
-        facilityId,
+        siteId,
         overallScore: result.overallScore,
         riskClarityScore: result.riskClarityScore,
         vulnerabilitySpecificityScore: result.vulnerabilitySpecificityScore,
@@ -67,7 +67,7 @@ export async function runGrantAnalysis(
       })
     }
 
-    revalidatePath(`/analyzer/${facilityId}`)
+    revalidatePath(`/analyzer/${siteId}`)
     revalidatePath('/analyzer')
 
     return { success: true, analysisId: analysis.id }
@@ -77,10 +77,10 @@ export async function runGrantAnalysis(
   }
 }
 
-export async function getLatestAnalysis(facilityId: string) {
+export async function getLatestAnalysis(siteId: string) {
   try {
     const analysis = await prisma.grantAnalysis.findFirst({
-      where: { facilityId },
+      where: { siteId },
       orderBy: { createdAt: 'desc' },
       include: {
         flags: { orderBy: { severity: 'asc' } },
@@ -94,10 +94,10 @@ export async function getLatestAnalysis(facilityId: string) {
   }
 }
 
-export async function listAnalyses(facilityId: string) {
+export async function listAnalyses(siteId: string) {
   try {
     const analyses = await prisma.grantAnalysis.findMany({
-      where: { facilityId },
+      where: { siteId },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -119,7 +119,7 @@ export async function listAnalyses(facilityId: string) {
 
 export async function getBenchmarkData() {
   try {
-    const facilities = await prisma.facility.findMany({
+    const facilities = await prisma.site.findMany({
       include: {
         organization: { select: { name: true } },
         grantAnalyses: {
@@ -143,8 +143,8 @@ export async function getBenchmarkData() {
     const withAnalysis = facilities
       .filter((f) => f.grantAnalyses.length > 0)
       .map((f) => ({
-        facilityId: f.id,
-        facilityName: f.facilityName,
+        siteId: f.id,
+        siteName: f.siteName,
         organizationName: f.organization.name,
         analysis: f.grantAnalyses[0]!,
       }))
