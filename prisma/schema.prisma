@@ -43,6 +43,7 @@ model Site {
   publicAccessNotes     String?
   knownSecurityConcerns String?
   notes                 String?
+  sitePhotoUrl          String?
   // Law enforcement threat assessment tracking
   lawEnforcementAgency         String?
   lawEnforcementContactName    String?

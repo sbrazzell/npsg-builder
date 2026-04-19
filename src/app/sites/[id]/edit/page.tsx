@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getFacility, updateSite, deleteSite } from '@/actions/sites'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,7 @@ import { AiAssistTextarea } from '@/components/shared/ai-assist-textarea'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { use } from 'react'
+import { ImagePlus, X } from 'lucide-react'
 
 export default function EditFacilityPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -22,12 +23,37 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
   const [deleting, setDeleting] = useState(false)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [facility, setFacility] = useState<any>(null)
+  const [photoUrl, setPhotoUrl] = useState<string>('')
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     getFacility(id).then((r) => {
-      if (r.success) setFacility(r.data)
+      if (r.success && r.data) {
+        setFacility(r.data)
+        setPhotoUrl((r.data as { sitePhotoUrl?: string | null }).sitePhotoUrl ?? '')
+      }
     })
   }, [id])
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoUploading(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: form })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      setPhotoUrl(data.url)
+      toast.success('Photo uploaded')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
 
   if (!facility) return <div className="p-8 text-muted-foreground">Loading...</div>
 
@@ -49,6 +75,7 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
       organizationId: facility.organizationId,
       siteName: formData.get('siteName') as string,
       address: formData.get('address') as string || undefined,
+      sitePhotoUrl: photoUrl || undefined,
       occupancyNotes: formData.get('occupancyNotes') as string || undefined,
       populationServed: formData.get('populationServed') as string || undefined,
       daysHoursOfOperation: formData.get('daysHoursOfOperation') as string || undefined,
@@ -110,6 +137,46 @@ export default function EditFacilityPage({ params }: { params: Promise<{ id: str
               <div>
                 <Label htmlFor="address">Address</Label>
                 <Input id="address" name="address" defaultValue={facility.address || ''} className="mt-1" />
+              </div>
+
+              {/* Site photo */}
+              <div>
+                <Label>Site Photo</Label>
+                <p className="text-xs text-muted-foreground mb-2 mt-0.5">
+                  Appears as the thumbnail on the Sites listing. JPG, PNG, or WebP, up to 10 MB.
+                </p>
+                {photoUrl ? (
+                  <div className="relative w-48 rounded-sm overflow-hidden border" style={{ borderColor: 'var(--rule)' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photoUrl} alt="Site photo" className="w-full h-32 object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setPhotoUrl(''); if (fileInputRef.current) fileInputRef.current.value = '' }}
+                      className="absolute top-1 right-1 rounded-full bg-black/60 p-0.5 text-white hover:bg-black/80 transition-colors"
+                      aria-label="Remove photo"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={photoUploading}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-sm border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors disabled:opacity-50"
+                    style={{ borderColor: 'var(--rule)', borderStyle: 'dashed' }}
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                    {photoUploading ? 'Uploading…' : 'Upload photo'}
+                  </button>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                />
               </div>
             </CardContent>
           </Card>

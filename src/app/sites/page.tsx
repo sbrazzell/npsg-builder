@@ -2,100 +2,33 @@ export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
-import { Plus, AlertTriangle, ChevronRight, Building2 } from 'lucide-react'
+import { Plus, AlertTriangle, ChevronRight, Building2, Camera } from 'lucide-react'
 import { calculateRiskScore, getRiskLevel, formatCurrency } from '@/lib/scoring'
 
-// ─── Map thumbnail ────────────────────────────────────────────────────────────
+// ─── Site photo thumbnail ──────────────────────────────────────────────────────
 
-function SiteMap({ address }: { address?: string | null }) {
-  const mapsUrl = address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-    : null
+function SitePhoto({ photoUrl, siteName }: { photoUrl?: string | null; siteName: string }) {
+  const cls = "w-[160px] h-[105px] flex-shrink-0 overflow-hidden border"
+  const style = { borderColor: 'var(--rule)' }
 
-  // Real map via Google Maps Static API — enabled when GOOGLE_MAPS_STATIC_KEY is set.
-  // Key lives server-side only; it's never sent to the browser.
-  const staticKey = process.env.GOOGLE_MAPS_STATIC_KEY
-  const staticMapUrl = address && staticKey
-    ? `https://maps.googleapis.com/maps/api/staticmap` +
-      `?center=${encodeURIComponent(address)}` +
-      `&zoom=15&size=320x210&scale=2&maptype=roadmap` +
-      // Suppress clutter at thumbnail scale
-      `&style=feature:poi%7Cvisibility:off` +
-      `&style=feature:transit%7Cvisibility:off` +
-      `&style=feature:administrative.neighborhood%7Cvisibility:off` +
-      `&key=${staticKey}`
-    : null
-
-  const svgFallback = (
-    <svg
-      viewBox="0 0 160 105"
-      xmlns="http://www.w3.org/2000/svg"
-      className="w-full h-full"
-      aria-hidden
-    >
-      {/* Base */}
-      <rect width="160" height="105" fill="#ede9df" />
-
-      {/* Green park patches */}
-      <rect x="6" y="6" width="38" height="28" rx="2" fill="#d4e8c2" />
-      <rect x="110" y="72" width="44" height="27" rx="2" fill="#d4e8c2" />
-      <rect x="6" y="72" width="28" height="18" rx="2" fill="#d8ebc8" />
-
-      {/* City blocks */}
-      <rect x="6" y="40" width="44" height="26" rx="2" fill="#ddd8cc" />
-      <rect x="58" y="6" width="38" height="30" rx="2" fill="#ddd8cc" />
-      <rect x="104" y="6" width="50" height="28" rx="2" fill="#ddd8cc" />
-      <rect x="58" y="42" width="44" height="26" rx="2" fill="#ddd8cc" />
-      <rect x="110" y="42" width="44" height="24" rx="2" fill="#d9d4c8" />
-      <rect x="40" y="72" width="62" height="27" rx="2" fill="#ddd8cc" />
-
-      {/* Roads — horizontal */}
-      <rect x="0" y="36" width="160" height="6" fill="#f5f2ec" />
-      <rect x="0" y="68" width="160" height="6" fill="#f5f2ec" />
-      {/* Roads — vertical */}
-      <rect x="52" y="0" width="6" height="105" fill="#f5f2ec" />
-      <rect x="106" y="0" width="6" height="105" fill="#f5f2ec" />
-
-      {/* Road centre lines */}
-      <line x1="0" y1="39" x2="52" y2="39" stroke="#e8e0d2" strokeWidth="0.75" strokeDasharray="6 4" />
-      <line x1="58" y1="39" x2="106" y2="39" stroke="#e8e0d2" strokeWidth="0.75" strokeDasharray="6 4" />
-      <line x1="112" y1="39" x2="160" y2="39" stroke="#e8e0d2" strokeWidth="0.75" strokeDasharray="6 4" />
-
-      {/* Water feature */}
-      <ellipse cx="134" cy="30" rx="9" ry="5" fill="#b8d8f0" opacity="0.7" />
-
-      {/* Pin */}
-      <circle cx="80" cy="50" r="11" fill="#1f2d5c" />
-      <circle cx="80" cy="50" r="5.5" fill="white" />
-      <circle cx="80" cy="64" r="3" fill="#1f2d5c" opacity="0.3" />
-    </svg>
-  )
-
-  // eslint-disable-next-line @next/next/no-img-element
-  const mapContent = staticMapUrl
-    ? <img src={staticMapUrl} alt={address ?? 'Site map'} className="w-full h-full object-cover" />
-    : svgFallback
-
-  if (!mapsUrl) {
+  if (photoUrl) {
     return (
-      <div className="w-[160px] h-[105px] flex-shrink-0 rounded-sm overflow-hidden border"
-        style={{ borderColor: 'var(--rule)' }}>
-        {mapContent}
+      // eslint-disable-next-line @next/next/no-img-element
+      <div className={cls} style={style}>
+        <img src={photoUrl} alt={siteName} className="w-full h-full object-cover" />
       </div>
     )
   }
 
+  // Placeholder when no photo has been uploaded yet
   return (
-    <a
-      href={mapsUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="w-[160px] h-[105px] flex-shrink-0 rounded-sm overflow-hidden border block hover:opacity-90 transition-opacity"
-      style={{ borderColor: 'var(--rule)' }}
-      title={`Open ${address} in Google Maps`}
+    <div
+      className={`${cls} flex flex-col items-center justify-center gap-1.5`}
+      style={{ ...style, background: 'var(--paper-2)' }}
     >
-      {mapContent}
-    </a>
+      <Camera className="h-5 w-5" style={{ color: 'var(--ink-4)' }} />
+      <span className="text-[10px] leading-none" style={{ color: 'var(--ink-4)' }}>No photo</span>
+    </div>
   )
 }
 
@@ -232,17 +165,15 @@ export default async function SitesPage() {
                         borderTop: idx > 0 ? '1px solid var(--rule)' : undefined,
                       }}
                     >
-                      {/* Map thumbnail — sits outside the main Link so we can open Google Maps separately */}
-                      <div className="w-[160px] h-[105px] flex-shrink-0 overflow-hidden"
-                        style={{ borderRight: '1px solid var(--rule)' }}>
-                        <SiteMap address={site.address} />
+                      {/* Site photo thumbnail */}
+                      <div className="flex-shrink-0" style={{ borderRight: '1px solid var(--rule)' }}>
+                        <SitePhoto photoUrl={site.sitePhotoUrl} siteName={site.siteName} />
                       </div>
 
                       {/* Clickable overlay for the site detail link */}
                       <Link
                         href={`/sites/${site.id}`}
                         className="absolute inset-0"
-                        style={{ left: 160 }}
                         aria-label={`Open ${site.siteName}`}
                       />
 

@@ -20,6 +20,7 @@ export const facilitySchema = z.object({
   organizationId: z.string().min(1, 'Organization is required'),
   siteName: z.string().min(1, 'Site name is required'),
   address: z.string().optional(),
+  sitePhotoUrl: z.string().optional(),
   occupancyNotes: z.string().optional(),
   populationServed: z.string().optional(),
   daysHoursOfOperation: z.string().optional(),
