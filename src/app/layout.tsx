@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/sidebar";
-import { MobileNav } from "@/components/layout/mobile-nav";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
-import { UserMenu } from "@/components/layout/user-menu";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,23 +36,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex">
+      <body className="min-h-full bg-background text-foreground">
         <AuthSessionProvider>
-          <div className="hidden md:flex md:flex-shrink-0">
-            <Sidebar />
-          </div>
-          <div className="flex-1 flex flex-col bg-background overflow-auto min-w-0">
-            <header className="h-12 border-b border-border bg-card flex items-center justify-between px-4 shrink-0 sticky top-0 z-30">
-              <MobileNav />
-              {/* UserMenu shown on mobile only — desktop users see it in the sidebar */}
-              <div className="md:hidden">
-                <UserMenu />
-              </div>
-            </header>
-            <main className="flex-1">
-              {children}
-            </main>
-          </div>
+          {children}
           <Toaster />
         </AuthSessionProvider>
       </body>

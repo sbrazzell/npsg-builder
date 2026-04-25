@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useParams } from 'next/navigation'
 import { FormSF424 } from './form-sf424'
 import { FormInvestmentJustification } from './form-investment-justification'
 import { FormBudget } from './form-budget'
@@ -18,9 +19,10 @@ const TABS = [
 
 export function DraftTabs({ snapshot }: { snapshot: FilingSnapshot }) {
   const [active, setActive] = useState('sf424')
+  const params = useParams<{ id: string; draftId: string }>()
 
   function handlePrint() {
-    window.print()
+    window.open(`/sites/${params.id}/filings/${params.draftId}/print`, '_blank')
   }
 
   return (
@@ -73,12 +75,6 @@ export function DraftTabs({ snapshot }: { snapshot: FilingSnapshot }) {
         )}
       </div>
 
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          body { background: white; }
-        }
-      `}</style>
     </div>
   )
 }

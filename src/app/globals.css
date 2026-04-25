@@ -160,6 +160,56 @@
   }
 }
 
+/* ── Print: strip all app chrome, show only the form content ── */
+@media print {
+  /* Hide the entire sidebar and sticky app header */
+  aside,
+  header,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Collapse flex body back to a plain block so content flows full-width */
+  body {
+    display: block !important;
+    background: white !important;
+    font-size: 11pt;
+  }
+
+  /* The shell wrapper divs are flex containers — reset them */
+  body > div {
+    display: block !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Main content: full width, no overflow clipping */
+  main {
+    display: block !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Remove page padding added by the draft page wrapper */
+  main > div {
+    padding: 0 !important;
+  }
+
+  /* The form card: no rounded corners, no shadow, no border radius */
+  #form-sf424,
+  #form-ij,
+  #form-budget {
+    box-shadow: none !important;
+  }
+
+  /* Let tables and grids break across pages */
+  table { page-break-inside: auto; }
+  tr    { page-break-inside: avoid; page-break-after: auto; }
+
+  /* Reasonable page margins */
+  @page { margin: 0.6in 0.7in; }
+}
+
 /* ── Typography helpers ── */
 @layer utilities {
   .font-serif {

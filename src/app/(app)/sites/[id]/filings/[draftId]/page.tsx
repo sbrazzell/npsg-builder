@@ -26,6 +26,30 @@ export default async function DraftPage({
   if (!facility || !draft || draft.siteId !== id) notFound()
 
   const snapshot: FilingSnapshot = JSON.parse(draft.snapshotJson)
+
+  // Older drafts may not have snapshot.site — backfill from the live facility record
+  if (!snapshot.site) {
+    snapshot.site = {
+      id: facility.id,
+      siteName: facility.siteName,
+      address: facility.address ?? null,
+      occupancyNotes: (facility as Record<string, unknown>).occupancyNotes as string ?? null,
+      populationServed: (facility as Record<string, unknown>).populationServed as string ?? null,
+      daysHoursOfOperation: null,
+      childrensAreasNotes: null,
+      parkingLotNotes: null,
+      surroundingAreaNotes: null,
+      publicAccessNotes: null,
+      knownSecurityConcerns: null,
+      notes: null,
+      lawEnforcementAgency: null,
+      lawEnforcementContactName: null,
+      lawEnforcementContactDate: null,
+      lawEnforcementResponseDate: null,
+      lawEnforcementFindings: null,
+    }
+  }
+
   const capturedDate = new Date(snapshot.capturedAt).toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
