@@ -183,16 +183,34 @@ model ApplicationPacket {
 }
 
 model ApplicationDraft {
-  id           String   @id @default(cuid())
-  siteId       String
-  site         Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  version      Int
-  status       String   @default("draft")
-  title        String
-  notes        String?
-  snapshotJson String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                  String               @id @default(cuid())
+  siteId              String
+  site                Site                 @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  version             Int
+  status              String               @default("draft")
+  title               String
+  notes               String?
+  snapshotJson        String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  applicationReviews  ApplicationReview[]
+}
+
+model ApplicationReview {
+  id                 String           @id @default(cuid())
+  draftId            String
+  draft              ApplicationDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  overallScore       Int              @default(0)
+  reviewStatus       String           @default("incomplete")
+  totalFindings      Int              @default(0)
+  blockerCount       Int              @default(0)
+  warningCount       Int              @default(0)
+  suggestionCount    Int              @default(0)
+  resolvedCount      Int              @default(0)
+  unresolvedBlockers Int              @default(0)
+  reviewJson         String
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 }
 
 model GrantAnalysis {

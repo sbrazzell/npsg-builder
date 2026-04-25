@@ -206,6 +206,19 @@ export default async function PrintPage({
             break-inside: avoid;
             page-break-inside: avoid;
           }
+
+          /* ── Budget form headings & project cards ─────────── */
+          /* Keep section headings (A/B/C/D) glued to first content below */
+          .budget-section-heading {
+            break-after: avoid;
+            page-break-after: avoid;
+          }
+
+          /* Keep project header bar glued to the budget table below */
+          .budget-project-header {
+            break-after: avoid;
+            page-break-after: avoid;
+          }
         }
       `}</style>
     </>

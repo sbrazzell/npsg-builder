@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DraftTabs } from './draft-tabs'
 import { DraftActions } from '../draft-actions'
-import { CheckCircle2, Clock, ChevronLeft } from 'lucide-react'
+import { CheckCircle2, Clock, ChevronLeft, ClipboardCheck } from 'lucide-react'
 import type { FilingSnapshot } from '@/actions/filings'
 
 export default async function DraftPage({
@@ -98,7 +98,13 @@ export default async function DraftPage({
               <p className="text-sm text-muted-foreground mt-1 italic">{draft.notes}</p>
             )}
           </div>
-          <div className="shrink-0">
+          <div className="shrink-0 flex items-center gap-2">
+            <Button asChild size="sm" variant="outline" className="text-violet-700 border-violet-200 hover:bg-violet-50">
+              <Link href={`/sites/${id}/filings/${draft.id}/review`}>
+                <ClipboardCheck className="h-3.5 w-3.5 mr-1.5" />
+                Review My Application
+              </Link>
+            </Button>
             <DraftActions draftId={draft.id} siteId={id} status={draft.status} />
           </div>
         </div>
