@@ -162,6 +162,50 @@ export default async function PrintPage({
             padding-top: 40pt;
             padding-bottom: 40pt;
           }
+
+          /* ── Pagination: table rows ───────────────────────────── */
+          /* Repeat table header row at the top of each new page */
+          thead {
+            display: table-header-group;
+          }
+
+          /* Prevent individual table rows from splitting across pages */
+          tbody tr {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+
+          /* ── Pagination: section headings ─────────────────────── */
+          /* Keep section headings glued to the first content block  */
+          .ij-section-heading {
+            break-after: avoid;
+            page-break-after: avoid;
+          }
+
+          /* Keep project card headers glued to the first narrative card */
+          .project-card-header {
+            break-after: avoid;
+            page-break-after: avoid;
+          }
+
+          /* Keep individual project narrative cards together */
+          .project-section-card {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+
+          /* Give ij-sections a small top margin so they breathe when starting
+             near the top of a printed page (below the fixed header bar) */
+          .ij-section {
+            margin-top: 6pt;
+          }
+
+          /* Checklist rows and warning boxes should not split */
+          .checklist-row,
+          .warning-box {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
         }
       `}</style>
     </>

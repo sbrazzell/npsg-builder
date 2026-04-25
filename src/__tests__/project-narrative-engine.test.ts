@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   detectProjectType,
+  generateImplementationPlan,
   generateTimelineNarrative,
   generateSustainmentNarrative,
   generateProjectNarrativeDefaults,
@@ -112,7 +113,162 @@ describe('detectProjectType', () => {
   })
 })
 
-// ─── 2. Timeline narrative generation ────────────────────────────────────────
+// ─── 2. Implementation plan generation ───────────────────────────────────────
+
+describe('generateImplementationPlan', () => {
+  it('lighting — mentions contractor coordination', () => {
+    const text = generateImplementationPlan(
+      makeInput({ title: 'Exterior Lighting', budgetItems: [{ itemName: 'LED fixture', vendorName: 'Acme' }] }),
+      'lighting',
+    )
+    expect(text.toLowerCase()).toContain('contractor')
+  })
+
+  it('lighting — mentions permitting', () => {
+    const text = generateImplementationPlan(makeInput({ title: 'Perimeter Lighting' }), 'lighting')
+    expect(text.toLowerCase()).toContain('permit')
+  })
+
+  it('lighting — mentions fixture installation', () => {
+    const text = generateImplementationPlan(makeInput({ title: 'LED Security Lighting' }), 'lighting')
+    expect(text.toLowerCase()).toContain('fixture')
+  })
+
+  it('lighting — mentions bollards when bollards are in budget', () => {
+    const text = generateImplementationPlan(
+      makeInput({
+        title: 'Perimeter Security Lighting',
+        budgetItems: [
+          { itemName: 'LED fixture', vendorName: 'Acme' },
+          { itemName: 'Vehicle bollard — crash-rated K4', vendorName: 'Delta Scientific' },
+        ],
+      }),
+      'lighting',
+    )
+    expect(text.toLowerCase()).toContain('bollard')
+  })
+
+  it('lighting — mentions photocell when in budget', () => {
+    const text = generateImplementationPlan(
+      makeInput({
+        title: 'Parking Lot Lighting',
+        budgetItems: [
+          { itemName: 'LED flood fixture', vendorName: 'Acme' },
+          { itemName: 'Photocell sensor', vendorName: 'Acme' },
+        ],
+      }),
+      'lighting',
+    )
+    expect(text.toLowerCase()).toContain('photocell')
+  })
+
+  it('cctv — mentions cabling', () => {
+    const text = generateImplementationPlan(
+      makeInput({ title: 'CCTV System', budgetItems: [{ itemName: 'Dome camera', vendorName: 'Bosch' }] }),
+      'cctv',
+    )
+    expect(text.toLowerCase()).toContain('cable')
+  })
+
+  it('cctv — mentions camera placement', () => {
+    const text = generateImplementationPlan(makeInput({ title: 'CCTV System' }), 'cctv')
+    expect(text.toLowerCase()).toContain('camera')
+  })
+
+  it('cctv — mentions NVR setup', () => {
+    const text = generateImplementationPlan(makeInput({ title: 'Video Surveillance' }), 'cctv')
+    expect(text.toLowerCase()).toContain('nvr')
+  })
+
+  it('cctv — mentions storage and retention', () => {
+    const text = generateImplementationPlan(makeInput({ title: 'CCTV' }), 'cctv')
+    expect(text.toLowerCase()).toContain('storage')
+  })
+
+  it('cctv — mentions recording test', () => {
+    const text = generateImplementationPlan(makeInput({ title: 'Surveillance System' }), 'cctv')
+    expect(text.toLowerCase()).toContain('recording')
+  })
+
+  it('access_control — mentions card reader/controller', () => {
+    const text = generateImplementationPlan(makeInput({ title: 'Access Control' }), 'access_control')
+    expect(text.toLowerCase()).toContain('card reader')
+  })
+
+  it('access_control — mentions door hardware', () => {
+    const text = generateImplementationPlan(makeInput({ title: 'Access Control' }), 'access_control')
+    expect(text.toLowerCase()).toMatch(/door|hardware/)
+  })
+
+  it('access_control — mentions intercom when intercom is in budget', () => {
+    const text = generateImplementationPlan(
+      makeInput({
+        title: 'Controlled Entry',
+        budgetItems: [
+          { itemName: 'HID card reader', vendorName: 'HID' },
+          { itemName: 'Aiphone video intercom panel', vendorName: 'Aiphone' },
+        ],
+      }),
+      'access_control',
+    )
+    expect(text.toLowerCase()).toContain('intercom')
+  })
+
+  it('access_control — mentions credential provisioning', () => {
+    const text = generateImplementationPlan(makeInput({ title: 'Access Control' }), 'access_control')
+    expect(text.toLowerCase()).toContain('credential')
+  })
+
+  it('access_control — mentions panic button when in budget', () => {
+    const text = generateImplementationPlan(
+      makeInput({
+        title: 'Secured Entry System',
+        budgetItems: [
+          { itemName: 'HID card reader', vendorName: 'HID' },
+          { itemName: 'Bosch panic button', vendorName: 'Bosch' },
+        ],
+      }),
+      'access_control',
+    )
+    expect(text.toLowerCase()).toContain('panic button')
+  })
+
+  it('produces a non-empty general implementation plan', () => {
+    const text = generateImplementationPlan(
+      makeInput({ title: 'Generic Security', budgetItems: [] }),
+      'general',
+    )
+    expect(text.length).toBeGreaterThan(100)
+    expect(text.toLowerCase()).toContain('procurement')
+  })
+
+  it('does not contain any "BLANK — REQUIRED" or "COMPLETE MANUALLY" text', () => {
+    for (const type of ['lighting', 'cctv', 'access_control', 'general'] as const) {
+      const text = generateImplementationPlan(makeInput(), type)
+      expect(text.toLowerCase()).not.toContain('blank')
+      expect(text.toLowerCase()).not.toContain('complete manually')
+      expect(text.toLowerCase()).not.toContain('implementation plan blank')
+    }
+  })
+
+  it('includes vendor name when present in budget items', () => {
+    const text = generateImplementationPlan(
+      makeInput({ budgetItems: [{ itemName: 'Card reader', vendorName: 'Allegion' }] }),
+      'access_control',
+    )
+    expect(text).toContain('Allegion')
+  })
+
+  it('falls back to "qualified contractors" when no vendor names present', () => {
+    const text = generateImplementationPlan(
+      makeInput({ budgetItems: [{ itemName: 'Card reader', vendorName: null }] }),
+      'access_control',
+    )
+    expect(text.toLowerCase()).toContain('qualified contractor')
+  })
+})
+
+// ─── 3. Timeline narrative generation ────────────────────────────────────────
 
 describe('generateTimelineNarrative', () => {
   it('includes procurement start days', () => {
@@ -177,7 +333,7 @@ describe('generateTimelineNarrative', () => {
   })
 })
 
-// ─── 3. Sustainment narrative generation ─────────────────────────────────────
+// ─── 4. Sustainment narrative generation ─────────────────────────────────────
 
 describe('generateSustainmentNarrative', () => {
   it('includes the maintenance owner', () => {
@@ -214,7 +370,7 @@ describe('generateSustainmentNarrative', () => {
   })
 })
 
-// ─── 4. Project-specific language ────────────────────────────────────────────
+// ─── 5. Project-specific sustainment language ────────────────────────────────
 
 describe('Project-type-specific sustainment language', () => {
   it('lighting — mentions fixture inspection and photocells', () => {
@@ -264,9 +420,29 @@ describe('Project-type-specific sustainment language', () => {
   })
 })
 
-// ─── 5. generateProjectNarrativeDefaults priority chain ──────────────────────
+// ─── 6. generateProjectNarrativeDefaults priority chain ──────────────────────
 
 describe('generateProjectNarrativeDefaults — priority chain', () => {
+  it('uses user-authored implementation override when present', () => {
+    const input = makeInput({ implementationNotes: 'Custom implementation plan by user.' })
+    const result = generateProjectNarrativeDefaults(input)
+    expect(result.implementationNarrative).toBe('Custom implementation plan by user.')
+    expect(result.implementationSource).toBe('user')
+  })
+
+  it('generates implementation plan when implementationNotes is blank', () => {
+    const input = makeInput({ implementationNotes: null })
+    const result = generateProjectNarrativeDefaults(input)
+    expect(result.implementationNarrative.length).toBeGreaterThan(100)
+    expect(result.implementationSource).toBe('inferred')
+  })
+
+  it('always produces non-empty implementation narrative', () => {
+    const input = makeInput({ title: 'Generic security project', budgetItems: [], implementationNotes: null })
+    const result = generateProjectNarrativeDefaults(input)
+    expect(result.implementationNarrative.length).toBeGreaterThan(50)
+  })
+
   it('uses user-authored timeline override when present', () => {
     const input = makeInput({ timelineNarrative: 'Custom timeline written by the user.' })
     const result = generateProjectNarrativeDefaults(input)
@@ -298,7 +474,6 @@ describe('generateProjectNarrativeDefaults — priority chain', () => {
   })
 
   it('infers from project type when no user or structured data', () => {
-    // Provide only CCTV-specific data so access_control patterns from default budgetItems don't win
     const input = makeInput({
       title: 'CCTV Surveillance System',
       category: 'Technology',
@@ -322,14 +497,15 @@ describe('generateProjectNarrativeDefaults — priority chain', () => {
     expect(result.sustainmentNarrative.length).toBeGreaterThan(50)
   })
 
-  it('marks isGenerated=true when at least one section is not user-authored', () => {
-    const input = makeInput() // inferred
+  it('marks isGenerated=true when implementation is not user-authored', () => {
+    const input = makeInput({ implementationNotes: null }) // generated
     const result = generateProjectNarrativeDefaults(input)
     expect(result.isGenerated).toBe(true)
   })
 
-  it('marks isGenerated=false when both sections are user-authored', () => {
+  it('marks isGenerated=false when all three sections are user-authored', () => {
     const input = makeInput({
+      implementationNotes: 'Custom implementation.',
       timelineNarrative: 'Custom timeline.',
       sustainmentNarrative: 'Custom sustainment.',
     })
@@ -356,7 +532,7 @@ describe('generateProjectNarrativeDefaults — priority chain', () => {
   })
 })
 
-// ─── 6. No "manual" placeholder language in export ───────────────────────────
+// ─── 7. No "manual" placeholder language in generated output ──────────────────
 
 describe('No manual placeholder language in generated output', () => {
   const MANUAL_PHRASES = [
@@ -366,9 +542,16 @@ describe('No manual placeholder language in generated output', () => {
     'to be determined',
     'write narrative',
     'not captured by',
+    'implementation plan blank',
+    'blank — required',
   ]
 
   for (const phrase of MANUAL_PHRASES) {
+    it(`generated implementation plan does not contain "${phrase}"`, () => {
+      const result = generateProjectNarrativeDefaults(makeInput())
+      expect(result.implementationNarrative.toLowerCase()).not.toContain(phrase)
+    })
+
     it(`generated timeline does not contain "${phrase}"`, () => {
       const result = generateProjectNarrativeDefaults(makeInput())
       expect(result.timelineNarrative.toLowerCase()).not.toContain(phrase)
@@ -381,7 +564,7 @@ describe('No manual placeholder language in generated output', () => {
   }
 })
 
-// ─── 7. Vague text detection ──────────────────────────────────────────────────
+// ─── 8. Vague text detection ──────────────────────────────────────────────────
 
 describe('detectVagueText', () => {
   it('flags TBD', () => expect(detectVagueText('Timeline TBD')).toHaveLength(1))
@@ -396,9 +579,7 @@ describe('detectVagueText', () => {
   })
 })
 
-// ─── 8. Checklist: status transitions ────────────────────────────────────────
-
-// Minimal snapshot factories for the status tests
+// ─── 9. Checklist: status transitions ────────────────────────────────────────
 
 function makeStatusProject(overrides: Record<string, unknown> = {}) {
   return {
@@ -408,7 +589,7 @@ function makeStatusProject(overrides: Record<string, unknown> = {}) {
     problemStatement: 'Entry points lack control.',
     proposedSolution: 'Install card readers.',
     riskReductionRationale: 'Reduces unauthorized entry risk.',
-    implementationNotes: 'Phase 1 Q1.',
+    implementationNotes: null,
     priority: 1,
     status: 'draft',
     projectBudget: 10000,
@@ -425,6 +606,8 @@ function makeStatusProject(overrides: Record<string, unknown> = {}) {
       },
     ],
     linkedThreatTypes: ['Unauthorized Entry'],
+    implementationNarrative: 'Following award, the organization will procure card readers from Allegion.',
+    implementationSource: 'inferred' as NarrativeSource,
     timelineNarrative: 'Upon award the organization will procure within 30 days.',
     sustainmentNarrative: 'The organization will maintain the system quarterly.',
     timelineSource: 'user' as NarrativeSource,
@@ -475,8 +658,47 @@ function makeStatusSnapshot(overrides: Record<string, unknown> = {}) {
   }
 }
 
-describe('Checklist status with generated narratives', () => {
-  it('is review-ready when all sections are populated (including generated timeline/sustainment)', () => {
+describe('Checklist status — implementation plan', () => {
+  it('does NOT flag PROJ_NO_IMPLEMENTATION when implementationNarrative is populated', () => {
+    const result = validateSnapshot(makeStatusSnapshot())
+    const missing = result.issues.filter((i: { code: string }) => i.code === 'PROJ_NO_IMPLEMENTATION')
+    expect(missing).toHaveLength(0)
+  })
+
+  it('flags PROJ_NO_IMPLEMENTATION as warning when implementationNarrative is blank', () => {
+    const snap = makeStatusSnapshot({
+      projects: [makeStatusProject({ implementationNarrative: '' })],
+    })
+    const result = validateSnapshot(snap)
+    const missing = result.issues.filter((i: { code: string }) => i.code === 'PROJ_NO_IMPLEMENTATION')
+    expect(missing).toHaveLength(1)
+    expect(missing[0].severity).toBe('warning')
+  })
+
+  it('adds PROJ_IMPLEMENTATION_AUTO_GENERATED info when source is inferred', () => {
+    const snap = makeStatusSnapshot({
+      projects: [makeStatusProject({ implementationSource: 'inferred' })],
+    })
+    const result = validateSnapshot(snap)
+    const autoIssues = result.issues.filter(
+      (i: { code: string }) => i.code === 'PROJ_IMPLEMENTATION_AUTO_GENERATED',
+    )
+    expect(autoIssues.length).toBeGreaterThanOrEqual(1)
+    expect(autoIssues[0].severity).toBe('info')
+  })
+
+  it('does NOT add PROJ_IMPLEMENTATION_AUTO_GENERATED when source is user', () => {
+    const snap = makeStatusSnapshot({
+      projects: [makeStatusProject({ implementationSource: 'user' })],
+    })
+    const result = validateSnapshot(snap)
+    const autoIssues = result.issues.filter(
+      (i: { code: string }) => i.code === 'PROJ_IMPLEMENTATION_AUTO_GENERATED',
+    )
+    expect(autoIssues).toHaveLength(0)
+  })
+
+  it('no errors when all required sections are populated (via generated or user)', () => {
     const result = validateSnapshot(makeStatusSnapshot())
     expect(result.errorCount).toBe(0)
   })
@@ -513,5 +735,42 @@ describe('Checklist status with generated narratives', () => {
       (i: { code: string }) => i.code === 'PROJ_TIMELINE_AUTO_GENERATED',
     )
     expect(autoIssues).toHaveLength(0)
+  })
+})
+
+describe('SF-424 authorized representative field classification', () => {
+  it('SF424_PLACEHOLDER_REP_TITLE is a warning, not info (not NOFO-dependent)', () => {
+    const result = validateSnapshot(makeStatusSnapshot())
+    const repTitle = result.issues.find(
+      (i: { code: string }) => i.code === 'SF424_PLACEHOLDER_REP_TITLE',
+    )
+    expect(repTitle).toBeDefined()
+    expect(repTitle?.severity).toBe('warning')
+  })
+
+  it('SF424_PLACEHOLDER_SIG_DATE is a warning, not info (not NOFO-dependent)', () => {
+    const result = validateSnapshot(makeStatusSnapshot())
+    const sigDate = result.issues.find(
+      (i: { code: string }) => i.code === 'SF424_PLACEHOLDER_SIG_DATE',
+    )
+    expect(sigDate).toBeDefined()
+    expect(sigDate?.severity).toBe('warning')
+  })
+
+  it('SF424_PLACEHOLDER_DISTRICT_APP remains info (NOFO-dependent)', () => {
+    const result = validateSnapshot(makeStatusSnapshot())
+    const district = result.issues.find(
+      (i: { code: string }) => i.code === 'SF424_PLACEHOLDER_DISTRICT_APP',
+    )
+    expect(district).toBeDefined()
+    expect(district?.severity).toBe('info')
+  })
+
+  it('rep title message indicates "complete before submission"', () => {
+    const result = validateSnapshot(makeStatusSnapshot())
+    const repTitle = result.issues.find(
+      (i: { code: string }) => i.code === 'SF424_PLACEHOLDER_REP_TITLE',
+    )
+    expect(repTitle?.message.toLowerCase()).toContain('before submission')
   })
 })

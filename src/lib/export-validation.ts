@@ -106,7 +106,7 @@ const SF424_CHECKED_FIELDS: SF424Field[] = [
         .filter(Boolean)
         .join(', '),
   },
-  // These are always placeholder in the current system — NOFO-dependent
+  // These are NOFO-dependent — cannot be completed until FEMA publishes the NOFO
   {
     code: 'SF424_PLACEHOLDER_DISTRICT_APP',
     field: 'Congressional District of Applicant',
@@ -127,6 +127,7 @@ const SF424_CHECKED_FIELDS: SF424Field[] = [
     field: 'Proposed End Date',
     getValue: () => null,
   },
+  // These are NOT NOFO-dependent — must be completed before submission regardless of NOFO
   {
     code: 'SF424_PLACEHOLDER_REP_TITLE',
     field: 'Authorized Representative Title',
@@ -138,6 +139,20 @@ const SF424_CHECKED_FIELDS: SF424Field[] = [
     getValue: () => null,
   },
 ]
+
+// SF-424 fields that are NOFO-dependent (cannot be completed until NOFO is released)
+const NOFO_DEPENDENT_CODES = new Set([
+  'SF424_PLACEHOLDER_DISTRICT_APP',
+  'SF424_PLACEHOLDER_DISTRICT_PROJ',
+  'SF424_PLACEHOLDER_START_DATE',
+  'SF424_PLACEHOLDER_END_DATE',
+])
+
+// SF-424 fields that must be completed before submission but are not NOFO-dependent
+const PRE_SUBMISSION_CODES = new Set([
+  'SF424_PLACEHOLDER_REP_TITLE',
+  'SF424_PLACEHOLDER_SIG_DATE',
+])
 
 // ─── Project required sections ────────────────────────────────────────────────
 
@@ -155,12 +170,12 @@ const PROJECT_REQUIRED_SECTIONS: ProjectSection[] = [
     label: 'Risk Reduction Rationale',
     getValue: (p) => p.riskReductionRationale,
   },
+  // Implementation, Timeline and Sustainment are now generated — check the resolved narrative field
   {
     code: 'PROJ_NO_IMPLEMENTATION',
     label: 'Implementation Plan',
-    getValue: (p) => p.implementationNotes,
+    getValue: (p) => (p as Record<string, unknown>).implementationNarrative as string | null | undefined,
   },
-  // Timeline and Sustainment are now generated — check the resolved narrative field
   {
     code: 'PROJ_NO_TIMELINE',
     label: 'Estimated Timeline / Milestones',
@@ -182,23 +197,28 @@ export function validateSnapshot(snapshot: FilingSnapshot): ValidationResult {
   for (const f of SF424_CHECKED_FIELDS) {
     const value = f.getValue(snapshot)
     if (isPlaceholder(value)) {
-      // NOFO-dependent fields are 'info' (expected gaps); org data fields are 'error'
-      const isNofoDependent = [
-        'SF424_PLACEHOLDER_DISTRICT_APP',
-        'SF424_PLACEHOLDER_DISTRICT_PROJ',
-        'SF424_PLACEHOLDER_START_DATE',
-        'SF424_PLACEHOLDER_END_DATE',
-        'SF424_PLACEHOLDER_REP_TITLE',
-        'SF424_PLACEHOLDER_SIG_DATE',
-      ].includes(f.code)
-      issues.push({
-        severity: isNofoDependent ? 'info' : 'error',
-        code: f.code,
-        field: f.field,
-        message: isNofoDependent
-          ? `${f.field} — complete once FEMA releases the NOFO`
-          : `${f.field} is blank or missing`,
-      })
+      if (NOFO_DEPENDENT_CODES.has(f.code)) {
+        issues.push({
+          severity: 'info',
+          code: f.code,
+          field: f.field,
+          message: `${f.field} — complete once FEMA releases the NOFO`,
+        })
+      } else if (PRE_SUBMISSION_CODES.has(f.code)) {
+        issues.push({
+          severity: 'warning',
+          code: f.code,
+          field: f.field,
+          message: `${f.field} — complete before submission (not captured by NSGP Builder; write in on final form)`,
+        })
+      } else {
+        issues.push({
+          severity: 'error',
+          code: f.code,
+          field: f.field,
+          message: `${f.field} is blank or missing`,
+        })
+      }
     }
   }
 
@@ -226,8 +246,17 @@ export function validateSnapshot(snapshot: FilingSnapshot): ValidationResult {
       }
     }
 
-    // Timeline / Sustainment generation warnings (low-confidence auto-generation)
+    // Auto-generation info notices (review prompts, not blocking issues)
     const p = project as Record<string, unknown>
+    if (p.implementationSource === 'inferred') {
+      issues.push({
+        severity: 'info',
+        code: 'PROJ_IMPLEMENTATION_AUTO_GENERATED',
+        field: 'Implementation Plan',
+        message: 'Implementation Plan was auto-generated from project type inference — review and confirm accuracy before submission',
+        context: project.title,
+      })
+    }
     if (p.timelineSource === 'inferred') {
       issues.push({
         severity: 'info',
@@ -260,8 +289,18 @@ export function validateSnapshot(snapshot: FilingSnapshot): ValidationResult {
     }
 
     // Vague text in user-authored or generated narratives (skip if empty — already flagged as missing)
+    const implementationNarrative = (p.implementationNarrative as string | undefined) ?? ''
     const timelineNarrative = (p.timelineNarrative as string | undefined) ?? ''
     const sustainmentNarrative = (p.sustainmentNarrative as string | undefined) ?? ''
+    if (implementationNarrative.trim() && detectVagueText(implementationNarrative).length > 0) {
+      issues.push({
+        severity: 'warning',
+        code: 'PROJ_IMPLEMENTATION_VAGUE',
+        field: 'Implementation Plan',
+        message: 'Implementation Plan contains potentially vague language — revise before submission',
+        context: project.title,
+      })
+    }
     if (timelineNarrative.trim() && detectVagueText(timelineNarrative).length > 0) {
       issues.push({
         severity: 'warning',

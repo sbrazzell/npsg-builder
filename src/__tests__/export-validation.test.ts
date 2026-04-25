@@ -37,7 +37,10 @@ function makeProject(
       },
     ],
     linkedThreatTypes: ['Unauthorized Entry'],
-    // Timeline & Sustainment — engine-generated defaults
+    // Implementation, Timeline & Sustainment — engine-generated defaults
+    implementationNarrative:
+      'Following award, the organization will coordinate with Allegion for procurement and delivery of card readers.',
+    implementationSource: 'inferred',
     timelineNarrative:
       'Upon award and completion of required approvals, the organization will initiate procurement within approximately 30 days.',
     sustainmentNarrative:
@@ -135,9 +138,9 @@ describe('Project section completeness', () => {
     expect(implIssues).toHaveLength(0)
   })
 
-  it('flags a project missing an implementation plan', () => {
+  it('flags a project missing an implementation plan (no generated narrative)', () => {
     const snapshot = makeSnapshot({
-      projects: [makeProject({ implementationNotes: '' })],
+      projects: [makeProject({ implementationNarrative: '' })],
     })
     const result = validateSnapshot(snapshot)
     const implIssues = result.issues.filter(
@@ -307,13 +310,11 @@ describe('Document status', () => {
   })
 
   it('is review-ready when only warnings exist (no errors)', () => {
-    // Drop implementation notes → warning, but no errors
-    const snapshot = makeSnapshot({
-      projects: [makeProject({ implementationNotes: null })],
-    })
+    // Auth rep fields (title, sig date) are warnings; no hard errors → review-ready
+    const snapshot = makeSnapshot()
     const result = validateSnapshot(snapshot)
     expect(result.errorCount).toBe(0)
-    expect(result.warningCount).toBeGreaterThan(0)
+    expect(result.warningCount).toBeGreaterThan(0) // SF424_PLACEHOLDER_REP_TITLE, SF424_PLACEHOLDER_SIG_DATE
     expect(result.status).toBe('review-ready')
   })
 

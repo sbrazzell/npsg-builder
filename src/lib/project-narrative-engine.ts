@@ -1,9 +1,10 @@
 /**
  * project-narrative-engine.ts
  *
- * Generates formal, FEMA-appropriate "Estimated Timeline / Milestones" and
- * "Sustainment / Maintenance Plan" narrative paragraphs for NSGP Investment
- * Justification documents.
+ * Generates formal, FEMA-appropriate narrative paragraphs for:
+ *   - Implementation Plan
+ *   - Estimated Timeline / Milestones
+ *   - Sustainment / Maintenance Plan
  *
  * Priority chain (highest → lowest):
  *   1. User-authored narrative override (stored on the project directly)
@@ -50,6 +51,8 @@ export interface SustainmentData {
 export interface ProjectNarrativeInput {
   title: string
   category?: string | null
+  proposedSolution?: string | null
+  implementationNotes?: string | null       // user-authored override for implementation plan
   timelineNarrative?: string | null
   sustainmentNarrative?: string | null
   timelineData?: TimelineData | null
@@ -64,6 +67,8 @@ export interface ProjectNarrativeInput {
 }
 
 export interface ProjectNarrativeResult {
+  implementationNarrative: string
+  implementationSource: NarrativeSource
   timelineNarrative: string
   sustainmentNarrative: string
   projectType: ProjectType
@@ -147,6 +152,211 @@ export function detectProjectType(project: ProjectNarrativeInput): ProjectType {
   )
 
   return scores[best] > 0 ? best : 'general'
+}
+
+// ─── Budget item feature detection ───────────────────────────────────────────
+
+function hasItemMatching(items: ProjectNarrativeInput['budgetItems'], re: RegExp): boolean {
+  return items.some((b) => re.test(b.itemName))
+}
+
+function vendorList(items: ProjectNarrativeInput['budgetItems']): string {
+  const names = [...new Set(items.map((b) => b.vendorName?.trim()).filter(Boolean))] as string[]
+  if (names.length === 0) return 'qualified contractors'
+  if (names.length === 1) return names[0]
+  return names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1]
+}
+
+// ─── Implementation plan generator ───────────────────────────────────────────
+
+/** Generate a formal implementation plan narrative from project data. */
+export function generateImplementationPlan(project: ProjectNarrativeInput, type: ProjectType): string {
+  const vendors = vendorList(project.budgetItems)
+  const hasBollards = hasItemMatching(project.budgetItems, /bollard|vehicle.{0,10}barrier|crash.{0,10}rated/i)
+  const hasPhotocell = hasItemMatching(project.budgetItems, /photocell|dusk.{0,10}dawn|timer|sensor/i)
+  const hasPanicButton = hasItemMatching(project.budgetItems, /panic.{0,10}button|duress/i)
+  const hasIntercom = hasItemMatching(project.budgetItems, /intercom|video.{0,10}entry|call.{0,10}panel|entry.{0,10}panel/i)
+  const hasMagLock = hasItemMatching(project.budgetItems, /mag.?lock|electric.{0,10}strike|door.{0,10}closer/i)
+
+  switch (type) {
+    case 'lighting': {
+      const parts: string[] = []
+      parts.push(
+        `Following award of grant funds, the organization will initiate the procurement process ` +
+        `for the specified lighting and perimeter security equipment, coordinating with ` +
+        `${vendors} for delivery of fixtures, mounting hardware, and associated electrical ` +
+        `components as itemized in the project budget.`,
+      )
+      parts.push(
+        `All applicable building, electrical, and local authority permits required for exterior ` +
+        `lighting installation will be secured prior to commencement of any installation work.`,
+      )
+      parts.push(
+        `Installation will include site preparation, conduit and wiring runs as needed, fixture ` +
+        `mounting, and connection to existing electrical service. All work will be performed by ` +
+        `a licensed electrical contractor in accordance with local building codes and manufacturer ` +
+        `specifications.`,
+      )
+      if (hasPhotocell) {
+        parts.push(
+          `Photocells, timers, and lighting control systems will be programmed and calibrated to ` +
+          `ensure accurate dusk-to-dawn or scheduled activation appropriate for the facility's ` +
+          `operating hours and security requirements.`,
+        )
+      }
+      if (hasBollards) {
+        parts.push(
+          `Physical perimeter protection elements including vehicle bollards and barriers will ` +
+          `be installed and inspected to confirm structural integrity, proper anchoring, and ` +
+          `compliance with placement specifications.`,
+        )
+      }
+      parts.push(
+        `Upon completion of installation, a comprehensive operational test will be conducted to ` +
+        `verify proper illumination coverage across all targeted areas, confirm that no dark ` +
+        `zones remain at identified vulnerability points, and ensure all fixtures operate ` +
+        `correctly within the control system.`,
+      )
+      parts.push(
+        `Facility staff responsible for security operations will receive orientation on system ` +
+        `controls, timer and photocell adjustment procedures, and maintenance reporting protocols.`,
+      )
+      parts.push(
+        `All project documentation, including installation records, as-built drawings, equipment ` +
+        `warranties, and vendor invoices, will be retained in the organization's grant ` +
+        `compliance file in accordance with FEMA record retention requirements.`,
+      )
+      return parts.join(' ')
+    }
+
+    case 'cctv': {
+      const parts: string[] = []
+      parts.push(
+        `Following award of grant funds, the organization will coordinate with ` +
+        `${vendors} for procurement and delivery of the video surveillance equipment ` +
+        `specified in the project budget, including IP cameras, network video recorder (NVR), ` +
+        `cabling, power-over-Ethernet (PoE) infrastructure, and associated hardware.`,
+      )
+      parts.push(
+        `Cable routing, conduit installation, and network infrastructure work will be completed ` +
+        `prior to camera and NVR mounting to minimize disruption to facility operations. All ` +
+        `cabling will be routed through conduit or within walls and ceilings in accordance with ` +
+        `applicable codes.`,
+      )
+      parts.push(
+        `Cameras will be positioned and angled to maximize coverage of identified vulnerability ` +
+        `zones, including primary entry and exit points, parking areas, exterior perimeter ` +
+        `locations, and high-traffic interior corridors as specified in the project scope.`,
+      )
+      parts.push(
+        `The NVR will be configured with appropriate storage capacity, a video retention schedule ` +
+        `consistent with organizational policy and grant compliance requirements, and secure ` +
+        `user access controls including unique login credentials for authorized personnel.`,
+      )
+      parts.push(
+        `Upon completion of installation, a full recording and playback test will be performed ` +
+        `to confirm that all camera feeds are operational, that coverage areas align with the ` +
+        `project specifications, and that remote access and alert functions operate as intended.`,
+      )
+      parts.push(
+        `Authorized staff will receive training on system operation, live monitoring procedures, ` +
+        `video retrieval and clip export, and user account administration including credential ` +
+        `management for authorized personnel.`,
+      )
+      parts.push(
+        `All project documentation, including as-built camera placement diagrams, system ` +
+        `configuration records, equipment warranties, and vendor invoices, will be retained ` +
+        `in the organization's grant compliance file in accordance with FEMA requirements.`,
+      )
+      return parts.join(' ')
+    }
+
+    case 'access_control': {
+      const parts: string[] = []
+      parts.push(
+        `Following award of grant funds, the organization will coordinate with ` +
+        `${vendors} for procurement and delivery of the access control equipment specified ` +
+        `in the project budget, including card readers, door controllers, and associated ` +
+        `hardware and cabling components.`,
+      )
+      parts.push(
+        `Prior to installation, door frames, hardware mounting points, and electrical rough-in ` +
+        `will be assessed and prepared to accommodate the new access control components without ` +
+        `compromising existing fire egress or building code compliance.`,
+      )
+      parts.push(
+        `Card readers and door controllers will be installed at designated entry points. ` +
+        (hasMagLock
+          ? `Electric strikes, magnetic locks, or electrified door closers will be installed ` +
+            `and integrated with the controller to provide credential-based access management. `
+          : `Credential-based access management will be configured for each controlled entry point. `),
+      )
+      if (hasIntercom) {
+        parts.push(
+          `Video intercom or entry communication panels will be installed and integrated with ` +
+          `the access control system to enable authorized personnel to remotely screen and ` +
+          `admit visitors before granting entry.`,
+        )
+      }
+      parts.push(
+        `The credential database will be configured with initial access cards or key fobs ` +
+        `issued to authorized staff. Access permission levels will be assigned in accordance ` +
+        `with organizational security policy, and a credential issuance log will be established ` +
+        `to support ongoing administration.`,
+      )
+      if (hasPanicButton) {
+        parts.push(
+          `Panic buttons and duress alarm devices will be installed at designated locations and ` +
+          `tested to confirm reliable signal transmission to the monitoring station or emergency ` +
+          `response point. Staff will be briefed on activation procedures and response protocols.`,
+        )
+      }
+      parts.push(
+        `A full system test will be conducted upon completion, including verification of access ` +
+        `grant and denial functions at each reader, failsafe and fail-secure door behavior under ` +
+        `loss of power, and confirmation that all alarm and alert integrations are operational.`,
+      )
+      parts.push(
+        `Authorized staff will receive training on credential administration, access level ` +
+        `management, visitor entry procedures, and emergency lockdown and override protocols.`,
+      )
+      parts.push(
+        `All project documentation, including as-built wiring diagrams, credential issuance ` +
+        `records, equipment warranties, and vendor invoices, will be retained in the ` +
+        `organization's grant compliance file in accordance with FEMA requirements.`,
+      )
+      return parts.join(' ')
+    }
+
+    default: {
+      const parts: string[] = []
+      parts.push(
+        `Following award of grant funds, the organization will initiate the procurement process ` +
+        `for the specified security equipment, coordinating with ${vendors} for delivery of ` +
+        `components as itemized in the project budget.`,
+      )
+      parts.push(
+        `All necessary site preparation and pre-installation assessments will be completed prior ` +
+        `to commencement of installation activities. Equipment will be installed by qualified ` +
+        `contractors in accordance with manufacturer specifications and applicable local codes.`,
+      )
+      parts.push(
+        `Upon completion of installation, a comprehensive operational test will be conducted to ` +
+        `verify that all installed components function correctly and that project objectives ` +
+        `have been fully achieved.`,
+      )
+      parts.push(
+        `Authorized staff will receive training and orientation on the operation and routine ` +
+        `maintenance of the installed system to ensure effective use and long-term functionality.`,
+      )
+      parts.push(
+        `All project documentation, including installation records, equipment warranties, and ` +
+        `vendor invoices, will be retained in the organization's grant compliance file in ` +
+        `accordance with FEMA record retention requirements.`,
+      )
+      return parts.join(' ')
+    }
+  }
 }
 
 // ─── Default value generators ─────────────────────────────────────────────────
@@ -444,10 +654,10 @@ function buildGenerationWarnings(
 // ─── Main entry point ─────────────────────────────────────────────────────────
 
 /**
- * Resolves the timeline and sustainment narrative for a project.
+ * Resolves the implementation, timeline, and sustainment narrative for a project.
  *
- * Priority:
- *  1. User-authored override (timelineNarrative / sustainmentNarrative)
+ * Priority for each section:
+ *  1. User-authored override (implementationNotes / timelineNarrative / sustainmentNarrative)
  *  2. Structured data (timelineData / sustainmentData) → generate paragraph
  *  3. Inferred defaults from project type detection → generate paragraph
  */
@@ -456,8 +666,22 @@ export function generateProjectNarrativeDefaults(
 ): ProjectNarrativeResult {
   const projectType = detectProjectType(project)
   const generationWarnings: string[] = []
+  let implementationSource: NarrativeSource
   let timelineSource: NarrativeSource
   let sustainmentSource: NarrativeSource
+
+  // ── Implementation Plan ───────────────────────────────────────────────────
+  let implementationNarrative: string
+
+  if (project.implementationNotes && project.implementationNotes.trim()) {
+    implementationNarrative = project.implementationNotes.trim()
+    implementationSource = 'user'
+    generationWarnings.push(...detectVagueText(implementationNarrative))
+  } else {
+    implementationNarrative = generateImplementationPlan(project, projectType)
+    implementationSource = 'inferred'
+    // Generation warnings added below after type detection
+  }
 
   // ── Timeline ──────────────────────────────────────────────────────────────
   let timelineNarrative: string
@@ -490,16 +714,20 @@ export function generateProjectNarrativeDefaults(
     const defaults = defaultSustainment(projectType)
     sustainmentNarrative = generateSustainmentNarrative(defaults, projectType)
     sustainmentSource = 'inferred'
-    // Warnings already added by timeline pass above; avoid duplicates
+    // Warnings already added by timeline/implementation pass above; avoid duplicates
   }
 
   const isGenerated =
-    timelineSource !== 'user' || sustainmentSource !== 'user'
+    implementationSource !== 'user' ||
+    timelineSource !== 'user' ||
+    sustainmentSource !== 'user'
 
   // Deduplicate warnings
   const uniqueWarnings = [...new Set(generationWarnings)]
 
   return {
+    implementationNarrative,
+    implementationSource,
     timelineNarrative,
     sustainmentNarrative,
     projectType,

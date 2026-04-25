@@ -88,7 +88,9 @@ export interface FilingSnapshot {
       justification?: string | null
     }>
     linkedThreatTypes: string[]
-    // Timeline & Sustainment — always populated in new snapshots
+    // Implementation, Timeline & Sustainment — always populated in new snapshots
+    implementationNarrative: string
+    implementationSource: NarrativeSource
     timelineNarrative: string
     sustainmentNarrative: string
     timelineSource: NarrativeSource
@@ -218,10 +220,12 @@ async function buildSnapshot(siteId: string): Promise<FilingSnapshot> {
         ? (() => { try { return JSON.parse((p as any).sustainmentJson) } catch { return null } })()
         : null
 
-      // Run the narrative engine — always produces complete text
+      // Run the narrative engine — always produces complete text for all three sections
       const narrativeResult = generateProjectNarrativeDefaults({
         title: p.title,
         category: p.category,
+        proposedSolution: p.proposedSolution,
+        implementationNotes: p.implementationNotes,
         timelineNarrative: (p as any).timelineNarrative ?? null,
         sustainmentNarrative: (p as any).sustainmentNarrative ?? null,
         timelineData,
@@ -246,6 +250,8 @@ async function buildSnapshot(siteId: string): Promise<FilingSnapshot> {
         projectBudget: p.budgetItems.reduce((s, b) => s + b.totalCost, 0),
         budgetItems,
         linkedThreatTypes: p.threatLinks.map((l) => l.threat.threatType),
+        implementationNarrative: narrativeResult.implementationNarrative,
+        implementationSource: narrativeResult.implementationSource,
         timelineNarrative: narrativeResult.timelineNarrative,
         sustainmentNarrative: narrativeResult.sustainmentNarrative,
         timelineSource: narrativeResult.timelineSource,

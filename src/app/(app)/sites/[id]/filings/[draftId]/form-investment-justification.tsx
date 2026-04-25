@@ -23,8 +23,12 @@ function IjSection({
   children: React.ReactNode
 }) {
   return (
-    <div className="mb-8" style={{ pageBreakInside: 'avoid' }}>
-      <div className="flex items-baseline gap-3 border-b-2 border-slate-800 pb-1 mb-3">
+    <div className="mb-8 ij-section">
+      {/* ij-section-heading: break-after:avoid keeps this bar with the first content block */}
+      <div
+        className="flex items-baseline gap-3 border-b-2 border-slate-800 pb-1 mb-3 ij-section-heading"
+        style={{ breakAfter: 'avoid', pageBreakAfter: 'avoid' }}
+      >
         <span className="text-sm font-bold text-slate-500">Part {number}</span>
         <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">{title}</h2>
       </div>
@@ -50,27 +54,30 @@ function ProjectSection({
   value,
   systemGap = false,
   generatedBadge,
+  hideLabelsForPrint = false,
 }: {
   label: string
   value?: string | null
   /** True when the field doesn't exist in the system (legacy fallback) */
   systemGap?: boolean
-  /** Badge text to show on a generated (not user-authored) section */
+  /** Badge text to show on a generated (not user-authored) section (screen-only) */
   generatedBadge?: string
+  /** When true, hides auto-generation badge in print output (submission mode) */
+  hideLabelsForPrint?: boolean
 }) {
   const { cleaned, flags } = value ? cleanText(value) : { cleaned: '', flags: [] }
   const empty = !cleaned
 
   return (
     <div
-      className={`rounded border p-3 ${
+      className={`rounded border p-3 project-section-card ${
         empty
           ? systemGap
             ? 'border-blue-200 bg-blue-50'
             : 'border-amber-200 bg-amber-50'
           : 'border-slate-200 bg-white'
       }`}
-      style={{ pageBreakInside: 'avoid' }}
+      style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
     >
       <p className="text-xs font-semibold uppercase tracking-wide mb-1.5 flex items-center gap-2">
         <span className={empty ? (systemGap ? 'text-blue-600' : 'text-amber-700') : 'text-slate-500'}>
@@ -88,7 +95,7 @@ function ProjectSection({
           </span>
         )}
         {!empty && generatedBadge && (
-          <span className="text-[9px] font-bold border border-slate-300 text-slate-400 rounded px-1">
+          <span className={`text-[9px] font-bold border border-slate-300 text-slate-400 rounded px-1 ${hideLabelsForPrint ? 'print:hidden' : ''}`}>
             {generatedBadge}
           </span>
         )}
@@ -104,7 +111,7 @@ function ProjectSection({
         <>
           <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">{cleaned}</p>
           {flags.length > 0 && (
-            <div className="mt-2 space-y-0.5">
+            <div className="mt-2 space-y-0.5 print:hidden">
               {flags.map((f, i) => (
                 <p key={i} className="text-[10px] text-amber-600 italic">
                   ⚠ {f}
@@ -363,10 +370,12 @@ export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnap
               <div
                 key={project.id}
                 className="mb-8 border border-slate-200 rounded overflow-hidden"
-                style={{ pageBreakInside: 'avoid' }}
               >
-                {/* Project header */}
-                <div className="bg-slate-800 text-white px-4 py-2.5 flex items-center justify-between">
+                {/* Project header — break-after:avoid keeps it glued to the first card */}
+                <div
+                  className="bg-slate-800 text-white px-4 py-2.5 flex items-center justify-between project-card-header"
+                  style={{ breakAfter: 'avoid', pageBreakAfter: 'avoid' }}
+                >
                   <p className="font-semibold text-sm">
                     Project {i + 1}: {project.title}
                   </p>
@@ -412,9 +421,18 @@ export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnap
                     label="Risk Reduction Rationale"
                     value={project.riskReductionRationale}
                   />
+                  {/* Implementation Plan — generated or user-authored */}
                   <ProjectSection
                     label="Implementation Plan"
-                    value={project.implementationNotes}
+                    value={(project as Record<string, unknown>).implementationNarrative as string}
+                    generatedBadge={
+                      (project as Record<string, unknown>).implementationSource === 'user'
+                        ? undefined
+                        : (project as Record<string, unknown>).implementationSource === 'structured'
+                          ? 'GENERATED'
+                          : 'AUTO-GENERATED'
+                    }
+                    hideLabelsForPrint
                   />
 
                   {/* Timeline — generated or user-authored */}
@@ -428,6 +446,7 @@ export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnap
                           ? 'GENERATED'
                           : 'AUTO-GENERATED'
                     }
+                    hideLabelsForPrint
                   />
 
                   {/* Sustainment — generated or user-authored */}
@@ -441,6 +460,7 @@ export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnap
                           ? 'GENERATED'
                           : 'AUTO-GENERATED'
                     }
+                    hideLabelsForPrint
                   />
 
                   {/* Generation warnings — screen only, not printed */}
