@@ -393,14 +393,13 @@ const VAGUE_PATTERNS: RegExp[] = [
   /\bas needed\b.*\bvague\b/i, // only flag "as needed" if it's clearly a placeholder
   /\bsome point\b/i,
   /\bvarious\b.{0,15}\bactivities\b/i,
-  /\betc\.\b/i,
   /\bwill be done\b/i,
   /\bwill happen\b/i,
   /\bwill occur\b/i,
   /\bcontact vendor\b/i,
   /\bsee attached\b/i,
   /\bfill in\b/i,
-  /^\s*$/,
+  // Note: empty strings are NOT vague — they are "missing". Caller must check non-empty first.
 ]
 
 export function detectVagueText(text: string): string[] {

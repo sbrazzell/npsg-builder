@@ -259,10 +259,10 @@ export function validateSnapshot(snapshot: FilingSnapshot): ValidationResult {
       })
     }
 
-    // Vague text in user-authored or generated narratives
+    // Vague text in user-authored or generated narratives (skip if empty — already flagged as missing)
     const timelineNarrative = (p.timelineNarrative as string | undefined) ?? ''
     const sustainmentNarrative = (p.sustainmentNarrative as string | undefined) ?? ''
-    if (detectVagueText(timelineNarrative).length > 0) {
+    if (timelineNarrative.trim() && detectVagueText(timelineNarrative).length > 0) {
       issues.push({
         severity: 'warning',
         code: 'PROJ_TIMELINE_VAGUE',
@@ -271,7 +271,7 @@ export function validateSnapshot(snapshot: FilingSnapshot): ValidationResult {
         context: project.title,
       })
     }
-    if (detectVagueText(sustainmentNarrative).length > 0) {
+    if (sustainmentNarrative.trim() && detectVagueText(sustainmentNarrative).length > 0) {
       issues.push({
         severity: 'warning',
         code: 'PROJ_SUSTAINMENT_VAGUE',

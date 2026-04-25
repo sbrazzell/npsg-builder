@@ -444,7 +444,7 @@ export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnap
                   />
 
                   {/* Generation warnings — screen only, not printed */}
-                  {project.generationWarnings.length > 0 && (
+                  {(project.generationWarnings?.length ?? 0) > 0 && (
                     <div className="rounded border border-amber-200 bg-amber-50 p-2 print:hidden">
                       <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide mb-1">
                         Generation Notes

@@ -10,6 +10,7 @@ import {
   type SustainmentData,
 } from '@/lib/project-narrative-engine'
 import { validateSnapshot } from '@/lib/export-validation'
+import type { NarrativeSource } from '@/lib/project-narrative-engine'
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -426,9 +427,9 @@ function makeStatusProject(overrides: Record<string, unknown> = {}) {
     linkedThreatTypes: ['Unauthorized Entry'],
     timelineNarrative: 'Upon award the organization will procure within 30 days.',
     sustainmentNarrative: 'The organization will maintain the system quarterly.',
-    timelineSource: 'user',
-    sustainmentSource: 'user',
-    generationWarnings: [],
+    timelineSource: 'user' as NarrativeSource,
+    sustainmentSource: 'user' as NarrativeSource,
+    generationWarnings: [] as string[],
     ...overrides,
   }
 }
