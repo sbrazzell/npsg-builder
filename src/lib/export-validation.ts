@@ -1,4 +1,5 @@
 import type { FilingSnapshot } from '@/actions/filings'
+import { detectVagueText } from '@/lib/project-narrative-engine'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -159,9 +160,17 @@ const PROJECT_REQUIRED_SECTIONS: ProjectSection[] = [
     label: 'Implementation Plan',
     getValue: (p) => p.implementationNotes,
   },
-  // Timeline and Sustainment are not stored in the DB yet — always flagged
-  { code: 'PROJ_NO_TIMELINE', label: 'Estimated Timeline / Milestones', getValue: () => null },
-  { code: 'PROJ_NO_SUSTAINMENT', label: 'Sustainment / Maintenance Plan', getValue: () => null },
+  // Timeline and Sustainment are now generated — check the resolved narrative field
+  {
+    code: 'PROJ_NO_TIMELINE',
+    label: 'Estimated Timeline / Milestones',
+    getValue: (p) => (p as Record<string, unknown>).timelineNarrative as string | null | undefined,
+  },
+  {
+    code: 'PROJ_NO_SUSTAINMENT',
+    label: 'Sustainment / Maintenance Plan',
+    getValue: (p) => (p as Record<string, unknown>).sustainmentNarrative as string | null | undefined,
+  },
 ]
 
 // ─── Main validator ───────────────────────────────────────────────────────────
@@ -207,18 +216,69 @@ export function validateSnapshot(snapshot: FilingSnapshot): ValidationResult {
     for (const section of PROJECT_REQUIRED_SECTIONS) {
       const value = section.getValue(project)
       if (!value || value.trim() === '') {
-        // Timeline and Sustainment are always info (not yet captured in system)
-        const isSystemGap = ['PROJ_NO_TIMELINE', 'PROJ_NO_SUSTAINMENT'].includes(section.code)
         issues.push({
-          severity: isSystemGap ? 'info' : 'warning',
+          severity: 'warning',
           code: section.code,
           field: section.label,
-          message: isSystemGap
-            ? `${section.label} — not captured by this tool; complete manually before submission`
-            : `${section.label} is blank for this project`,
+          message: `${section.label} is blank for this project`,
           context: project.title,
         })
       }
+    }
+
+    // Timeline / Sustainment generation warnings (low-confidence auto-generation)
+    const p = project as Record<string, unknown>
+    if (p.timelineSource === 'inferred') {
+      issues.push({
+        severity: 'info',
+        code: 'PROJ_TIMELINE_AUTO_GENERATED',
+        field: 'Estimated Timeline / Milestones',
+        message: 'Timeline was auto-generated from project type inference — review and confirm accuracy',
+        context: project.title,
+      })
+    }
+    if (p.sustainmentSource === 'inferred') {
+      issues.push({
+        severity: 'info',
+        code: 'PROJ_SUSTAINMENT_AUTO_GENERATED',
+        field: 'Sustainment / Maintenance Plan',
+        message: 'Sustainment plan was auto-generated from project type inference — review and confirm accuracy',
+        context: project.title,
+      })
+    }
+
+    // Generation warnings from the engine (missing vendor names, low-confidence type detection)
+    const genWarnings = (p.generationWarnings as string[] | undefined) ?? []
+    for (const w of genWarnings) {
+      issues.push({
+        severity: 'warning',
+        code: 'PROJ_GENERATION_WARNING',
+        field: 'Auto-Generated Narrative',
+        message: w,
+        context: project.title,
+      })
+    }
+
+    // Vague text in user-authored or generated narratives
+    const timelineNarrative = (p.timelineNarrative as string | undefined) ?? ''
+    const sustainmentNarrative = (p.sustainmentNarrative as string | undefined) ?? ''
+    if (detectVagueText(timelineNarrative).length > 0) {
+      issues.push({
+        severity: 'warning',
+        code: 'PROJ_TIMELINE_VAGUE',
+        field: 'Estimated Timeline / Milestones',
+        message: 'Timeline narrative contains potentially vague language (TBD, to be determined, etc.) — revise before submission',
+        context: project.title,
+      })
+    }
+    if (detectVagueText(sustainmentNarrative).length > 0) {
+      issues.push({
+        severity: 'warning',
+        code: 'PROJ_SUSTAINMENT_VAGUE',
+        field: 'Sustainment / Maintenance Plan',
+        message: 'Sustainment narrative contains potentially vague language — revise before submission',
+        context: project.title,
+      })
     }
 
     // No budget items

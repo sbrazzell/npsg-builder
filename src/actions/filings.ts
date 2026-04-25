@@ -3,6 +3,12 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { calculateRiskScore, getRiskLevel, formatCurrency } from '@/lib/scoring'
+import {
+  generateProjectNarrativeDefaults,
+  type TimelineData,
+  type SustainmentData,
+  type NarrativeSource,
+} from '@/lib/project-narrative-engine'
 
 // ─── Snapshot type ───────────────────────────────────────────────────────────
 
@@ -82,6 +88,12 @@ export interface FilingSnapshot {
       justification?: string | null
     }>
     linkedThreatTypes: string[]
+    // Timeline & Sustainment — always populated in new snapshots
+    timelineNarrative: string
+    sustainmentNarrative: string
+    timelineSource: NarrativeSource
+    sustainmentSource: NarrativeSource
+    generationWarnings: string[]
   }>
   narratives: Record<string, string>
   totalBudget: number
@@ -186,18 +198,8 @@ async function buildSnapshot(siteId: string): Promise<FilingSnapshot> {
       effectivenessRating: m.effectivenessRating,
       gapsRemaining: m.gapsRemaining,
     })),
-    projects: facility.projectProposals.map((p) => ({
-      id: p.id,
-      title: p.title,
-      category: p.category,
-      problemStatement: p.problemStatement,
-      proposedSolution: p.proposedSolution,
-      riskReductionRationale: p.riskReductionRationale,
-      implementationNotes: p.implementationNotes,
-      priority: p.priority,
-      status: p.status,
-      projectBudget: p.budgetItems.reduce((s, b) => s + b.totalCost, 0),
-      budgetItems: p.budgetItems.map((b) => ({
+    projects: facility.projectProposals.map((p) => {
+      const budgetItems = p.budgetItems.map((b) => ({
         id: b.id,
         itemName: b.itemName,
         category: b.category,
@@ -206,9 +208,51 @@ async function buildSnapshot(siteId: string): Promise<FilingSnapshot> {
         totalCost: b.totalCost,
         vendorName: b.vendorName,
         justification: b.justification,
-      })),
-      linkedThreatTypes: p.threatLinks.map((l) => l.threat.threatType),
-    })),
+      }))
+
+      // Parse stored structured data (if any)
+      const timelineData: TimelineData | null = (p as any).timelineJson
+        ? (() => { try { return JSON.parse((p as any).timelineJson) } catch { return null } })()
+        : null
+      const sustainmentData: SustainmentData | null = (p as any).sustainmentJson
+        ? (() => { try { return JSON.parse((p as any).sustainmentJson) } catch { return null } })()
+        : null
+
+      // Run the narrative engine — always produces complete text
+      const narrativeResult = generateProjectNarrativeDefaults({
+        title: p.title,
+        category: p.category,
+        timelineNarrative: (p as any).timelineNarrative ?? null,
+        sustainmentNarrative: (p as any).sustainmentNarrative ?? null,
+        timelineData,
+        sustainmentData,
+        budgetItems: budgetItems.map((b) => ({
+          itemName: b.itemName,
+          category: b.category,
+          vendorName: b.vendorName,
+        })),
+      })
+
+      return {
+        id: p.id,
+        title: p.title,
+        category: p.category,
+        problemStatement: p.problemStatement,
+        proposedSolution: p.proposedSolution,
+        riskReductionRationale: p.riskReductionRationale,
+        implementationNotes: p.implementationNotes,
+        priority: p.priority,
+        status: p.status,
+        projectBudget: p.budgetItems.reduce((s, b) => s + b.totalCost, 0),
+        budgetItems,
+        linkedThreatTypes: p.threatLinks.map((l) => l.threat.threatType),
+        timelineNarrative: narrativeResult.timelineNarrative,
+        sustainmentNarrative: narrativeResult.sustainmentNarrative,
+        timelineSource: narrativeResult.timelineSource,
+        sustainmentSource: narrativeResult.sustainmentSource,
+        generationWarnings: narrativeResult.generationWarnings,
+      }
+    }),
     narratives,
     totalBudget,
     highRiskThreatCount,

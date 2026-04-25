@@ -106,6 +106,12 @@ model ProjectProposal {
   priority                Int       @default(3)
   status                  String    @default("draft")
   notes                   String?
+  // Timeline & Sustainment structured data (JSON-encoded)
+  timelineJson            String?
+  sustainmentJson         String?
+  // User-authored narrative overrides (take priority over auto-generated)
+  timelineNarrative       String?
+  sustainmentNarrative    String?
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
   budgetItems             BudgetItem[]

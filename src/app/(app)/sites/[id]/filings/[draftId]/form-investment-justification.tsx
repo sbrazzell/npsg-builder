@@ -49,11 +49,14 @@ function ProjectSection({
   label,
   value,
   systemGap = false,
+  generatedBadge,
 }: {
   label: string
   value?: string | null
-  /** True when the field doesn't exist in the system (e.g. timeline) */
+  /** True when the field doesn't exist in the system (legacy fallback) */
   systemGap?: boolean
+  /** Badge text to show on a generated (not user-authored) section */
+  generatedBadge?: string
 }) {
   const { cleaned, flags } = value ? cleanText(value) : { cleaned: '', flags: [] }
   const empty = !cleaned
@@ -82,6 +85,11 @@ function ProjectSection({
             }`}
           >
             {systemGap ? 'COMPLETE MANUALLY' : 'BLANK — REQUIRED'}
+          </span>
+        )}
+        {!empty && generatedBadge && (
+          <span className="text-[9px] font-bold border border-slate-300 text-slate-400 rounded px-1">
+            {generatedBadge}
           </span>
         )}
       </p>
@@ -409,17 +417,45 @@ export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnap
                     value={project.implementationNotes}
                   />
 
-                  {/* System-gap sections — not in DB, always prompt manual entry */}
+                  {/* Timeline — generated or user-authored */}
                   <ProjectSection
                     label="Estimated Timeline / Milestones"
-                    value={null}
-                    systemGap
+                    value={project.timelineNarrative}
+                    generatedBadge={
+                      project.timelineSource === 'user'
+                        ? undefined
+                        : project.timelineSource === 'structured'
+                          ? 'GENERATED'
+                          : 'AUTO-GENERATED'
+                    }
                   />
+
+                  {/* Sustainment — generated or user-authored */}
                   <ProjectSection
                     label="Sustainment / Maintenance Plan"
-                    value={null}
-                    systemGap
+                    value={project.sustainmentNarrative}
+                    generatedBadge={
+                      project.sustainmentSource === 'user'
+                        ? undefined
+                        : project.sustainmentSource === 'structured'
+                          ? 'GENERATED'
+                          : 'AUTO-GENERATED'
+                    }
                   />
+
+                  {/* Generation warnings — screen only, not printed */}
+                  {project.generationWarnings.length > 0 && (
+                    <div className="rounded border border-amber-200 bg-amber-50 p-2 print:hidden">
+                      <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide mb-1">
+                        Generation Notes
+                      </p>
+                      {project.generationWarnings.map((w, i) => (
+                        <p key={i} className="text-[10px] text-amber-600 italic">
+                          ⚠ {w}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )
