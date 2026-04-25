@@ -66,7 +66,7 @@ export function FormBudget({ snapshot }: { snapshot: FilingSnapshot }) {
 
         {/* ── Section A — Budget Summary ── */}
         <section>
-          <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700 border-b-2 border-slate-800 pb-1 mb-3">
+          <h2 className="budget-section-heading text-sm font-bold uppercase tracking-wide text-slate-700 border-b-2 border-slate-800 pb-1 mb-3">
             Section A — Budget Summary
           </h2>
           <table className="w-full text-sm border-collapse">
@@ -109,7 +109,7 @@ export function FormBudget({ snapshot }: { snapshot: FilingSnapshot }) {
 
         {/* ── Section B — Budget by Category ── */}
         <section>
-          <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700 border-b-2 border-slate-800 pb-1 mb-3">
+          <h2 className="budget-section-heading text-sm font-bold uppercase tracking-wide text-slate-700 border-b-2 border-slate-800 pb-1 mb-3">
             Section B — Budget Categories
           </h2>
           <table className="w-full text-sm border-collapse">
@@ -156,7 +156,7 @@ export function FormBudget({ snapshot }: { snapshot: FilingSnapshot }) {
 
         {/* ── Section C — Project-level detail ── */}
         <section>
-          <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700 border-b-2 border-slate-800 pb-1 mb-3">
+          <h2 className="budget-section-heading text-sm font-bold uppercase tracking-wide text-slate-700 border-b-2 border-slate-800 pb-1 mb-3">
             Section C — Project Budget Detail
           </h2>
           {projects.map((project, idx) => {
@@ -164,8 +164,8 @@ export function FormBudget({ snapshot }: { snapshot: FilingSnapshot }) {
             const lineTotalMismatch = Math.abs(projectLineTotal - project.projectBudget) > 0.01
 
             return (
-              <div key={project.id} className="mb-6" style={{ pageBreakInside: 'avoid' }}>
-                <div className="flex items-center justify-between bg-slate-800 text-white px-3 py-2 rounded-t">
+              <div key={project.id} className="mb-6">
+                <div className="budget-project-header flex items-center justify-between bg-slate-800 text-white px-3 py-2 rounded-t">
                   <span className="text-sm font-semibold">
                     Project {idx + 1}: {project.title}
                   </span>
@@ -277,7 +277,7 @@ export function FormBudget({ snapshot }: { snapshot: FilingSnapshot }) {
         {/* ── Section D — Budget Narrative ── */}
         {narratives['budget_rationale'] && (
           <section>
-            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700 border-b-2 border-slate-800 pb-1 mb-3">
+            <h2 className="budget-section-heading text-sm font-bold uppercase tracking-wide text-slate-700 border-b-2 border-slate-800 pb-1 mb-3">
               Section D — Budget Narrative / Justification
             </h2>
             <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">

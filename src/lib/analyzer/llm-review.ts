@@ -18,7 +18,7 @@ export async function runLLMReview(
     const client = new Anthropic({ apiKey })
     const prompt = buildReviewPrompt(facilityData)
     const message = await client.messages.create({
-      model: 'claude-opus-4-6',
+      model: 'claude-opus-4-5',
       max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
     })
@@ -79,14 +79,16 @@ Respond ONLY with valid JSON in this exact shape:
 }
 
 function parseReviewResponse(text: string): Partial<AnalysisResult> {
+  // Strip markdown code fences if the model wrapped the JSON in ```json ... ```
+  const stripped = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
   try {
-    const json = JSON.parse(text)
+    const json = JSON.parse(stripped)
     return {
       strengthsSummary: json.strengthsSummary,
       weaknessesSummary: json.weaknessesSummary,
       priorityFixesSummary: json.priorityFixesSummary,
     }
   } catch {
-    return { strengthsSummary: text }
+    return { strengthsSummary: stripped }
   }
 }

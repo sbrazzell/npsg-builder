@@ -37,6 +37,17 @@ function makeProject(
       },
     ],
     linkedThreatTypes: ['Unauthorized Entry'],
+    // Implementation, Timeline & Sustainment — engine-generated defaults
+    implementationNarrative:
+      'Following award, the organization will coordinate with Allegion for procurement and delivery of card readers.',
+    implementationSource: 'inferred',
+    timelineNarrative:
+      'Upon award and completion of required approvals, the organization will initiate procurement within approximately 30 days.',
+    sustainmentNarrative:
+      'The organization is committed to sustaining this investment through routine maintenance and periodic inspection.',
+    timelineSource: 'inferred',
+    sustainmentSource: 'inferred',
+    generationWarnings: [],
     ...overrides,
   }
 }
@@ -127,9 +138,9 @@ describe('Project section completeness', () => {
     expect(implIssues).toHaveLength(0)
   })
 
-  it('flags a project missing an implementation plan', () => {
+  it('flags a project missing an implementation plan (no generated narrative)', () => {
     const snapshot = makeSnapshot({
-      projects: [makeProject({ implementationNotes: '' })],
+      projects: [makeProject({ implementationNarrative: '' })],
     })
     const result = validateSnapshot(snapshot)
     const implIssues = result.issues.filter(
@@ -139,28 +150,66 @@ describe('Project section completeness', () => {
     expect(implIssues[0].severity).toBe('warning')
   })
 
-  it('always flags Timeline as a system-gap info issue for every project', () => {
+  it('does NOT flag timeline when narrative is present (auto-generated)', () => {
     const snapshot = makeSnapshot({
       projects: [makeProject(), makeProject({ id: 'proj-2', title: 'CCTV Upgrade' }), makeProject({ id: 'proj-3', title: 'Perimeter Fencing' })],
     })
     const result = validateSnapshot(snapshot)
-    const timelineIssues = result.issues.filter(
+    const timelineMissingIssues = result.issues.filter(
       (i) => i.code === 'PROJ_NO_TIMELINE',
     )
-    // One per project
-    expect(timelineIssues).toHaveLength(3)
-    timelineIssues.forEach((i) => expect(i.severity).toBe('info'))
+    // With generated narratives present, PROJ_NO_TIMELINE should not fire
+    expect(timelineMissingIssues).toHaveLength(0)
   })
 
-  it('always flags Sustainment as a system-gap info issue for every project', () => {
+  it('does NOT flag sustainment when narrative is present (auto-generated)', () => {
     const snapshot = makeSnapshot({
       projects: [makeProject(), makeProject({ id: 'proj-2', title: 'CCTV Upgrade' }), makeProject({ id: 'proj-3', title: 'Perimeter Fencing' })],
     })
     const result = validateSnapshot(snapshot)
-    const sustainIssues = result.issues.filter(
+    const sustainMissingIssues = result.issues.filter(
       (i) => i.code === 'PROJ_NO_SUSTAINMENT',
     )
-    expect(sustainIssues).toHaveLength(3)
+    expect(sustainMissingIssues).toHaveLength(0)
+  })
+
+  it('flags timeline as warning when narrative is blank', () => {
+    const snapshot = makeSnapshot({
+      projects: [makeProject({ timelineNarrative: '' })],
+    })
+    const result = validateSnapshot(snapshot)
+    const timelineIssues = result.issues.filter((i) => i.code === 'PROJ_NO_TIMELINE')
+    expect(timelineIssues).toHaveLength(1)
+    expect(timelineIssues[0].severity).toBe('warning')
+  })
+
+  it('flags sustainment as warning when narrative is blank', () => {
+    const snapshot = makeSnapshot({
+      projects: [makeProject({ sustainmentNarrative: '' })],
+    })
+    const result = validateSnapshot(snapshot)
+    const sustainIssues = result.issues.filter((i) => i.code === 'PROJ_NO_SUSTAINMENT')
+    expect(sustainIssues).toHaveLength(1)
+    expect(sustainIssues[0].severity).toBe('warning')
+  })
+
+  it('adds info issue when timeline was auto-generated from inference', () => {
+    const snapshot = makeSnapshot({
+      projects: [makeProject({ timelineSource: 'inferred' })],
+    })
+    const result = validateSnapshot(snapshot)
+    const autoIssues = result.issues.filter((i) => i.code === 'PROJ_TIMELINE_AUTO_GENERATED')
+    expect(autoIssues).toHaveLength(1)
+    expect(autoIssues[0].severity).toBe('info')
+  })
+
+  it('does NOT add auto-generated info issue when timeline source is user', () => {
+    const snapshot = makeSnapshot({
+      projects: [makeProject({ timelineSource: 'user' })],
+    })
+    const result = validateSnapshot(snapshot)
+    const autoIssues = result.issues.filter((i) => i.code === 'PROJ_TIMELINE_AUTO_GENERATED')
+    expect(autoIssues).toHaveLength(0)
   })
 })
 
@@ -261,19 +310,20 @@ describe('Document status', () => {
   })
 
   it('is review-ready when only warnings exist (no errors)', () => {
-    // Drop implementation notes → warning, but no errors
-    const snapshot = makeSnapshot({
-      projects: [makeProject({ implementationNotes: null })],
-    })
+    // Auth rep fields (title, sig date) are warnings; no hard errors → review-ready
+    const snapshot = makeSnapshot()
     const result = validateSnapshot(snapshot)
     expect(result.errorCount).toBe(0)
-    expect(result.warningCount).toBeGreaterThan(0)
+    expect(result.warningCount).toBeGreaterThan(0) // SF424_PLACEHOLDER_REP_TITLE, SF424_PLACEHOLDER_SIG_DATE
     expect(result.status).toBe('review-ready')
   })
 
   it('is never submission-ready because NOFO-dependent info issues always exist', () => {
-    // A "perfect" org snapshot still has NOFO-dependent info items
-    const result = validateSnapshot(makeSnapshot())
+    // A snapshot with user-authored timelines (no auto-gen info) still has NOFO-dependent info items
+    const snapshot = makeSnapshot({
+      projects: [makeProject({ timelineSource: 'user', sustainmentSource: 'user', generationWarnings: [] })],
+    })
+    const result = validateSnapshot(snapshot)
     // District + dates are always info-flagged → at most review-ready
     expect(result.status).not.toBe('submission-ready')
   })
