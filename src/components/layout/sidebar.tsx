@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
@@ -12,6 +14,7 @@ import {
   ClipboardList,
   FileText,
   BookOpen,
+  LogOut,
 } from 'lucide-react'
 
 const navItems = [
@@ -63,7 +66,11 @@ function NavLink({ href, label, icon: Icon, isActive }: {
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { days, pct, deadline } = getDeadlineInfo()
+  const { days, pct } = getDeadlineInfo()
+  const { data: session } = useSession()
+
+  const userName = session?.user?.name ?? session?.user?.email ?? ''
+  const userInitial = userName.charAt(0).toUpperCase()
 
   return (
     <aside
@@ -73,7 +80,6 @@ export function Sidebar() {
       {/* Brand */}
       <div className="px-[22px] py-[18px] border-b flex gap-3 items-start"
         style={{ borderColor: 'var(--rule)' }}>
-        {/* Serif "N" mark */}
         <div
           className="w-[34px] h-[34px] flex-shrink-0 flex items-center justify-center rounded-sm relative"
           style={{ background: 'var(--nav-accent)', color: '#fff' }}
@@ -138,23 +144,88 @@ export function Sidebar() {
       </nav>
 
       {/* Deadline countdown */}
-      <div className="mx-3 mb-4 p-3.5 rounded-sm border bg-white"
-        style={{ borderColor: 'var(--rule)' }}>
-        <p className="eyebrow" style={{ fontSize: '9.5px' }}>FY26 NSGP · Submission due</p>
-        <p className="font-serif font-semibold leading-none mt-1.5 tabular-nums"
-          style={{ fontSize: '36px', letterSpacing: '-0.02em', color: 'var(--ink)' }}>
-          {days}
-        </p>
-        <p className="text-[11.5px] mt-0.5" style={{ color: 'var(--ink-3)' }}>days remaining</p>
-        {/* Progress bar */}
-        <div className="mt-2.5 h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--rule-2)' }}>
-          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'var(--nav-accent)' }} />
+      <div className="mx-3 mb-3 rounded-sm border overflow-hidden" style={{ borderColor: 'var(--rule)' }}>
+        {/* Header strip */}
+        <div
+          className="px-3.5 py-2 flex items-center justify-between"
+          style={{ background: 'var(--nav-accent)' }}
+        >
+          <p className="text-[9.5px] font-semibold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.7)' }}>
+            FY26 NSGP
+          </p>
+          <p className="text-[9.5px] font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            Due May 29
+          </p>
         </div>
-        <div className="flex justify-between mt-2 text-[10.5px]" style={{ color: 'var(--ink-3)' }}>
-          <span>Opened Mar 3</span>
-          <span>May 29</span>
+        {/* Body */}
+        <div className="bg-white px-3.5 py-3">
+          <div className="flex items-baseline gap-1.5">
+            <p
+              className="font-serif font-semibold tabular-nums leading-none"
+              style={{ fontSize: '40px', letterSpacing: '-0.03em', color: 'var(--ink)' }}
+            >
+              {days}
+            </p>
+            <p className="text-[12px] font-medium" style={{ color: 'var(--ink-3)' }}>days left</p>
+          </div>
+          {/* Progress bar */}
+          <div className="mt-2.5 h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--rule-2)' }}>
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${pct}%`,
+                background: pct > 80 ? 'var(--bad)' : pct > 55 ? 'var(--warn)' : 'var(--nav-accent)',
+              }}
+            />
+          </div>
+          <div className="flex justify-between mt-1.5 text-[10px]" style={{ color: 'var(--ink-4)' }}>
+            <span>Mar 3</span>
+            <span>{pct}% elapsed</span>
+          </div>
         </div>
       </div>
+
+      {/* User section */}
+      {session?.user && (
+        <div
+          className="mx-3 mb-4 flex items-center gap-2.5 px-3 py-2.5 rounded-sm"
+          style={{ border: '1px solid var(--rule)', background: 'white' }}
+        >
+          {/* Avatar */}
+          {session.user.image ? (
+            <Image
+              src={session.user.image}
+              alt={userName}
+              width={26}
+              height={26}
+              className="rounded-full flex-shrink-0"
+            />
+          ) : (
+            <div
+              className="w-[26px] h-[26px] rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-semibold"
+              style={{ background: 'var(--nav-accent)', color: '#fff' }}
+            >
+              {userInitial}
+            </div>
+          )}
+          {/* Name */}
+          <p
+            className="flex-1 min-w-0 text-[12px] font-medium truncate"
+            style={{ color: 'var(--ink-2)' }}
+          >
+            {session.user.name ?? session.user.email}
+          </p>
+          {/* Sign out */}
+          <button
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            title="Sign out"
+            className="flex-shrink-0 p-1 rounded-sm transition-colors hover:bg-[var(--paper-2)]"
+            style={{ color: 'var(--ink-4)' }}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
     </aside>
   )
 }

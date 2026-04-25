@@ -2,10 +2,36 @@ export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
-import { Plus, AlertTriangle, ChevronRight, Building2, Camera } from 'lucide-react'
+import { Plus, AlertTriangle, ChevronRight, Building2 } from 'lucide-react'
 import { calculateRiskScore, getRiskLevel, formatCurrency } from '@/lib/scoring'
 
 // ─── Site photo thumbnail ──────────────────────────────────────────────────────
+
+// Palette of warm/editorial accent colors for placeholders
+const PLACEHOLDER_PALETTES = [
+  { bg: '#dde4f0', text: '#1f2d5c' }, // navy wash
+  { bg: '#e0ede0', text: '#2f5443' }, // sage
+  { bg: '#f0e6dd', text: '#7a3d1a' }, // terracotta
+  { bg: '#e8e0f0', text: '#4a2d6e' }, // plum
+  { bg: '#f0ecdd', text: '#6b5a1a' }, // ochre
+  { bg: '#ddeaed', text: '#1a4a52' }, // teal
+]
+
+function siteColor(name: string) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return PLACEHOLDER_PALETTES[Math.abs(hash) % PLACEHOLDER_PALETTES.length]
+}
+
+function siteInitials(name: string) {
+  const words = name.trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return '?'
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase()
+  // Use first letter of first two meaningful words (skip short words if possible)
+  const meaningful = words.filter(w => w.length > 2)
+  const pool = meaningful.length >= 2 ? meaningful : words
+  return (pool[0][0] + pool[1][0]).toUpperCase()
+}
 
 function SitePhoto({ photoUrl, siteName }: { photoUrl?: string | null; siteName: string }) {
   const cls = "w-[160px] h-[105px] flex-shrink-0 overflow-hidden border"
@@ -20,14 +46,23 @@ function SitePhoto({ photoUrl, siteName }: { photoUrl?: string | null; siteName:
     )
   }
 
-  // Placeholder when no photo has been uploaded yet
+  const { bg, text } = siteColor(siteName)
+  const initials = siteInitials(siteName)
+
   return (
     <div
-      className={`${cls} flex flex-col items-center justify-center gap-1.5`}
-      style={{ ...style, background: 'var(--paper-2)' }}
+      className={`${cls} flex flex-col items-center justify-center gap-2`}
+      style={{ ...style, background: bg }}
     >
-      <Camera className="h-5 w-5" style={{ color: 'var(--ink-4)' }} />
-      <span className="text-[10px] leading-none" style={{ color: 'var(--ink-4)' }}>No photo</span>
+      <span
+        className="font-serif font-semibold leading-none"
+        style={{ fontSize: '28px', color: text, opacity: 0.7 }}
+      >
+        {initials}
+      </span>
+      <span className="text-[9.5px] font-medium tracking-wide uppercase" style={{ color: text, opacity: 0.4 }}>
+        No photo
+      </span>
     </div>
   )
 }

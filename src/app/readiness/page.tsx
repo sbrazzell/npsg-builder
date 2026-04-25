@@ -48,8 +48,8 @@ function CheckItem({ done, label, detail, href }: {
       {!done && href && (
         <Link
           href={href}
-          className="text-[11.5px] font-medium flex-shrink-0 self-center transition-opacity hover:opacity-70"
-          style={{ color: 'var(--nav-accent)' }}
+          className="inline-flex items-center px-2 py-0.5 rounded-[2px] text-[11px] font-medium flex-shrink-0 self-center transition-opacity hover:opacity-80"
+          style={{ background: 'var(--nav-wash)', color: 'var(--nav-accent)', whiteSpace: 'nowrap' }}
         >
           Fix →
         </Link>

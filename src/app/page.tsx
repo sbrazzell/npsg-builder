@@ -480,14 +480,14 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {/* ── Facility roster ─────────────────────────────────────────── */}
+      {/* ── Site roster ─────────────────────────────────────────────── */}
       <div className="flex items-baseline justify-between mt-10 mb-4">
         <div>
           <p className="font-serif font-semibold text-[22px]" style={{ letterSpacing: '-0.015em' }}>
-            Facilities
+            Sites
           </p>
           <p className="text-[12.5px] mt-0.5" style={{ color: 'var(--ink-3)' }}>
-            Readiness-sorted. Click any row to open the facility workbench.
+            Readiness-sorted. Click any row to open the site.
           </p>
         </div>
         <div className="flex gap-2">
@@ -505,7 +505,7 @@ export default async function DashboardPage() {
             style={{ border: '1px solid var(--rule)', background: 'white', color: 'var(--ink)' }}
           >
             <Plus className="h-3 w-3" />
-            New facility
+            New site
           </Link>
         </div>
       </div>
@@ -538,9 +538,9 @@ export default async function DashboardPage() {
         {roster.length === 0 ? (
           <div className="px-5 py-16 text-center">
             <p className="text-[13px]" style={{ color: 'var(--ink-3)' }}>
-              No facilities yet.{' '}
+              No sites yet.{' '}
               <Link href="/sites/new" style={{ color: 'var(--nav-accent)' }}>
-                Add your first facility →
+                Add your first site →
               </Link>
             </p>
           </div>
@@ -665,7 +665,7 @@ export default async function DashboardPage() {
             )
           })
         )}
-      </div>
+        </div>
 
       {/* Empty state CTA when no data at all */}
       {siteCount === 0 && (
