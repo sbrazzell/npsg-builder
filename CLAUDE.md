@@ -25,7 +25,7 @@ Current version: **v1.3.1** on `main`. All new work goes to `develop`.
 
 | Layer | Choice |
 |---|---|
-| Framework | Next.js 16 (App Router, React 19) |
+| Framework | Next.js 16.2.4 (App Router, React 19) |
 | Language | TypeScript 5 |
 | Styling | Tailwind CSS v4 (PostCSS), shadcn/ui, Base UI |
 | ORM | Prisma 7 |
@@ -464,7 +464,7 @@ Always include the new required fields (`timelineNarrative`, `sustainmentNarrati
 ## Security architecture
 
 ### Auth flow
-1. **Edge middleware** (`src/middleware.ts`) — runs on every request, checks NextAuth JWT via `getToken()`. Redirects to `/login` if absent. Exempts `/api/auth/*`, `/login`, `/_next/*`, `favicon.ico`.
+1. **Edge proxy** (`src/proxy.ts`) — runs on every request, checks NextAuth JWT via `getToken()`. Redirects to `/login` if absent. Exempts `/api/auth/*`, `/login`, `/_next/*`, `favicon.ico`. Next.js 16 uses `proxy.ts` (not `middleware.ts`) with a named `export async function proxy()`.
 2. **Server action guard** (`src/lib/auth-guard.ts`) — `requireAuth()` is called as the first line of every exported function in every `src/actions/*.ts` file. Throws `UnauthorizedError` (HTTP 401) before any DB access. Never skip this call.
 3. **API route guard** — `/api/ai/assist` and `/api/upload` call `getServerSession(authOptions)` directly and return 401 if no session.
 
@@ -479,7 +479,7 @@ export async function someAction(input: ...) {
 ```
 
 ### Field-level encryption (`src/lib/encryption.ts`)
-AES-256-GCM encryption is applied transparently via Prisma `$use` middleware in `src/lib/prisma.ts`. The following fields are encrypted on write and decrypted on read:
+AES-256-GCM encryption is applied transparently via a Prisma `$extends` query extension in `src/lib/prisma.ts` (Prisma 5+ replaced the deprecated `$use` middleware API). The following fields are encrypted on write and decrypted on read:
 
 | Model | Field |
 |---|---|
@@ -515,6 +515,7 @@ model AllowedUser {
 - `signIn` callback: checks `AllowedUser` table for the Google account email. Returns `false` (rejects sign-in) if not found.
 - **Seed behaviour:** on first sign-in, if `AllowedUser` is empty AND `ALLOWED_EMAILS` is set, those emails are upserted as `admin` role. After seeding the env var is no longer consulted.
 - `session` callback: looks up the user's `role` and attaches it to `session.user.role` so the UI can gate admin actions without a second DB call.
+- **Session expiry:** JWT sessions expire after **24 hours** (`maxAge: 24 * 60 * 60` in `authOptions`). Users must re-authenticate daily.
 
 **Server actions (`src/actions/allowed-users.ts`):**
 ```ts
@@ -536,7 +537,7 @@ Applied to all routes via `headers()`:
 - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
-- `Content-Security-Policy` restricting script/style/image/connect origins
+- `Content-Security-Policy` — `unsafe-eval` is excluded in production (dev-only via `NODE_ENV` check); `unsafe-inline` retained for styles
 
 ---
 
@@ -643,7 +644,7 @@ CSS print rules live in the `<style>` block inside `src/app/(print)/sites/[id]/f
 - Do **not** invent facts in autofix proposals (incidents, vendor quotes, police reports, certifications, SAM/UEI, 501(c)(3), board resolutions, law enforcement endorsements). If evidence is needed, set `requiresEvidenceConfirmation: true` and `canAutoFix: false`.
 - Do **not** add a new server action without calling `await requireAuth()` as its first line — unauthenticated DB access is the #1 attack surface.
 - Do **not** add a new API route handler without calling `getServerSession(authOptions)` and returning 401 if the session is absent.
-- Do **not** rename `src/middleware.ts` or remove the `export const config` matcher — the auth gateway will silently stop running. The old file was named `proxy.ts` and was a critical bug; do not repeat it.
+- Do **not** rename `src/proxy.ts`, change its exported function name away from `proxy`, or remove the `export const config` matcher — the auth gateway will silently stop running. Next.js 16 requires `proxy.ts` exporting `async function proxy()`. Do not revert to `middleware.ts` or rename the export to `middleware`.
 - Do **not** add new sensitive fields to the DB schema without also adding them to `ENCRYPTED_FIELDS` in `src/lib/prisma.ts`.
 - Do **not** set `FIELD_ENCRYPTION_KEY` to the same value in multiple environments — each environment should have its own key.
 - Do **not** use `ALLOWED_EMAILS` as the long-term access control mechanism — it is only a seed source. Manage users via `/settings`.
