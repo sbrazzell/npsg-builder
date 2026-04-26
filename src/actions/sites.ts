@@ -1,10 +1,13 @@
 'use server'
 
+import { requireAuth } from '@/lib/auth-guard'
+
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { facilitySchema, type FacilityInput } from '@/lib/validations'
 
 export async function getFacilities() {
+  await requireAuth()
   try {
     const facilities = await prisma.site.findMany({
       include: {
@@ -21,6 +24,7 @@ export async function getFacilities() {
 }
 
 export async function getFacility(id: string) {
+  await requireAuth()
   try {
     const facility = await prisma.site.findUnique({
       where: { id },
@@ -51,6 +55,7 @@ export async function getFacility(id: string) {
 }
 
 export async function createFacility(input: FacilityInput) {
+  await requireAuth()
   const parsed = facilitySchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -74,6 +79,7 @@ export async function createFacility(input: FacilityInput) {
 }
 
 export async function updateSite(id: string, input: FacilityInput) {
+  await requireAuth()
   const parsed = facilitySchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -98,6 +104,7 @@ export async function updateSite(id: string, input: FacilityInput) {
 }
 
 export async function deleteSite(id: string) {
+  await requireAuth()
   try {
     const site = await prisma.site.findUnique({ where: { id } })
     await prisma.site.delete({ where: { id } })

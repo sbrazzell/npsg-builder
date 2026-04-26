@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
-export default async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Public routes — let through without a token check
   if (
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/login') ||
@@ -25,4 +26,9 @@ export default async function proxy(request: NextRequest) {
   }
 
   return NextResponse.next()
+}
+
+// Run on every route except static assets
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon\\.ico).*)'],
 }

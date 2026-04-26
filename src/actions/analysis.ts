@@ -1,5 +1,7 @@
 'use server'
 
+import { requireAuth } from '@/lib/auth-guard'
+
 import { prisma } from '@/lib/prisma'
 import { runAnalysis } from '@/lib/analyzer'
 import { revalidatePath } from 'next/cache'
@@ -78,6 +80,7 @@ export async function runGrantAnalysis(
 }
 
 export async function getLatestAnalysis(siteId: string) {
+  await requireAuth()
   try {
     const analysis = await prisma.grantAnalysis.findFirst({
       where: { siteId },
@@ -95,6 +98,7 @@ export async function getLatestAnalysis(siteId: string) {
 }
 
 export async function listAnalyses(siteId: string) {
+  await requireAuth()
   try {
     const analyses = await prisma.grantAnalysis.findMany({
       where: { siteId },
@@ -118,6 +122,7 @@ export async function listAnalyses(siteId: string) {
 }
 
 export async function getBenchmarkData() {
+  await requireAuth()
   try {
     const facilities = await prisma.site.findMany({
       include: {

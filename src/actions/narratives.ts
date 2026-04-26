@@ -1,11 +1,14 @@
 'use server'
 
+import { requireAuth } from '@/lib/auth-guard'
+
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { generateNarrative } from '@/lib/narratives'
 import { narrativeDraftSchema, type NarrativeDraftInput } from '@/lib/validations'
 
 export async function getNarratives(siteId: string) {
+  await requireAuth()
   try {
     const narratives = await prisma.narrativeDraft.findMany({
       where: { siteId },
@@ -18,6 +21,7 @@ export async function getNarratives(siteId: string) {
 }
 
 export async function generateAndSaveNarrative(siteId: string, sectionName: string) {
+  await requireAuth()
   try {
     const facility = await prisma.site.findUnique({
       where: { id: siteId },
@@ -62,6 +66,7 @@ export async function generateAndSaveNarrative(siteId: string, sectionName: stri
 }
 
 export async function updateNarrative(id: string, editedText: string) {
+  await requireAuth()
   try {
     const narrative = await prisma.narrativeDraft.update({
       where: { id },
@@ -75,6 +80,7 @@ export async function updateNarrative(id: string, editedText: string) {
 }
 
 export async function deleteNarrative(id: string, siteId: string) {
+  await requireAuth()
   try {
     await prisma.narrativeDraft.delete({ where: { id } })
     revalidatePath(`/sites/${siteId}/narratives`)

@@ -1,10 +1,13 @@
 'use server'
 
+import { requireAuth } from '@/lib/auth-guard'
+
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { securityMeasureSchema, type SecurityMeasureInput } from '@/lib/validations'
 
 export async function getMeasures(siteId: string) {
+  await requireAuth()
   try {
     const measures = await prisma.existingSecurityMeasure.findMany({
       where: { siteId },
@@ -17,6 +20,7 @@ export async function getMeasures(siteId: string) {
 }
 
 export async function createMeasure(input: SecurityMeasureInput) {
+  await requireAuth()
   const parsed = securityMeasureSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -33,6 +37,7 @@ export async function createMeasure(input: SecurityMeasureInput) {
 }
 
 export async function updateMeasure(id: string, input: SecurityMeasureInput) {
+  await requireAuth()
   const parsed = securityMeasureSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -51,6 +56,7 @@ export async function updateMeasure(id: string, input: SecurityMeasureInput) {
 }
 
 export async function deleteMeasure(id: string, siteId: string) {
+  await requireAuth()
   try {
     await prisma.existingSecurityMeasure.delete({ where: { id } })
     revalidatePath(`/sites/${siteId}/measures`)

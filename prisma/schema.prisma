@@ -213,6 +213,18 @@ model ApplicationReview {
   updatedAt          DateTime         @updatedAt
 }
 
+// ─── Access control ───────────────────────────────────────────────────────────
+// Who is allowed to sign in.  Admins can add/remove users; members can view.
+// The ALLOWED_EMAILS env-var acts as a seed fallback when this table is empty.
+
+model AllowedUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  role      String   @default("member")  // "admin" | "member"
+  addedAt   DateTime @default(now())
+  addedBy   String?                      // email of the admin who added this entry
+}
+
 model GrantAnalysis {
   id                            String   @id @default(cuid())
   siteId                        String
