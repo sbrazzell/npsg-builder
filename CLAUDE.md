@@ -17,7 +17,7 @@ Users (grant writers / security consultants) manage **Organizations** → **Site
 
 **Flow:** work on `develop` → test → merge to `main` → tag version (e.g. `v1.1.0`) → push → Vercel auto-deploys from `main`.
 
-Current version: **v1.3.1** on `main`. All new work goes to `develop`.
+Current version: **v1.4.0** on `main`. All new work goes to `develop`.
 
 ---
 
