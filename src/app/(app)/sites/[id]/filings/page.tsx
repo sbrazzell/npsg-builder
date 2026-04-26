@@ -18,14 +18,16 @@ export default async function FilingsPage({ params }: { params: Promise<{ id: st
 
   const facility = await prisma.site.findUnique({
     where: { id },
-    include: {
-      organization: true,
-      applicationDrafts: { orderBy: { version: 'desc' } },
-    },
+    include: { organization: true },
   })
   if (!facility) notFound()
 
-  const drafts = facility.applicationDrafts
+  // Query drafts separately so the Prisma $extends decryption extension fires
+  // for ApplicationDraft — nested includes bypass model-level middleware.
+  const drafts = await prisma.applicationDraft.findMany({
+    where: { siteId: id },
+    orderBy: { version: 'desc' },
+  })
   const nextVersion = (drafts[0]?.version ?? 0) + 1
   const finalDraft = drafts.find((d) => d.status === 'final')
 
