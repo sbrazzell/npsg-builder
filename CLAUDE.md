@@ -17,7 +17,7 @@ Users (grant writers / security consultants) manage **Organizations** → **Site
 
 **Flow:** work on `develop` → test → merge to `main` → tag version (e.g. `v1.1.0`) → push → Vercel auto-deploys from `main`.
 
-Current version: **v1.0.0** on `main`. All new work goes to `develop`.
+Current version: **v1.3.1** on `main`. All new work goes to `develop`.
 
 ---
 
@@ -73,7 +73,7 @@ The app uses **Next.js route groups**:
 
 ```
 /                               → dashboard
-/guide                          → 8-step NSGP grant guide
+/guide                          → 10-step NSGP grant guide (all app features)
 /readiness                      → readiness checklist
 /organizations                  → list all orgs
 /organizations/[id]             → org detail
@@ -107,6 +107,8 @@ The app uses **Next.js route groups**:
 ## Data model summary
 
 ```
+AllowedUser                              — access control (email, role admin/member)
+
 Organization
   └── Site (many)
         ├── ThreatAssessment (many)        — likelihood/impact 1–5, incidentHistory
@@ -435,17 +437,106 @@ Always include the new required fields (`timelineNarrative`, `sustainmentNarrati
 | `20260418000000_rename_facility_to_site` | Facility → Site rename |
 | `20260425000000_add_timeline_sustainment` | `timelineJson`, `sustainmentJson`, `timelineNarrative`, `sustainmentNarrative` on ProjectProposal |
 | `20260425100000_add_application_review` | `ApplicationReview` model (scores, findings JSON, counters, FK to ApplicationDraft) |
+| `20260425130000_add_allowed_user` | `AllowedUser` model (email, role, addedAt, addedBy) for DB-backed access control |
 
 ---
 
 ## Environment variables
 
-Check `.env.local` for:
-- `TURSO_DATABASE_URL` — Turso libSQL URL (production + local prisma client)
-- `TURSO_AUTH_TOKEN` — Turso auth token
-- `ANTHROPIC_API_KEY` — for AI assist and analyzer features
-- `NEXTAUTH_SECRET`, `NEXTAUTH_URL` — auth
-- `BLOB_READ_WRITE_TOKEN` — Vercel Blob (required for site photo uploads)
+| Variable | Required | Purpose |
+|---|---|---|
+| `TURSO_DATABASE_URL` | ✅ | Turso libSQL URL (`libsql://...`) |
+| `TURSO_AUTH_TOKEN` | ✅ | Turso auth bearer token |
+| `NEXTAUTH_SECRET` | ✅ | NextAuth JWT signing secret — generate with `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | ✅ | App base URL (e.g. `https://npsg-builder.vercel.app`) |
+| `GOOGLE_CLIENT_ID` | ✅ | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | ✅ | Google OAuth client secret |
+| `FIELD_ENCRYPTION_KEY` | ✅ prod | 64 hex-char (32-byte) AES-256-GCM key — generate with `openssl rand -hex 32`. If absent, sensitive fields are stored in plaintext (dev OK, **not OK in production**). |
+| `ANTHROPIC_API_KEY` | optional | Claude API — required for AI assist and Anthropic-based analyzer/narratives |
+| `OPENAI_API_KEY` | optional | OpenAI API — alternative AI provider |
+| `BLOB_READ_WRITE_TOKEN` | optional | Vercel Blob — required for site photo uploads |
+| `NARRATIVE_PROVIDER` | optional | `template` (default) \| `anthropic` \| `openai` |
+| `ANALYZER_PROVIDER` | optional | `rules` (default) \| `anthropic` \| `openai` |
+| `ALLOWED_EMAILS` | legacy | Comma-separated seed list — seeded into `AllowedUser` as admins on first sign-in, then ignored. Remove once users are in the DB. |
+
+---
+
+## Security architecture
+
+### Auth flow
+1. **Edge middleware** (`src/middleware.ts`) — runs on every request, checks NextAuth JWT via `getToken()`. Redirects to `/login` if absent. Exempts `/api/auth/*`, `/login`, `/_next/*`, `favicon.ico`.
+2. **Server action guard** (`src/lib/auth-guard.ts`) — `requireAuth()` is called as the first line of every exported function in every `src/actions/*.ts` file. Throws `UnauthorizedError` (HTTP 401) before any DB access. Never skip this call.
+3. **API route guard** — `/api/ai/assist` and `/api/upload` call `getServerSession(authOptions)` directly and return 401 if no session.
+
+```ts
+// Pattern for every server action
+import { requireAuth } from '@/lib/auth-guard'
+
+export async function someAction(input: ...) {
+  await requireAuth()          // ← always first
+  // ... DB work
+}
+```
+
+### Field-level encryption (`src/lib/encryption.ts`)
+AES-256-GCM encryption is applied transparently via Prisma `$use` middleware in `src/lib/prisma.ts`. The following fields are encrypted on write and decrypted on read:
+
+| Model | Field |
+|---|---|
+| `Organization` | `einOrTaxId` |
+| `Site` | `lawEnforcementFindings` |
+| `ThreatAssessment` | `vulnerabilityNotes`, `incidentHistory` |
+| `ApplicationDraft` | `snapshotJson` (contains all of the above + full application data) |
+
+**Wire format:** `enc:<iv_b64>:<authTag_b64>:<ciphertext_b64>`  
+**Key:** `FIELD_ENCRYPTION_KEY` env var (64 hex chars = 32 bytes). If not set, values pass through as plaintext (safe for dev, required in production).  
+**Migration safety:** values without the `enc:` prefix are returned as-is — existing plaintext rows continue to work.  
+**Key generation:** `openssl rand -hex 32`
+
+```ts
+import { encrypt, decrypt, encryptNullable, decryptNullable } from '@/lib/encryption'
+```
+
+### DB-backed allowlist (Option B)
+Access control is managed through the `AllowedUser` table, not environment variables.
+
+**`AllowedUser` schema:**
+```prisma
+model AllowedUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  role      String   @default("member")  // "admin" | "member"
+  addedAt   DateTime @default(now())
+  addedBy   String?
+}
+```
+
+**Auth flow in `src/lib/auth.ts`:**
+- `signIn` callback: checks `AllowedUser` table for the Google account email. Returns `false` (rejects sign-in) if not found.
+- **Seed behaviour:** on first sign-in, if `AllowedUser` is empty AND `ALLOWED_EMAILS` is set, those emails are upserted as `admin` role. After seeding the env var is no longer consulted.
+- `session` callback: looks up the user's `role` and attaches it to `session.user.role` so the UI can gate admin actions without a second DB call.
+
+**Server actions (`src/actions/allowed-users.ts`):**
+```ts
+listAllowedUsers()                        // returns AllowedUser[]
+addAllowedUser({ email, role })           // admin only
+removeAllowedUser(id)                     // admin only; guards: can't remove self, can't remove last admin
+updateUserRole(id, role)                  // admin only; guard: can't demote self if last admin
+```
+
+**Settings UI** (`/settings` → `team-access-panel.tsx`):
+- Admins see full table with role dropdowns + remove buttons + add-user form
+- Members see read-only list
+- Encryption status shown on the Database card
+
+### Security headers (`next.config.ts`)
+Applied to all routes via `headers()`:
+- `X-Frame-Options: DENY`
+- `X-Content-Type-Options: nosniff`
+- `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- `Content-Security-Policy` restricting script/style/image/connect origins
 
 ---
 
@@ -550,3 +641,9 @@ CSS print rules live in the `<style>` block inside `src/app/(print)/sites/[id]/f
 - Do **not** leave JSX table tags (`</tbody>`, `</table>`) out of place — a missing close tag inside a `.map()` return causes a parse error that surfaces as a 404 on the route, not a helpful compile error in the browser.
 - Do **not** apply `pageBreakInside: avoid` to entire project card divs in `form-budget.tsx` — it causes large blank gaps on printed pages. Apply `break-after: avoid` to the header bar only.
 - Do **not** invent facts in autofix proposals (incidents, vendor quotes, police reports, certifications, SAM/UEI, 501(c)(3), board resolutions, law enforcement endorsements). If evidence is needed, set `requiresEvidenceConfirmation: true` and `canAutoFix: false`.
+- Do **not** add a new server action without calling `await requireAuth()` as its first line — unauthenticated DB access is the #1 attack surface.
+- Do **not** add a new API route handler without calling `getServerSession(authOptions)` and returning 401 if the session is absent.
+- Do **not** rename `src/middleware.ts` or remove the `export const config` matcher — the auth gateway will silently stop running. The old file was named `proxy.ts` and was a critical bug; do not repeat it.
+- Do **not** add new sensitive fields to the DB schema without also adding them to `ENCRYPTED_FIELDS` in `src/lib/prisma.ts`.
+- Do **not** set `FIELD_ENCRYPTION_KEY` to the same value in multiple environments — each environment should have its own key.
+- Do **not** use `ALLOWED_EMAILS` as the long-term access control mechanism — it is only a seed source. Manage users via `/settings`.
