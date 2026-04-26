@@ -7,7 +7,7 @@ import { BookOpen, CheckCircle2 } from 'lucide-react'
 // ─── fetch real progress ─────────────────────────────────────────────────────
 
 async function getProgress() {
-  const [orgs, sites, threats, measures, projects, budgetItems, narratives] =
+  const [orgs, sites, threats, measures, projects, budgetItems, narratives, analysisCount, draftCount] =
     await Promise.all([
       prisma.organization.findMany({
         select: {
@@ -34,6 +34,8 @@ async function getProgress() {
             },
           },
           narrativeDrafts:    { select: { id: true, editedText: true, generatedText: true } },
+          grantAnalyses:      { select: { id: true }, take: 1 },
+          applicationDrafts:  { select: { id: true }, take: 1 },
         },
       }),
       prisma.threatAssessment.count(),
@@ -46,6 +48,8 @@ async function getProgress() {
       }),
       prisma.budgetItem.findMany({ select: { id: true, justification: true, totalCost: true } }),
       prisma.narrativeDraft.findMany({ select: { id: true, editedText: true, generatedText: true } }),
+      prisma.grantAnalysis.count(),
+      prisma.applicationDraft.count(),
     ])
 
   const siteCount        = sites.length
@@ -120,13 +124,24 @@ async function getProgress() {
     ? `${siteCount - sitesWithNarratives} ${siteCount - sitesWithNarratives === 1 ? 'site has' : 'sites have'} no drafted narratives.`
     : undefined
 
-  // Step 8: always actionable
-  const step8Done = false
+  // Step 8: At least one site has been analyzed
+  const sitesAnalyzed = sites.filter(s => s.grantAnalyses.length > 0).length
+  const step8Done     = analysisCount > 0
+  const step8Blocker  = siteCount > 0 && sitesAnalyzed < siteCount
+    ? `${siteCount - sitesAnalyzed} ${siteCount - sitesAnalyzed === 1 ? 'site has' : 'sites have'} not been analyzed yet.`
+    : undefined
 
-  // Determine "active" step: first incomplete one
-  const statuses = [step1Done, step2Done, step3Done, step4Done, step5Done, step6Done, step7Done]
+  // Step 9: At least one application draft exists
+  const sitesWithDrafts = sites.filter(s => s.applicationDrafts.length > 0).length
+  const step9Done       = draftCount > 0
+
+  // Step 10: always actionable (final submission check)
+  const step10Done = false
+
+  // Determine "active" step: first incomplete one (steps 1-9)
+  const statuses = [step1Done, step2Done, step3Done, step4Done, step5Done, step6Done, step7Done, step8Done, step9Done]
   const firstIncomplete = statuses.findIndex(s => !s) + 1   // 1-based
-  const activeStep = firstIncomplete === 0 ? 8 : firstIncomplete
+  const activeStep = firstIncomplete === 0 ? 10 : firstIncomplete
 
   function s(n: number, done: boolean): StepStatus {
     if (done) return 'done'
@@ -174,16 +189,18 @@ async function getProgress() {
     },
     {
       number: 3,
-      title: 'Document threats for each site',
-      eyebrow: 'Security risks scored by likelihood × impact',
+      title: 'Document threats & site observations',
+      eyebrow: 'Security risks scored by likelihood × impact, plus field notes',
       description:
-        'For each site, identify and score the security threats it faces. Rate each threat on likelihood (1–5) and impact (1–5) to produce a risk score. Threats can range from active shooter scenarios to vandalism, cyberattack, or natural disaster. The 5×5 risk matrix shows your threat landscape visually.',
-      why: 'Threat documentation is the backbone of your application. Every project proposal must be traceable to at least one documented threat. Unlinked projects are a red flag for reviewers and a common rejection reason.',
+        'For each site, identify and score the security threats it faces. Rate each threat on likelihood (1–5) and impact (1–5) to produce a risk score. The 5×5 risk matrix shows your threat landscape visually. Alongside threats, use the Site Observations tool to record field notes from a physical walkthrough — specific vulnerabilities spotted at the door, parking lot, HVAC, perimeter, or interior. These observations feed directly into your vulnerability narrative.',
+      why: 'Threat documentation is the backbone of your application. Every project proposal must be traceable to at least one documented threat. Unlinked projects are a red flag for reviewers. Site observations provide concrete, location-specific evidence that reviewers cannot dismiss — "the north gate latch is broken" is more compelling than "perimeter security is weak."',
       tips: [
-        'Law enforcement assessments carry more weight — request one early.',
+        'Law enforcement assessments carry more weight — request one early and log the agency name and date.',
         'Document incident history even if no incidents occurred ("no incidents in past 3 years" is useful context).',
         'Score conservatively — overestimating likelihood is better than understating impact.',
         'Aim for 3–8 threats per site to show comprehensive analysis.',
+        'Record site observations during a physical walkthrough — note the exact location and severity of each issue.',
+        'Observation types (access control gap, lighting deficiency, perimeter breach, etc.) map directly to project categories.',
       ],
       status: s(3, step3Done),
       count: threatCount > 0 ? `${threatCount} total` : undefined,
@@ -248,13 +265,14 @@ async function getProgress() {
       title: 'Draft your grant narratives',
       eyebrow: 'Compelling text that ties the application together',
       description:
-        'Write the narrative sections for your application — organizational background, physical security plan, and project justifications. Use the AI assist (✨ button) to generate a first draft from your existing data, then refine it. Strong narratives synthesize your threats, gaps, and projects into a coherent story.',
-      why: 'Reviewers read narratives to assess the applicant\'s understanding of their own risk. A well-written narrative can elevate a borderline application; a weak one can sink a strong one. The AI drafts save hours of work.',
+        'Write the six narrative sections for each site\'s application: Executive Summary, Threat Overview, Vulnerability Statement, Project Justification, Budget Rationale, and Implementation Approach. Use the AI assist (✨ button) to generate a first draft from your existing data, then refine it. Strong narratives synthesize your threats, gaps, and projects into a coherent story that a reviewer can follow without visiting your site.',
+      why: 'Reviewers read narratives to assess the applicant\'s understanding of their own risk. A well-written narrative can elevate a borderline application; a weak one can sink a strong one. The AI drafts save hours of work and pull in your actual threat scores, incident history, and project rationale.',
       tips: [
         'Use the ✨ sparkle button in text fields to generate an AI first draft.',
         'Reference specific threat scores and incident history in your narratives.',
         'Write for a reviewer who has never visited your site — be explicit and specific.',
         'Have a non-expert read the narrative — if they understand the risk, reviewers will too.',
+        'Complete all six sections (Executive Summary through Implementation Approach) to pass the readiness check.',
       ],
       status: s(7, step7Done),
       count: narrativeCount > 0 ? `${narrativeCount} drafted` : undefined,
@@ -263,25 +281,63 @@ async function getProgress() {
     },
     {
       number: 8,
-      title: 'Review readiness & export',
-      eyebrow: 'Final check before submission',
+      title: 'Analyze your grant strength',
+      eyebrow: 'Scored assessment across five application dimensions',
       description:
-        'Run the readiness review to get a scored assessment of each site\'s application completeness, grouped by funding cycle. The review checks for missing fields, unlinked projects, unjustified budget items, and narrative gaps. Once you\'re satisfied, export your application packet for submission through the FEMA Grants Outcomes (GO) system.',
-      why: 'The NSGP application is submitted through FEMA GO, not directly from this tool. Your export gives you a structured summary of all the information you\'ll need to enter. Submitting through GO requires an authorized organization representative.',
+        'The Grant Strength Analyzer scores each site\'s application across five dimensions: Risk Clarity (is the threat evidence specific and credible?), Vulnerability Specificity (does the site exposure analysis go beyond generalities?), Project Alignment (do proposed projects directly address documented threats?), Budget Defensibility (are line items specific, justified, and vendor-quoted?), and Narrative Quality (do the written sections tell a coherent story?). Each dimension is worth up to 20 points — a combined score of 70+ is considered submission-ready. Use the score history chart to track improvement across runs.',
+      why: 'FEMA reviewers score applications against these same criteria. Running the analyzer before you finalize your narratives and budget gives you an objective readout of where reviewers will push back — so you can address weaknesses before they become rejection reasons.',
+      tips: [
+        'Run the analyzer after narratives are drafted, then again after you\'ve revised them.',
+        'A score ≥ 70 is considered strong — this threshold appears on the Readiness Review.',
+        'Low scores on Budget Defensibility are usually fixed by adding vendor names and justification text to line items.',
+        'The Compare All view at the top of the Analyzer lets you see all sites side-by-side.',
+      ],
+      status: s(8, step8Done),
+      count: analysisCount > 0 ? `${analysisCount} ${analysisCount === 1 ? 'run' : 'runs'}` : undefined,
+      blocker: step8Done ? undefined : siteCount > 0 ? `${siteCount - sitesAnalyzed} ${siteCount - sitesAnalyzed === 1 ? 'site has' : 'sites have'} not been analyzed yet.` : undefined,
+      cta: { label: 'Open analyzer', href: '/analyzer' },
+    },
+    {
+      number: 9,
+      title: 'Save a draft & run Application Review',
+      eyebrow: 'Versioned snapshots with agentic scoring and fix proposals',
+      description:
+        'When your data is ready, open a site\'s Filings page and click "Save Draft" to freeze a versioned snapshot of the entire application. Each draft generates the full set of NSGP forms: the SF-424 application cover sheet, the Investment Justification (IJ) narrative, and the itemized budget. From the draft detail page, click "Review My Application" to run the agentic Application Review. The review scores seven dimensions — threat evidence, vulnerability specificity, project alignment, budget quality, implementation feasibility, sustainment quality, and attachment readiness — and surfaces blockers, warnings, and suggestions. For eligible issues, it proposes specific text fixes you can accept, edit, or dismiss. You can print or export the generated forms at any time.',
+      why: 'The Application Review catches issues that manual inspection misses: generic budget item names that FEMA will reject, vague language (TBD, ASAP, "as needed") in narratives, missing implementation or sustainment plans, and budget math mismatches. Addressing blockers before submission is much easier than responding to a cure letter after the fact.',
+      tips: [
+        'Save a new draft after each major revision — drafts are versioned and you can compare them.',
+        'The Application Review shows a readiness score out of 100 across seven dimensions.',
+        'Accept proposed fixes directly in the review UI — they are applied to the snapshot immediately.',
+        'Blocker findings must be resolved before an application is submission-ready.',
+        'The SF-424 form in the draft auto-populates from your organization and site data — complete those fields first.',
+        'Print the generated forms using the Print button on the draft page.',
+      ],
+      status: s(9, step9Done),
+      count: draftCount > 0 ? `${draftCount} ${draftCount === 1 ? 'draft' : 'drafts'}` : undefined,
+      cta: { label: 'Open sites', href: '/sites' },
+    },
+    {
+      number: 10,
+      title: 'Final readiness check & export',
+      eyebrow: 'Pre-submission checklist before entering FEMA GO',
+      description:
+        'The Readiness Review gives you a per-site pre-submission checklist grouped by funding cycle year. It confirms your organization data, site details, threat documentation, law enforcement contact, project and budget completeness, narrative coverage, and analyzer score — all in one view. When a site reaches ≥ 80%, it is flagged as cycle-ready. Use your printed or exported application forms to enter the final application into the FEMA Grants Outcomes (GO) system before the submission deadline.',
+      why: 'The NSGP application is submitted through FEMA GO, not directly from this tool. Your export gives you a structured summary of all the information you\'ll need to enter. Submitting through GO requires an authorized organization representative and an active SAM.gov registration.',
       tips: [
         'Run the readiness review before the final week — fixes take time.',
         'Have your organization\'s DUNS/SAM.gov registration current before submission.',
         'The submission deadline is May 29, 2026 — late submissions are not accepted.',
         'Keep copies of all vendor quotes and supporting documentation.',
+        'The authorized representative who signs the SF-424 must be listed in your organization\'s SAM.gov record.',
       ],
-      status: s(8, step8Done),
+      status: s(10, step10Done),
       cta: { label: 'Open readiness review', href: '/readiness' },
       secondaryCta: { label: 'View all sites', href: '/sites' },
     },
   ]
 
   const doneCount = statuses.filter(Boolean).length
-  const totalSteps = 7 // step 8 is always "in progress"
+  const totalSteps = 9 // step 10 is always "in progress"
 
   return { steps, doneCount, totalSteps, activeStep }
 }
@@ -342,7 +398,7 @@ export default async function GuidePage() {
             />
           </div>
           <div className="flex gap-2 mt-2.5 flex-wrap">
-            {steps.slice(0, 7).map(step => (
+            {steps.slice(0, 9).map(step => (
               <div
                 key={step.number}
                 className="flex items-center gap-1 text-[11px]"
