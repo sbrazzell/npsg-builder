@@ -1,10 +1,13 @@
 'use server'
 
+import { requireAuth } from '@/lib/auth-guard'
+
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { budgetItemSchema, type BudgetItemInput } from '@/lib/validations'
 
 export async function getBudgetItems(projectId: string) {
+  await requireAuth()
   try {
     const items = await prisma.budgetItem.findMany({
       where: { projectId },
@@ -17,6 +20,7 @@ export async function getBudgetItems(projectId: string) {
 }
 
 export async function createBudgetItem(input: BudgetItemInput) {
+  await requireAuth()
   const parsed = budgetItemSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -41,6 +45,7 @@ export async function createBudgetItem(input: BudgetItemInput) {
 }
 
 export async function updateBudgetItem(id: string, input: BudgetItemInput) {
+  await requireAuth()
   const parsed = budgetItemSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -65,6 +70,7 @@ export async function updateBudgetItem(id: string, input: BudgetItemInput) {
 }
 
 export async function deleteBudgetItem(id: string) {
+  await requireAuth()
   try {
     const item = await prisma.budgetItem.findUnique({ where: { id } })
     await prisma.budgetItem.delete({ where: { id } })

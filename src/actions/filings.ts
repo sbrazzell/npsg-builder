@@ -1,5 +1,7 @@
 'use server'
 
+import { requireAuth } from '@/lib/auth-guard'
+
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { calculateRiskScore, getRiskLevel, formatCurrency } from '@/lib/scoring'
@@ -269,6 +271,7 @@ async function buildSnapshot(siteId: string): Promise<FilingSnapshot> {
 // ─── Actions ─────────────────────────────────────────────────────────────────
 
 export async function createDraft(siteId: string, title: string, notes?: string) {
+  await requireAuth()
   try {
     const snapshot = await buildSnapshot(siteId)
 
@@ -298,6 +301,7 @@ export async function createDraft(siteId: string, title: string, notes?: string)
 }
 
 export async function listDrafts(siteId: string) {
+  await requireAuth()
   try {
     const drafts = await prisma.applicationDraft.findMany({
       where: { siteId },
@@ -310,6 +314,7 @@ export async function listDrafts(siteId: string) {
 }
 
 export async function getDraft(id: string) {
+  await requireAuth()
   try {
     const draft = await prisma.applicationDraft.findUniqueOrThrow({ where: { id } })
     const snapshot: FilingSnapshot = JSON.parse(draft.snapshotJson)
@@ -320,6 +325,7 @@ export async function getDraft(id: string) {
 }
 
 export async function updateDraftStatus(id: string, status: 'draft' | 'final') {
+  await requireAuth()
   try {
     const draft = await prisma.applicationDraft.findUniqueOrThrow({ where: { id } })
 
@@ -340,6 +346,7 @@ export async function updateDraftStatus(id: string, status: 'draft' | 'final') {
 }
 
 export async function updateDraftNotes(id: string, notes: string) {
+  await requireAuth()
   try {
     const draft = await prisma.applicationDraft.update({ where: { id }, data: { notes } })
     revalidatePath(`/sites/${draft.siteId}/filings`)
@@ -350,6 +357,7 @@ export async function updateDraftNotes(id: string, notes: string) {
 }
 
 export async function deleteDraft(id: string) {
+  await requireAuth()
   try {
     const draft = await prisma.applicationDraft.findUniqueOrThrow({ where: { id } })
     await prisma.applicationDraft.delete({ where: { id } })

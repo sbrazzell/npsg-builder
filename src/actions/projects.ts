@@ -1,10 +1,13 @@
 'use server'
 
+import { requireAuth } from '@/lib/auth-guard'
+
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { projectProposalSchema, type ProjectProposalInput } from '@/lib/validations'
 
 export async function getProjects(siteId: string) {
+  await requireAuth()
   try {
     const projects = await prisma.projectProposal.findMany({
       where: { siteId },
@@ -21,6 +24,7 @@ export async function getProjects(siteId: string) {
 }
 
 export async function getProject(id: string) {
+  await requireAuth()
   try {
     const project = await prisma.projectProposal.findUnique({
       where: { id },
@@ -38,6 +42,7 @@ export async function getProject(id: string) {
 }
 
 export async function createProject(input: ProjectProposalInput) {
+  await requireAuth()
   const parsed = projectProposalSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -54,6 +59,7 @@ export async function createProject(input: ProjectProposalInput) {
 }
 
 export async function updateProject(id: string, input: ProjectProposalInput) {
+  await requireAuth()
   const parsed = projectProposalSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -73,6 +79,7 @@ export async function updateProject(id: string, input: ProjectProposalInput) {
 }
 
 export async function deleteProject(id: string, siteId: string) {
+  await requireAuth()
   try {
     await prisma.projectProposal.delete({ where: { id } })
     revalidatePath(`/sites/${siteId}/projects`)
@@ -84,6 +91,7 @@ export async function deleteProject(id: string, siteId: string) {
 }
 
 export async function linkThreatToProject(projectId: string, threatId: string) {
+  await requireAuth()
   try {
     await prisma.projectThreatLink.create({
       data: { projectId, threatId },
@@ -97,6 +105,7 @@ export async function linkThreatToProject(projectId: string, threatId: string) {
 }
 
 export async function unlinkThreatFromProject(projectId: string, threatId: string) {
+  await requireAuth()
   try {
     await prisma.projectThreatLink.deleteMany({
       where: { projectId, threatId },

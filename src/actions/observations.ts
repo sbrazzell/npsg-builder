@@ -1,10 +1,13 @@
 'use server'
 
+import { requireAuth } from '@/lib/auth-guard'
+
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { siteObservationSchema, type SiteObservationInput } from '@/lib/validations'
 
 export async function getObservations(siteId: string) {
+  await requireAuth()
   try {
     const observations = await prisma.siteObservation.findMany({
       where: { siteId },
@@ -17,6 +20,7 @@ export async function getObservations(siteId: string) {
 }
 
 export async function createObservation(input: SiteObservationInput) {
+  await requireAuth()
   const parsed = siteObservationSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -33,6 +37,7 @@ export async function createObservation(input: SiteObservationInput) {
 }
 
 export async function updateObservation(id: string, input: SiteObservationInput) {
+  await requireAuth()
   const parsed = siteObservationSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -51,6 +56,7 @@ export async function updateObservation(id: string, input: SiteObservationInput)
 }
 
 export async function deleteObservation(id: string, siteId: string) {
+  await requireAuth()
   try {
     await prisma.siteObservation.delete({ where: { id } })
     revalidatePath(`/sites/${siteId}/observations`)

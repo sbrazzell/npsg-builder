@@ -1,10 +1,13 @@
 'use server'
 
+import { requireAuth } from '@/lib/auth-guard'
+
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { threatAssessmentSchema, type ThreatAssessmentInput } from '@/lib/validations'
 
 export async function getThreats(siteId: string) {
+  await requireAuth()
   try {
     const threats = await prisma.threatAssessment.findMany({
       where: { siteId },
@@ -18,6 +21,7 @@ export async function getThreats(siteId: string) {
 }
 
 export async function createThreat(input: ThreatAssessmentInput) {
+  await requireAuth()
   const parsed = threatAssessmentSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -34,6 +38,7 @@ export async function createThreat(input: ThreatAssessmentInput) {
 }
 
 export async function updateThreat(id: string, input: ThreatAssessmentInput) {
+  await requireAuth()
   const parsed = threatAssessmentSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -52,6 +57,7 @@ export async function updateThreat(id: string, input: ThreatAssessmentInput) {
 }
 
 export async function deleteThreat(id: string, siteId: string) {
+  await requireAuth()
   try {
     await prisma.threatAssessment.delete({ where: { id } })
     revalidatePath(`/sites/${siteId}/threats`)

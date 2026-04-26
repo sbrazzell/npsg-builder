@@ -1,5 +1,7 @@
 'use server'
 
+import { requireAuth } from '@/lib/auth-guard'
+
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { runApplicationReview, applyFixToSnapshot } from '@/lib/application-review/runner'
@@ -9,6 +11,7 @@ import type { FilingSnapshot } from './filings'
 // ─── Run a fresh review ───────────────────────────────────────────────────────
 
 export async function runReview(draftId: string): Promise<ApplicationReview> {
+  await requireAuth()
   const draft = await prisma.applicationDraft.findUniqueOrThrow({
     where: { id: draftId },
   })
@@ -54,6 +57,7 @@ export async function getLatestReview(
 // ─── Get review history for a draft ──────────────────────────────────────────
 
 export async function getReviewHistory(draftId: string): Promise<ReviewHistoryEntry[]> {
+  await requireAuth()
   const records = await prisma.applicationReview.findMany({
     where: { draftId },
     orderBy: { createdAt: 'desc' },

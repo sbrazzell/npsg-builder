@@ -1,10 +1,13 @@
 'use server'
 
+import { requireAuth } from '@/lib/auth-guard'
+
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { organizationSchema, type OrganizationInput } from '@/lib/validations'
 
 export async function getOrganizations() {
+  await requireAuth()
   try {
     const organizations = await prisma.organization.findMany({
       include: { sites: true },
@@ -17,6 +20,7 @@ export async function getOrganizations() {
 }
 
 export async function getOrganization(id: string) {
+  await requireAuth()
   try {
     const organization = await prisma.organization.findUnique({
       where: { id },
@@ -40,6 +44,7 @@ export async function getOrganization(id: string) {
 }
 
 export async function createOrganization(input: OrganizationInput) {
+  await requireAuth()
   const parsed = organizationSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -60,6 +65,7 @@ export async function createOrganization(input: OrganizationInput) {
 }
 
 export async function updateOrganization(id: string, input: OrganizationInput) {
+  await requireAuth()
   const parsed = organizationSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message || "Validation error" }
@@ -82,6 +88,7 @@ export async function updateOrganization(id: string, input: OrganizationInput) {
 }
 
 export async function deleteOrganization(id: string) {
+  await requireAuth()
   try {
     await prisma.organization.delete({ where: { id } })
     revalidatePath('/organizations')
