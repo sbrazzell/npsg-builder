@@ -25,7 +25,7 @@ export default async function FacilityPage({ params }: { params: Promise<{ id: s
         include: { budgetItems: true },
         orderBy: { priority: 'asc' },
       },
-      siteObservations: { orderBy: { createdAt: 'desc' }, take: 3 },
+      siteObservations: { select: { id: true } },
       narrativeDrafts: { orderBy: { updatedAt: 'desc' }, take: 5 },
       applicationDrafts: { orderBy: { version: 'desc' }, take: 1 },
     },

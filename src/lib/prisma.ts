@@ -4,7 +4,7 @@ import { encrypt, decrypt } from '@/lib/encryption'
 
 // ─── Fields that are encrypted at rest ───────────────────────────────────────
 // Any field listed here is transparently encrypted on write and decrypted on
-// read via Prisma middleware below.  The encryption is a no-op when
+// read via a Prisma $extends query extension.  The encryption is a no-op when
 // FIELD_ENCRYPTION_KEY is not set so development works without a key.
 
 const ENCRYPTED_FIELDS: Record<string, string[]> = {
@@ -40,48 +40,54 @@ function decryptRecord(record: Record<string, unknown>, fields: string[]) {
 
 // ─── Prisma client factory ────────────────────────────────────────────────────
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
-
 function createPrismaClient() {
   const adapter = new PrismaLibSql({
     url: process.env.TURSO_DATABASE_URL!,
     authToken: process.env.TURSO_AUTH_TOKEN,
   })
 
-  const client = new PrismaClient({ adapter })
+  const base = new PrismaClient({ adapter })
 
-  // Transparent field-level encryption middleware
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ;(client as any).$use(async (params: any, next: any) => {
-    const fields = params.model ? (ENCRYPTED_FIELDS[params.model] ?? []) : []
+  // Transparent field-level encryption via Prisma 5 $extends (replaces deprecated $use)
+  return base.$extends({
+    query: {
+      $allModels: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async $allOperations({ model, operation, args, query }: any) {
+          const fields: string[] = model ? (ENCRYPTED_FIELDS[model] ?? []) : []
 
-    // ── Encrypt on write ──────────────────────────────────────────────────
-    if (fields.length > 0 && WRITE_ACTIONS.has(params.action)) {
-      const data = params.args?.data
-      if (data && typeof data === 'object') {
-        encryptRecord(data as Record<string, unknown>, fields)
-      }
-    }
+          // ── Encrypt on write ────────────────────────────────────────────────
+          if (fields.length > 0 && WRITE_ACTIONS.has(operation)) {
+            const data = (args as Record<string, unknown>)?.data
+            if (data && typeof data === 'object') {
+              encryptRecord(data as Record<string, unknown>, fields)
+            }
+          }
 
-    const result = await next(params)
+          const result = await query(args)
 
-    // ── Decrypt on read ───────────────────────────────────────────────────
-    if (fields.length > 0 && READ_ACTIONS.has(params.action)) {
-      if (Array.isArray(result)) {
-        for (const row of result) {
-          if (row && typeof row === 'object') decryptRecord(row, fields)
-        }
-      } else if (result && typeof result === 'object') {
-        decryptRecord(result as Record<string, unknown>, fields)
-      }
-    }
+          // ── Decrypt on read ─────────────────────────────────────────────────
+          if (fields.length > 0 && READ_ACTIONS.has(operation)) {
+            if (Array.isArray(result)) {
+              for (const row of result) {
+                if (row && typeof row === 'object') decryptRecord(row as Record<string, unknown>, fields)
+              }
+            } else if (result && typeof result === 'object') {
+              decryptRecord(result as Record<string, unknown>, fields)
+            }
+          }
 
-    return result
+          return result
+        },
+      },
+    },
   })
+}
 
-  return client
+type ExtendedPrismaClient = ReturnType<typeof createPrismaClient>
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: ExtendedPrismaClient | undefined
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient()

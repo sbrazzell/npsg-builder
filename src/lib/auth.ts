@@ -39,6 +39,10 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/login',
   },
+  session: {
+    strategy: 'jwt',
+    maxAge: 24 * 60 * 60, // 24 hours — re-auth required daily for sensitive grant data
+  },
   callbacks: {
     async signIn({ user }) {
       const email = (user.email ?? '').toLowerCase()

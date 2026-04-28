@@ -1,15 +1,13 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Header } from '@/components/layout/header'
 import { PageHeader } from '@/components/shared/page-header'
 import { EmptyState } from '@/components/shared/empty-state'
-import { getRiskBgClass, getRiskLevel } from '@/lib/scoring'
-import { Eye, Plus, MapPin } from 'lucide-react'
-import { ObservationActions } from './observation-actions'
+import { Eye } from 'lucide-react'
+import { ObservationCard } from './observation-card'
 import { ObservationForm } from './observation-form'
+import { Card, CardContent } from '@/components/ui/card'
 
 export default async function ObservationsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -47,38 +45,9 @@ export default async function ObservationsPage({ params }: { params: Promise<{ i
               />
             ) : (
               <div className="space-y-3">
-                {facility.siteObservations.map((obs) => {
-                  const sevLevel = obs.severity <= 2 ? 'low' : obs.severity <= 3 ? 'medium' : obs.severity <= 4 ? 'high' : 'critical'
-                  return (
-                    <Card key={obs.id}>
-                      <CardContent className="pt-4 pb-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold text-gray-900">{obs.title}</h3>
-                              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${getRiskBgClass(sevLevel)}`}>
-                                Severity {obs.severity}/5
-                              </span>
-                            </div>
-                            {obs.observationType && (
-                              <p className="text-xs text-muted-foreground mb-1">{obs.observationType}</p>
-                            )}
-                            {obs.locationDescription && (
-                              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                                <MapPin className="h-3 w-3 flex-shrink-0" />
-                                {obs.locationDescription}
-                              </p>
-                            )}
-                            {obs.notes && (
-                              <p className="text-sm text-gray-700 mt-2">{obs.notes}</p>
-                            )}
-                          </div>
-                          <ObservationActions observationId={obs.id} siteId={id} />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
+                {facility.siteObservations.map((obs) => (
+                  <ObservationCard key={obs.id} obs={obs} siteId={id} />
+                ))}
               </div>
             )}
           </div>
