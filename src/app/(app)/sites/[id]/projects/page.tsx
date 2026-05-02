@@ -6,6 +6,8 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { formatCurrency } from '@/lib/scoring'
 import { FileText, Plus } from 'lucide-react'
 import { ProjectList } from './project-list'
+import { ProjectGenerator } from './project-generator'
+import { BudgetStrategyPanel } from './budget-strategy'
 
 export default async function ProjectsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -13,12 +15,13 @@ export default async function ProjectsPage({ params }: { params: Promise<{ id: s
     where: { id },
     include: {
       organization: true,
+      threatAssessments: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], select: { id: true, threatType: true } },
       projectProposals: {
         include: {
           budgetItems: true,
           threatLinks: { include: { threat: true } },
         },
-        orderBy: [{ sortOrder: 'asc' }, { priority: 'asc' }],
+        orderBy: [{ sortOrder: 'asc' }, { priority: 'desc' }],
       },
     },
   })
@@ -34,8 +37,8 @@ export default async function ProjectsPage({ params }: { params: Promise<{ id: s
     priority: p.priority,
     budget: p.budgetItems.reduce((s, b) => s + b.totalCost, 0),
     threatLinkCount: p.threatLinks.length,
-    includedInFiling: (p as any).includedInFiling ?? true,
-    sortOrder: (p as any).sortOrder ?? 0,
+    includedInFiling: p.includedInFiling ?? true,
+    sortOrder: p.sortOrder ?? 0,
   }))
 
   const included = projects.filter((p) => p.includedInFiling)
@@ -70,26 +73,35 @@ export default async function ProjectsPage({ params }: { params: Promise<{ id: s
                 : ''}
             </p>
           </div>
-          <Link
-            href={`/sites/${id}/projects/new`}
-            className="inline-flex items-center gap-1.5 px-3 py-[7px] rounded-sm text-[13px] font-medium mt-0.5"
-            style={{ background: 'var(--nav-accent)', color: '#fff', border: '1px solid var(--nav-accent)' }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add Project
-          </Link>
+          <div className="flex items-center gap-2 mt-0.5">
+            <ProjectGenerator siteId={id} hasExistingProjects={projects.length > 0} siteThreats={facility.threatAssessments} />
+            <Link
+              href={`/sites/${id}/projects/new`}
+              className="inline-flex items-center gap-1.5 px-3 py-[7px] rounded-sm text-[13px] font-medium"
+              style={{ background: 'var(--nav-accent)', color: '#fff', border: '1px solid var(--nav-accent)' }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Project
+            </Link>
+          </div>
         </div>
 
         {projects.length === 0 ? (
-          <EmptyState
-            icon={FileText}
-            title="No project proposals yet"
-            description="Create project proposals to describe the security improvements you are requesting funding for."
-            actionLabel="Add First Project"
-            actionHref={`/sites/${id}/projects/new`}
-          />
+          <div className="space-y-6">
+            <ProjectGenerator siteId={id} hasExistingProjects={false} siteThreats={facility.threatAssessments} />
+            <EmptyState
+              icon={FileText}
+              title="No project proposals yet"
+              description="Generate AI-powered proposals based on your documented threats, or add a project manually."
+              actionLabel="Add First Project"
+              actionHref={`/sites/${id}/projects/new`}
+            />
+          </div>
         ) : (
-          <ProjectList projects={projects} siteId={id} />
+          <div className="space-y-5">
+            <BudgetStrategyPanel projects={projects} />
+            <ProjectList projects={projects} siteId={id} />
+          </div>
         )}
       </div>
     </div>

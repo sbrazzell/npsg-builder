@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaLibSql } from '@prisma/adapter-libsql'
-import { encrypt, decrypt } from '@/lib/encryption'
+import { encrypt, decrypt, DECRYPTION_FAILED } from '@/lib/encryption'
 
 // ─── Fields that are encrypted at rest ───────────────────────────────────────
 // Any field listed here is transparently encrypted on write and decrypted on
@@ -33,7 +33,10 @@ function encryptRecord(data: Record<string, unknown>, fields: string[]) {
 function decryptRecord(record: Record<string, unknown>, fields: string[]) {
   for (const field of fields) {
     if (typeof record[field] === 'string') {
-      record[field] = decrypt(record[field] as string)
+      const result = decrypt(record[field] as string)
+      // Leave the field as null on key-mismatch so callers can detect it
+      // without a hard crash. The sentinel is never stored in the DB.
+      record[field] = result === DECRYPTION_FAILED ? null : result
     }
   }
 }

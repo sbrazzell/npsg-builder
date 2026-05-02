@@ -1,0 +1,329 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+
+export interface GeneratedBudgetItem {
+  itemName: string
+  quantity: number
+  unitCost: number
+  totalCost: number
+  justification: string
+}
+
+export interface GeneratedProject {
+  title: string
+  category: string
+  problemStatement: string
+  proposedSolution: string
+  riskReductionRationale: string
+  implementationNotes: string
+  priority: number
+  status: 'selected' | 'consideration'
+  budgetItems: GeneratedBudgetItem[]
+  /** Threat type strings (exactly as they appear in the documented threats input) this project mitigates */
+  addressedThreatTypes?: string[]
+}
+
+export interface GenerationResult {
+  projects: GeneratedProject[]
+  budgetStrategy: string
+  layeredSecuritySummary: string
+}
+
+/**
+ * Robustly extracts the outermost JSON object from a string that may contain
+ * markdown fences, preamble text, or trailing notes after the JSON.
+ * Uses brace-depth tracking rather than lastIndexOf so nested objects and
+ * any trailing text don't confuse the parser.
+ */
+function extractJson(text: string): string | null {
+  // Prefer the content inside the first ```json ... ``` or ``` ... ``` fence
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (fenceMatch?.[1]) {
+    const candidate = fenceMatch[1].trim()
+    if (candidate.startsWith('{')) return candidate
+  }
+
+  // Walk the string tracking brace depth to find the matching close for the first {
+  const start = text.indexOf('{')
+  if (start === -1) return null
+
+  let depth = 0
+  let inString = false
+  let escaped = false
+
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i]
+    if (escaped)             { escaped = false; continue }
+    if (ch === '\\' && inString) { escaped = true; continue }
+    if (ch === '"')          { inString = !inString; continue }
+    if (inString)            continue
+    if (ch === '{')          depth++
+    if (ch === '}') {
+      depth--
+      if (depth === 0) return text.slice(start, i + 1)
+    }
+  }
+  return null
+}
+
+function buildPrompt(siteData: {
+  siteName: string
+  orgName: string
+  address: string | null
+  threats: { threatType: string; description: string | null; likelihood: number; impact: number; vulnerabilityNotes: string | null; incidentHistory: string | null }[]
+  measures: { category: string; description: string | null; effectivenessRating: number; gapsRemaining: string | null }[]
+  observations: { title: string; severity: number; observationType: string | null; notes: string | null; locationDescription: string | null }[]
+  existingProjectTitles: string[]
+}): string {
+  const { siteName, orgName, address, threats, measures, observations, existingProjectTitles } = siteData
+
+  // Truncate long text fields so the prompt stays focused regardless of how much
+  // the user typed; beyond ~200 chars the extra detail doesn't change the output.
+  const trunc = (s: string | null | undefined, max = 200) =>
+    s ? (s.length > max ? s.slice(0, max).trimEnd() + '…' : s) : null
+
+  // Prioritise by risk score; cap at 15 — additional low-risk threats don't drive new project ideas
+  const topThreats = [...threats]
+    .sort((a, b) => (b.likelihood * b.impact) - (a.likelihood * a.impact))
+    .slice(0, 15)
+
+  const threatLines = topThreats
+    .map((t, i) => {
+      const score = t.likelihood * t.impact
+      const level = score >= 16 ? 'CRITICAL' : score >= 10 ? 'HIGH' : score >= 5 ? 'MEDIUM' : 'LOW'
+      const lines = [`${i + 1}. [${level} ${score}/25] ${t.threatType}`]
+      const desc = trunc(t.description)
+      const vuln = trunc(t.vulnerabilityNotes)
+      const inc  = trunc(t.incidentHistory)
+      if (desc) lines.push(`   Description: ${desc}`)
+      if (vuln) lines.push(`   Vulnerability: ${vuln}`)
+      if (inc)  lines.push(`   Incidents: ${inc}`)
+      return lines.join('\n')
+    })
+    .join('\n')
+
+  const omittedThreats = threats.length - topThreats.length
+  const threatSuffix = omittedThreats > 0
+    ? `\n(${omittedThreats} additional lower-risk threat${omittedThreats > 1 ? 's' : ''} omitted)`
+    : ''
+
+  const measureLines = measures
+    .map((m, i) => {
+      const lines = [`${i + 1}. ${m.category} (Effectiveness: ${m.effectivenessRating}/5)`]
+      const desc = trunc(m.description)
+      const gaps = trunc(m.gapsRemaining)
+      if (desc) lines.push(`   Current: ${desc}`)
+      if (gaps) lines.push(`   Gaps: ${gaps}`)
+      return lines.join('\n')
+    })
+    .join('\n')
+
+  // Prioritise by severity; cap at 12
+  const topObservations = [...observations]
+    .sort((a, b) => b.severity - a.severity)
+    .slice(0, 12)
+
+  const observationLines = topObservations
+    .map((o, i) => {
+      const lines = [`${i + 1}. [Severity ${o.severity}/5] ${o.title}`]
+      const loc   = trunc(o.locationDescription, 120)
+      const notes = trunc(o.notes)
+      if (o.observationType) lines.push(`   Type: ${o.observationType}`)
+      if (loc)   lines.push(`   Location: ${loc}`)
+      if (notes) lines.push(`   Notes: ${notes}`)
+      return lines.join('\n')
+    })
+    .join('\n')
+
+  const omittedObs = observations.length - topObservations.length
+  const obsSuffix = omittedObs > 0
+    ? `\n(${omittedObs} additional lower-severity observation${omittedObs > 1 ? 's' : ''} omitted)`
+    : ''
+
+  return `You are an expert FEMA Nonprofit Security Grant Program (NSGP) grant writer and physical security consultant. Your task is to generate specific, defensible project proposals for a real nonprofit site seeking NSGP funding.
+
+SITE CONTEXT:
+- Organization: ${orgName}
+- Site: ${siteName}
+- Address: ${address || 'Not specified'}
+
+DOCUMENTED THREATS:
+${threatLines || 'No threats documented yet.'}${threatSuffix}
+
+EXISTING SECURITY MEASURES:
+${measureLines || 'No measures documented yet.'}
+
+FIELD OBSERVATIONS:
+${observationLines || 'No observations documented yet.'}${obsSuffix}
+
+${existingProjectTitles.length > 0 ? `ALREADY-PLANNED PROJECTS (do not duplicate):\n${existingProjectTitles.map((t, i) => `${i + 1}. ${t}`).join('\n')}` : ''}
+
+INSTRUCTIONS:
+Generate 6–10 project proposals. Classify:
+- 3–5 as status="selected" (priority 4–5): address the most critical vulnerabilities, form a LAYERED security approach, combined budget $120,000–$180,000
+- Remaining as status="consideration" (priority 1–3): valuable but lower priority
+
+REQUIRED NSGP categories: "Access Control", "Surveillance", "Lighting", "Physical Hardening", "Communication"
+The selected projects MUST include at minimum: one Surveillance project, one Access Control project.
+Total budget for selected projects should be between $120,000 and $180,000.
+Each project gets 2–4 realistic budget line items with specific item names and dollar amounts.
+Use real market pricing for physical security equipment (cameras: $300–$800/unit, card readers: $400–$900/door, lighting fixtures: $150–$500/unit, etc.).
+
+OUTPUT FORMAT — respond with ONLY a raw JSON object. Do NOT wrap in markdown code fences. Do NOT add any text before or after the JSON. Schema:
+{
+  "projects": [
+    {
+      "title": "specific descriptive project name",
+      "category": "Access Control" or "Surveillance" or "Lighting" or "Physical Hardening" or "Communication",
+      "problemStatement": "1 sentence: what security gap exists",
+      "proposedSolution": "1 sentence: what will be installed and how it addresses the gap",
+      "riskReductionRationale": "1 sentence ending with NSGP Physical Protective Measures alignment",
+      "implementationNotes": "1 sentence: implementation approach",
+      "priority": 1,
+      "status": "selected" | "consideration",
+      "addressedThreatTypes": ["exact threat type string from DOCUMENTED THREATS above", ...],
+      "budgetItems": [
+        {
+          "itemName": "string — specific product/service name",
+          "quantity": number,
+          "unitCost": number,
+          "totalCost": number,
+          "justification": "string — 1 sentence"
+        }
+      ]
+    }
+  ],
+  "budgetStrategy": "string — 2 sentences max",
+  "layeredSecuritySummary": "string — 1 sentence"
+}
+
+For addressedThreatTypes: copy the threat type strings EXACTLY as they appear in the DOCUMENTED THREATS section above. Every project must address at least one threat.
+
+Write in formal, third-person grant language. Do not use placeholder text. Be specific to the documented threats and site context.`
+}
+
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: 'AI project generation requires an Anthropic API key. Add ANTHROPIC_API_KEY to your .env file.', noKey: true },
+      { status: 503 }
+    )
+  }
+
+  let body: { siteId: string }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
+
+  const { siteId } = body
+  if (!siteId) {
+    return NextResponse.json({ error: 'siteId is required' }, { status: 400 })
+  }
+
+  const site = await prisma.site.findUnique({
+    where: { id: siteId },
+    include: {
+      organization: true,
+      threatAssessments: true,
+      securityMeasures: true,
+      siteObservations: true,
+      projectProposals: { select: { title: true } },
+    },
+  })
+
+  if (!site) {
+    return NextResponse.json({ error: 'Site not found' }, { status: 404 })
+  }
+
+  const prompt = buildPrompt({
+    siteName: site.siteName,
+    orgName: site.organization.name,
+    address: site.address,
+    threats: site.threatAssessments.map((t) => ({
+      threatType: t.threatType,
+      description: t.description,
+      likelihood: t.likelihood,
+      impact: t.impact,
+      vulnerabilityNotes: t.vulnerabilityNotes,
+      incidentHistory: t.incidentHistory,
+    })),
+    measures: site.securityMeasures.map((m) => ({
+      category: m.category,
+      description: m.description,
+      effectivenessRating: m.effectivenessRating,
+      gapsRemaining: m.gapsRemaining,
+    })),
+    observations: site.siteObservations.map((o) => ({
+      title: o.title,
+      severity: o.severity,
+      observationType: o.observationType,
+      notes: o.notes,
+      locationDescription: o.locationDescription,
+    })),
+    existingProjectTitles: site.projectProposals.map((p) => p.title),
+  })
+
+  try {
+    const { default: Anthropic } = await import('@anthropic-ai/sdk')
+    const client = new Anthropic({ apiKey })
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 16000,
+      messages: [{ role: 'user', content: prompt }],
+    })
+
+    const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
+
+    // Truncation check — if the model hit the token limit the JSON will be incomplete
+    if (message.stop_reason === 'max_tokens') {
+      console.error('Project generation hit max_tokens limit. Raw response (first 800 chars):\n', raw.slice(0, 800))
+      return NextResponse.json(
+        { error: 'The AI response was too long and got cut off. This site\'s data is unusually large — try reducing the number of threats or observations and regenerating.' },
+        { status: 500 }
+      )
+    }
+
+    const jsonText = extractJson(raw)
+
+    let result: GenerationResult
+    try {
+      if (!jsonText) throw new Error('No JSON object found in response')
+      result = JSON.parse(jsonText)
+    } catch (parseErr) {
+      console.error('Project generation JSON parse error:', parseErr)
+      console.error('Stop reason:', message.stop_reason)
+      console.error('Raw response (first 800 chars):\n', raw.slice(0, 800))
+      const preview = raw.slice(0, 120).replace(/\n/g, ' ')
+      return NextResponse.json(
+        { error: `AI returned an unexpected response format. Please try again. (Preview: "${preview}")` },
+        { status: 500 }
+      )
+    }
+
+    // Basic validation
+    if (!Array.isArray(result.projects) || result.projects.length === 0) {
+      return NextResponse.json({ error: 'AI returned no projects. Please try again.' }, { status: 500 })
+    }
+
+    return NextResponse.json(result)
+  } catch (err: unknown) {
+    console.error('Project generation error:', err)
+    if (err && typeof err === 'object' && 'status' in err) {
+      const status = (err as { status: number }).status
+      if (status === 401) return NextResponse.json({ error: 'Invalid API key.' }, { status: 503 })
+      if (status === 429) return NextResponse.json({ error: 'Rate limited. Wait a moment and try again.' }, { status: 429 })
+    }
+    return NextResponse.json({ error: 'Project generation failed.' }, { status: 500 })
+  }
+}
