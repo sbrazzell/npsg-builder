@@ -102,17 +102,17 @@ Total budget for selected projects should be between $120,000 and $180,000.
 Each project gets 2–4 realistic budget line items with specific item names and dollar amounts.
 Use real market pricing for physical security equipment (cameras: $300–$800/unit, card readers: $400–$900/door, lighting fixtures: $150–$500/unit, etc.).
 
-OUTPUT FORMAT — respond with ONLY valid JSON matching this exact schema:
+OUTPUT FORMAT — respond with ONLY valid JSON, no markdown, no preamble. Schema:
 {
   "projects": [
     {
-      "title": "string — specific, descriptive project name",
-      "category": "Access Control" | "Surveillance" | "Lighting" | "Physical Hardening" | "Communication",
-      "problemStatement": "string — 2–3 sentences: what security gap exists, which threats it exposes the site to, and what harm could result",
-      "proposedSolution": "string — 2–3 sentences: what will be installed or implemented and how it addresses the gap",
-      "riskReductionRationale": "string — 2–3 sentences: how this reduces risk through deterrence, detection, delay, or response; close with explicit NSGP alignment referencing Physical Protective Measures",
-      "implementationNotes": "string — 1–2 sentences: implementation approach (vendor selection, minimal-disruption install, timeline)",
-      "priority": 1–5,
+      "title": "specific descriptive project name",
+      "category": "Access Control" or "Surveillance" or "Lighting" or "Physical Hardening" or "Communication",
+      "problemStatement": "2 sentences max: what security gap exists and what harm could result",
+      "proposedSolution": "2 sentences max: what will be installed and how it addresses the gap",
+      "riskReductionRationale": "2 sentences max: how this reduces risk; end with NSGP Physical Protective Measures alignment",
+      "implementationNotes": "1 sentence: implementation approach",
+      "priority": 1,
       "status": "selected" | "consideration",
       "budgetItems": [
         {
@@ -207,19 +207,33 @@ export async function POST(req: NextRequest) {
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 6000,
+      max_tokens: 8000,
       messages: [{ role: 'user', content: prompt }],
     })
 
     const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
 
-    // Strip markdown code fences if present
-    const jsonText = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+    // Extract JSON — handle markdown fences, preamble text, or trailing commentary
+    let jsonText = raw
+    // Strip markdown fences (```json ... ``` or ``` ... ```)
+    const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (fenceMatch) {
+      jsonText = fenceMatch[1].trim()
+    } else {
+      // Find the outermost { ... } block
+      const start = raw.indexOf('{')
+      const end = raw.lastIndexOf('}')
+      if (start !== -1 && end !== -1 && end > start) {
+        jsonText = raw.slice(start, end + 1)
+      }
+    }
 
     let result: GenerationResult
     try {
       result = JSON.parse(jsonText)
-    } catch {
+    } catch (parseErr) {
+      console.error('Project generation JSON parse error:', parseErr)
+      console.error('Raw response (first 500 chars):', raw.slice(0, 500))
       return NextResponse.json(
         { error: 'AI returned an unexpected response format. Please try again.' },
         { status: 500 }
