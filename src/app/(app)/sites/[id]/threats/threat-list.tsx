@@ -5,8 +5,9 @@ import { reorderThreats } from '@/actions/threats'
 import { SortableList } from '@/components/shared/sortable-list'
 import { ThreatCard, type Threat } from './threat-card'
 import { Plus } from 'lucide-react'
+import type { SiblingSite } from '@/components/shared/move-to-site-button'
 
-export function ThreatList({ threats, siteId }: { threats: Threat[]; siteId: string }) {
+export function ThreatList({ threats, siteId, siblingSites = [] }: { threats: Threat[]; siteId: string; siblingSites?: SiblingSite[] }) {
   return (
     <div className="rounded-sm border overflow-hidden ml-1" style={{ borderColor: 'var(--rule)' }}>
       {/* Header */}
@@ -36,6 +37,7 @@ export function ThreatList({ threats, siteId }: { threats: Threat[]; siteId: str
             siteId={siteId}
             index={index + 1}
             dragHandleProps={dragHandleProps}
+            siblingSites={siblingSites}
           />
         )}
       />

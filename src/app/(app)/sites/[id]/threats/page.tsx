@@ -51,6 +51,12 @@ export default async function ThreatsPage({ params }: { params: Promise<{ id: st
 
   if (!facility) notFound()
 
+  const siblingSites = await prisma.site.findMany({
+    where: { organizationId: facility.organizationId, NOT: { id } },
+    select: { id: true, siteName: true },
+    orderBy: { siteName: 'asc' },
+  })
+
   // For risk matrix, sort by risk score descending (display only)
   const sorted = [...facility.threatAssessments].sort(
     (a, b) => calculateRiskScore(b.likelihood, b.impact) - calculateRiskScore(a.likelihood, a.impact)
@@ -314,6 +320,7 @@ export default async function ThreatsPage({ params }: { params: Promise<{ id: st
                   sortOrder: (t as any).sortOrder ?? 0,
                 }))}
                 siteId={id}
+                siblingSites={siblingSites}
               />
             }
           />

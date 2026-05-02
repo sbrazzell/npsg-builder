@@ -91,3 +91,24 @@ export async function reorderObservations(siteId: string, orderedIds: string[]) 
     return { success: false, error: 'Failed to reorder observations' }
   }
 }
+
+export async function moveObservationToSite(id: string, targetSiteId: string, sourceSiteId: string) {
+  await requireAuth()
+  try {
+    // Verify both sites belong to the same organization
+    const [sourceSite, targetSite] = await Promise.all([
+      prisma.site.findUnique({ where: { id: sourceSiteId }, select: { organizationId: true } }),
+      prisma.site.findUnique({ where: { id: targetSiteId }, select: { organizationId: true } }),
+    ])
+    if (!sourceSite || !targetSite) return { success: false, error: 'Site not found' }
+    if (sourceSite.organizationId !== targetSite.organizationId) {
+      return { success: false, error: 'Cannot move to a site in a different organization' }
+    }
+    await prisma.siteObservation.update({ where: { id }, data: { siteId: targetSiteId } })
+    revalidatePath(`/sites/${sourceSiteId}/observations`)
+    revalidatePath(`/sites/${targetSiteId}/observations`)
+    return { success: true }
+  } catch {
+    return { success: false, error: 'Failed to move observation' }
+  }
+}

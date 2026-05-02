@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { deleteObservation, updateObservation, toggleObservationIncluded } from '@/actions/observations'
+import { deleteObservation, updateObservation, toggleObservationIncluded, moveObservationToSite } from '@/actions/observations'
+import { MoveToSiteButton, type SiblingSite } from '@/components/shared/move-to-site-button'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,10 +45,12 @@ export function ObservationCard({
   obs,
   siteId,
   dragHandleProps,
+  siblingSites = [],
 }: {
   obs: Observation
   siteId: string
   dragHandleProps?: { listeners?: DraggableSyntheticListeners; attributes?: DraggableAttributes }
+  siblingSites?: SiblingSite[]
 }) {
   const [editing, setEditing]   = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -208,6 +211,13 @@ export function ObservationCard({
 
             {/* Action buttons */}
             <div className="flex items-center gap-1 shrink-0">
+              <MoveToSiteButton
+                itemId={obs.id}
+                sourceSiteId={siteId}
+                siblingSites={siblingSites}
+                onMove={moveObservationToSite}
+                label="Move observation to another site"
+              />
               <Button
                 size="icon"
                 variant="ghost"

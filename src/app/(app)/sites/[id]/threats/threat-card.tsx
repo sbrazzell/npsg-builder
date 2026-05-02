@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateThreat, deleteThreat, toggleThreatIncluded } from '@/actions/threats'
+import { updateThreat, deleteThreat, toggleThreatIncluded, moveThreatToSite } from '@/actions/threats'
+import { MoveToSiteButton, type SiblingSite } from '@/components/shared/move-to-site-button'
 import { calculateRiskScore, getRiskLevel } from '@/lib/scoring'
 import { FilingToggle } from '@/components/shared/filing-toggle'
 import { DragHandle } from '@/components/shared/sortable-list'
@@ -63,11 +64,13 @@ export function ThreatCard({
   siteId,
   index,
   dragHandleProps,
+  siblingSites = [],
 }: {
   threat: Threat
   siteId: string
   index: number
   dragHandleProps?: { listeners?: DraggableSyntheticListeners; attributes?: DraggableAttributes }
+  siblingSites?: SiblingSite[]
 }) {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving]   = useState(false)
@@ -326,8 +329,15 @@ export function ThreatCard({
           <p className="font-semibold text-[13px] leading-snug" style={{ color: 'var(--ink)' }}>
             {threat.threatType}
           </p>
-          {/* Edit / Delete */}
+          {/* Edit / Delete / Move */}
           <div className="flex items-center gap-0.5 shrink-0 -mt-0.5">
+            <MoveToSiteButton
+              itemId={threat.id}
+              sourceSiteId={siteId}
+              siblingSites={siblingSites}
+              onMove={moveThreatToSite}
+              label="Move threat to another site"
+            />
             <button
               type="button"
               onClick={() => setEditing(true)}

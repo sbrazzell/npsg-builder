@@ -93,3 +93,24 @@ export async function reorderThreats(siteId: string, orderedIds: string[]) {
     return { success: false, error: 'Failed to reorder threats' }
   }
 }
+
+export async function moveThreatToSite(id: string, targetSiteId: string, sourceSiteId: string) {
+  await requireAuth()
+  try {
+    const [sourceSite, targetSite] = await Promise.all([
+      prisma.site.findUnique({ where: { id: sourceSiteId }, select: { organizationId: true } }),
+      prisma.site.findUnique({ where: { id: targetSiteId }, select: { organizationId: true } }),
+    ])
+    if (!sourceSite || !targetSite) return { success: false, error: 'Site not found' }
+    if (sourceSite.organizationId !== targetSite.organizationId) {
+      return { success: false, error: 'Cannot move to a site in a different organization' }
+    }
+    // ProjectThreatLinks reference this threat by ID — they stay valid after siteId changes.
+    await prisma.threatAssessment.update({ where: { id }, data: { siteId: targetSiteId } })
+    revalidatePath(`/sites/${sourceSiteId}/threats`)
+    revalidatePath(`/sites/${targetSiteId}/threats`)
+    return { success: true }
+  } catch {
+    return { success: false, error: 'Failed to move threat' }
+  }
+}

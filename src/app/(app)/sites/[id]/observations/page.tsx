@@ -19,6 +19,12 @@ export default async function ObservationsPage({ params }: { params: Promise<{ i
 
   if (!facility) notFound()
 
+  const siblingSites = await prisma.site.findMany({
+    where: { organizationId: facility.organizationId, NOT: { id } },
+    select: { id: true, siteName: true },
+    orderBy: { siteName: 'asc' },
+  })
+
   const observations = facility.siteObservations.map((o) => ({
     id: o.id,
     siteId: id,
@@ -63,7 +69,7 @@ export default async function ObservationsPage({ params }: { params: Promise<{ i
                 description="Document field observations from your site walkthrough to support the security assessment narrative."
               />
             ) : (
-              <ObservationList observations={observations} siteId={id} />
+              <ObservationList observations={observations} siteId={id} siblingSites={siblingSites} />
             )}
           </div>
 

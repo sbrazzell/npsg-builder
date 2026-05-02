@@ -3,6 +3,7 @@
 import { reorderObservations } from '@/actions/observations'
 import { SortableList } from '@/components/shared/sortable-list'
 import { ObservationCard } from './observation-card'
+import type { SiblingSite } from '@/components/shared/move-to-site-button'
 
 type Observation = {
   id: string
@@ -16,7 +17,15 @@ type Observation = {
   sortOrder: number
 }
 
-export function ObservationList({ observations, siteId }: { observations: Observation[]; siteId: string }) {
+export function ObservationList({
+  observations,
+  siteId,
+  siblingSites = [],
+}: {
+  observations: Observation[]
+  siteId: string
+  siblingSites?: SiblingSite[]
+}) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-1">
@@ -29,7 +38,7 @@ export function ObservationList({ observations, siteId }: { observations: Observ
         siteId={siteId}
         onReorder={reorderObservations}
         renderItem={(obs, dragHandleProps) => (
-          <ObservationCard obs={obs} siteId={siteId} dragHandleProps={dragHandleProps} />
+          <ObservationCard obs={obs} siteId={siteId} dragHandleProps={dragHandleProps} siblingSites={siblingSites} />
         )}
       />
     </div>
