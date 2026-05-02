@@ -17,7 +17,7 @@ Users (grant writers / security consultants) manage **Organizations** → **Site
 
 **Flow:** work on `develop` → test → merge to `main` → tag version (e.g. `v1.1.0`) → push → Vercel auto-deploys from `main`.
 
-Current version: **v1.4.0** on `main`. All new work goes to `develop`.
+Current version: **v2.0.0** on `main`. All new work goes to `develop`.
 
 ---
 
@@ -159,6 +159,7 @@ Old snapshots may be missing fields added after they were saved. Always apply th
 - `project.generationWarnings` — use `?.length ?? 0` (not `.length`) — field absent on pre-feature snapshots
 - `project.timelineNarrative` / `sustainmentNarrative` / `implementationNarrative` — may be undefined; treat as empty string
 - `threat.includedInFiling` / `project.includedInFiling` — may be absent on old snapshots; default to `true`
+- `project.linkedThreatIds` — optional (added v2.0.0); IJ form falls back to `linkedThreatTypes` string lookup when absent
 
 ---
 
@@ -308,9 +309,18 @@ import { calculateRiskScore, getRiskLevel, formatCurrency } from '@/lib/scoring'
 ### AI project generation API (`/api/ai/generate-projects`)
 `POST /api/ai/generate-projects` — accepts `{ siteId }`, fetches site context, calls Claude claude-sonnet-4-6 to generate 6–10 structured NSGP proposals. Key details:
 - Input is capped: top 15 threats by risk score, top 12 observations by severity, all text fields truncated to 200 chars — keeps the prompt focused on the highest-signal data
-- Output max_tokens: 8000 (sufficient for 6–10 projects with budget items, ~4k–5k tokens used)
+- Output `max_tokens: 16000`; explicit `stop_reason === 'max_tokens'` check returns a descriptive error if truncated
 - JSON is extracted via `extractJson()` — a brace-depth character walker that correctly finds the outermost `{}` regardless of preamble text or trailing notes Claude adds after the JSON
 - `GenerationResult` type is exported from the route for use by the client component
+- Each generated project includes `addressedThreatTypes: string[]` (exact matches to the documented threat types in the prompt). `saveGeneratedProjects` maps these to threat IDs and auto-creates `ProjectThreatLink` records.
+
+### Threat cross-references in IJ form
+Threats in the IJ form Part 2 matrix are numbered T-1, T-2, T-3… Each project in Part 3 shows "T-1 · Active Shooter" pills and the sentence *"This project mitigates T-1, T-3 identified in Part 2 (Threat Assessment) above."*
+
+**Implementation:**
+- `buildSnapshot()` in `filings.ts` now populates `linkedThreatIds?: string[]` (optional for backward compat) alongside `linkedThreatTypes`
+- IJ form builds `threatLabelById` and `threatLabelByType` maps at render time — ID-based lookup is primary, type-string fallback handles pre-v2 snapshots
+- `ProjectGenerator` component accepts `siteThreats` prop; review panel shows T-N badges on each card before saving
 
 ---
 
@@ -459,7 +469,7 @@ Use factory functions with overrides — never duplicate full objects:
 function makeProject(overrides: Partial<FilingSnapshot['projects'][number]> = {}) { ... }
 function makeSnapshot(overrides: Partial<FilingSnapshot> = {}) { ... }
 ```
-Always include the new required fields (`timelineNarrative`, `sustainmentNarrative`, `implementationNarrative`, `timelineSource`, `sustainmentSource`, `implementationSource`, `generationWarnings`, `includedInFiling: true`, `sortOrder: 0`) in `makeProject()` defaults. Also include `observations: []` in `makeSnapshot()` defaults, and add `includedInFiling: true` + `sortOrder: 0` to any inline threat/securityMeasure fixture objects.
+Always include the new required fields (`timelineNarrative`, `sustainmentNarrative`, `implementationNarrative`, `timelineSource`, `sustainmentSource`, `implementationSource`, `generationWarnings`, `includedInFiling: true`, `sortOrder: 0`) in `makeProject()` defaults. `linkedThreatIds` is optional — omitting it tests the backward-compat fallback path. Also include `observations: []` in `makeSnapshot()` defaults, and add `includedInFiling: true` + `sortOrder: 0` to any inline threat/securityMeasure fixture objects.
 
 ---
 
