@@ -29,6 +29,43 @@ export interface GenerationResult {
   layeredSecuritySummary: string
 }
 
+/**
+ * Robustly extracts the outermost JSON object from a string that may contain
+ * markdown fences, preamble text, or trailing notes after the JSON.
+ * Uses brace-depth tracking rather than lastIndexOf so nested objects and
+ * any trailing text don't confuse the parser.
+ */
+function extractJson(text: string): string | null {
+  // Prefer the content inside the first ```json ... ``` or ``` ... ``` fence
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (fenceMatch?.[1]) {
+    const candidate = fenceMatch[1].trim()
+    if (candidate.startsWith('{')) return candidate
+  }
+
+  // Walk the string tracking brace depth to find the matching close for the first {
+  const start = text.indexOf('{')
+  if (start === -1) return null
+
+  let depth = 0
+  let inString = false
+  let escaped = false
+
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i]
+    if (escaped)             { escaped = false; continue }
+    if (ch === '\\' && inString) { escaped = true; continue }
+    if (ch === '"')          { inString = !inString; continue }
+    if (inString)            continue
+    if (ch === '{')          depth++
+    if (ch === '}') {
+      depth--
+      if (depth === 0) return text.slice(start, i + 1)
+    }
+  }
+  return null
+}
+
 function buildPrompt(siteData: {
   siteName: string
   orgName: string
@@ -243,29 +280,20 @@ export async function POST(req: NextRequest) {
 
     const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
 
-    // Extract JSON — handle markdown fences, preamble text, or trailing commentary
-    let jsonText = raw
-    // Strip markdown fences (```json ... ``` or ``` ... ```)
-    const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
-    if (fenceMatch) {
-      jsonText = fenceMatch[1].trim()
-    } else {
-      // Find the outermost { ... } block
-      const start = raw.indexOf('{')
-      const end = raw.lastIndexOf('}')
-      if (start !== -1 && end !== -1 && end > start) {
-        jsonText = raw.slice(start, end + 1)
-      }
-    }
+    const jsonText = extractJson(raw)
 
     let result: GenerationResult
     try {
+      if (!jsonText) throw new Error('No JSON object found in response')
       result = JSON.parse(jsonText)
     } catch (parseErr) {
       console.error('Project generation JSON parse error:', parseErr)
-      console.error('Raw response (first 500 chars):', raw.slice(0, 500))
+      console.error('Stop reason:', message.stop_reason)
+      console.error('Raw response (first 800 chars):\n', raw.slice(0, 800))
+      // Include a preview in the client error to help diagnose in production
+      const preview = raw.slice(0, 120).replace(/\n/g, ' ')
       return NextResponse.json(
-        { error: 'AI returned an unexpected response format. Please try again.' },
+        { error: `AI returned an unexpected response format. Please try again. (Preview: "${preview}")` },
         { status: 500 }
       )
     }
