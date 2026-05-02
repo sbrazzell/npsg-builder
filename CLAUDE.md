@@ -38,6 +38,7 @@ Current version: **v1.4.0** on `main`. All new work goes to `develop`.
 | Charts | recharts |
 | Auth | next-auth v4 |
 | File uploads | `@vercel/blob` — requires `BLOB_READ_WRITE_TOKEN` |
+| Drag-and-drop | `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` |
 | Tests | Vitest 4 (`npm test` / `npm run test:watch`) |
 
 ---
@@ -126,13 +127,22 @@ Organization
 
 **Key Site fields:** `siteName`, `targetCycleYear` (Int, default 2026), `address`, `sitePhotoUrl` (String?, stored in Vercel Blob), `organizationId`, plus narrative fields (occupancy, population served, parking, surrounding area, public access, known concerns, law enforcement outreach).
 
+**Filing inventory fields (on all four child models):**
+All four list models now carry two additional columns for the filing inventory feature:
+- `includedInFiling Boolean @default(true)` — whether the item appears in the grant filing output
+- `sortOrder Int @default(0)` — display/export order (drag-and-drop managed)
+
+These fields exist on: `ThreatAssessment`, `ExistingSecurityMeasure`, `SiteObservation`, `ProjectProposal`.
+
 **Key ProjectProposal fields (added in `develop`):**
 - `timelineJson String?` — JSON-encoded `TimelineData` (structured timeline inputs)
 - `sustainmentJson String?` — JSON-encoded `SustainmentData` (structured sustainment inputs)
 - `timelineNarrative String?` — user-authored override (highest priority, replaces generated)
 - `sustainmentNarrative String?` — user-authored override
 
-**`FilingSnapshot`** (`src/actions/filings.ts`) — the JSON type stored in `ApplicationDraft.snapshotJson`. Contains a point-in-time copy of org, site, threats, securityMeasures, projects (with budgetItems + generated narratives), narratives, totalBudget. Snapshots are immutable once saved; backward-compat backfills are applied at read time.
+**`FilingSnapshot`** (`src/actions/filings.ts`) — the JSON type stored in `ApplicationDraft.snapshotJson`. Contains a point-in-time copy of org, site, threats, securityMeasures, **observations** (new), projects (with budgetItems + generated narratives), narratives, totalBudget. Snapshots are immutable once saved; backward-compat backfills are applied at read time.
+
+All four item arrays now carry `includedInFiling: boolean` and `sortOrder: number`. `totalBudget` and `highRiskThreatCount` in the snapshot are computed from included-only items at build time. The print forms (`form-investment-justification.tsx`, `form-budget.tsx`) filter to `includedInFiling` items before rendering.
 
 **Key FilingSnapshot project fields (auto-generated at snapshot build time):**
 - `implementationNarrative: string` — always populated (generated from project type if not user-authored)
@@ -145,8 +155,10 @@ Organization
 ### FilingSnapshot backward compatibility rules
 Old snapshots may be missing fields added after they were saved. Always apply these backfills at read time (both in the detail page and the print page):
 - `snapshot.site` — backfill from live `facility` record if null
+- `snapshot.observations` — use `?.filter(...)` or `?? []` — field absent on pre-inventory snapshots
 - `project.generationWarnings` — use `?.length ?? 0` (not `.length`) — field absent on pre-feature snapshots
 - `project.timelineNarrative` / `sustainmentNarrative` / `implementationNarrative` — may be undefined; treat as empty string
+- `threat.includedInFiling` / `project.includedInFiling` — may be absent on old snapshots; default to `true`
 
 ---
 
@@ -268,6 +280,19 @@ import { calculateRiskScore, getRiskLevel, formatCurrency } from '@/lib/scoring'
 
 ### AI assist
 `<AiAssistTextarea>` in `src/components/shared/ai-assist-textarea.tsx` — wrap any long-form field to get AI drafting. Pass `context` object and `fieldLabel`.
+
+### Filing inventory components
+`<FilingToggle>` in `src/components/shared/filing-toggle.tsx` — Eye/EyeOff optimistic toggle. Props: `id, siteId, includedInFiling, onToggle` (server action). Used on all four list modules.
+
+`<SortableList>` + `<DragHandle>` in `src/components/shared/sortable-list.tsx` — generic drag-and-drop list using `@dnd-kit`. Key points:
+- `renderItem(item, dragHandleProps, isDragging, index)` — always use the 4th `index` param for numbering; never `array.indexOf(item)` (breaks after `router.refresh()`)
+- Internal state syncs from props via `useEffect`, guarded by `reorderInFlight` ref so optimistic drag order is preserved
+- Uses `DraggableAttributes` + `DraggableSyntheticListeners` from `@dnd-kit/core` (not `Record<string, unknown>`)
+
+### Threat Assessment page pattern
+`ThreatSplitLayout` (`threat-split-layout.tsx`) — resizable 50/50 split between the risk matrix and the list panel. Uses pointer capture for smooth drag; clamps 25–75%.
+
+`ThreatCard` (`threat-card.tsx`) — per-item card with view/edit toggle. Edit mode expands inline with all fields (threat type, description, sliders, source, agency, vulnerability notes, incident history) + live risk score badge. Follows the same view/edit pattern as `ObservationCard`.
 
 ---
 
@@ -416,7 +441,7 @@ Use factory functions with overrides — never duplicate full objects:
 function makeProject(overrides: Partial<FilingSnapshot['projects'][number]> = {}) { ... }
 function makeSnapshot(overrides: Partial<FilingSnapshot> = {}) { ... }
 ```
-Always include the new required fields (`timelineNarrative`, `sustainmentNarrative`, `implementationNarrative`, `timelineSource`, `sustainmentSource`, `implementationSource`, `generationWarnings`) in `makeProject()` defaults.
+Always include the new required fields (`timelineNarrative`, `sustainmentNarrative`, `implementationNarrative`, `timelineSource`, `sustainmentSource`, `implementationSource`, `generationWarnings`, `includedInFiling: true`, `sortOrder: 0`) in `makeProject()` defaults. Also include `observations: []` in `makeSnapshot()` defaults, and add `includedInFiling: true` + `sortOrder: 0` to any inline threat/securityMeasure fixture objects.
 
 ---
 
@@ -438,6 +463,7 @@ Always include the new required fields (`timelineNarrative`, `sustainmentNarrati
 | `20260425000000_add_timeline_sustainment` | `timelineJson`, `sustainmentJson`, `timelineNarrative`, `sustainmentNarrative` on ProjectProposal |
 | `20260425100000_add_application_review` | `ApplicationReview` model (scores, findings JSON, counters, FK to ApplicationDraft) |
 | `20260425130000_add_allowed_user` | `AllowedUser` model (email, role, addedAt, addedBy) for DB-backed access control |
+| `20260502000000_add_filing_inventory` | `includedInFiling` + `sortOrder` on ThreatAssessment, ExistingSecurityMeasure, SiteObservation, ProjectProposal — applied via `sqlite3` + `turso db shell` |
 
 ---
 
@@ -648,3 +674,6 @@ CSS print rules live in the `<style>` block inside `src/app/(print)/sites/[id]/f
 - Do **not** add new sensitive fields to the DB schema without also adding them to `ENCRYPTED_FIELDS` in `src/lib/prisma.ts`.
 - Do **not** set `FIELD_ENCRYPTION_KEY` to the same value in multiple environments — each environment should have its own key.
 - Do **not** use `ALLOWED_EMAILS` as the long-term access control mechanism — it is only a seed source. Manage users via `/settings`.
+- Do **not** use `array.indexOf(item)` to compute position inside `SortableList.renderItem` — after `router.refresh()` the internal state holds old references, so `indexOf` returns `-1`. Use the `index` parameter passed as the 4th argument to `renderItem` instead.
+- Do **not** forget to apply schema migrations to the **Turso** database in addition to local `dev.db`. After adding columns with `sqlite3 dev.db "ALTER TABLE..."`, run the same SQL via `turso db shell <db-name>` for production. A missing Turso migration causes `DriverAdapterError: no such column` at runtime even though `dev.db` is fine.
+- Do **not** forget to regenerate the Prisma client (`DATABASE_URL="file:./dev.db" npx prisma generate`) and restart the dev server (`rm -rf .next && npm run dev`) after adding new schema columns — Turbopack caches the old compiled client and throws `PrismaClientValidationError: Unknown argument` even after the DB migration is applied.
