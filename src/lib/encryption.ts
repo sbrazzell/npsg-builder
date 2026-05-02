@@ -41,10 +41,14 @@ export function encrypt(value: string): string {
   return `${PREFIX}${iv.toString('base64')}:${authTag.toString('base64')}:${ciphertext.toString('base64')}`
 }
 
+/** Sentinel returned when decryption fails due to a key mismatch. */
+export const DECRYPTION_FAILED = '__decryption_failed__'
+
 /**
  * Decrypt a value produced by encrypt().
  * Values without the "enc:" prefix are returned as-is (plaintext migration path).
- * Throws on tampered ciphertext (GCM auth tag mismatch).
+ * Returns DECRYPTION_FAILED (never throws) when the auth tag doesn't match —
+ * this happens when FIELD_ENCRYPTION_KEY has changed since the value was written.
  */
 export function decrypt(value: string): string {
   if (!value.startsWith(PREFIX)) return value  // legacy plaintext — return as-is
@@ -56,17 +60,27 @@ export function decrypt(value: string): string {
   }
 
   const parts = value.slice(PREFIX.length).split(':')
-  if (parts.length !== 3) throw new Error('[encryption] Malformed encrypted value')
+  if (parts.length !== 3) {
+    console.error('[encryption] Malformed encrypted value (wrong number of segments)')
+    return DECRYPTION_FAILED
+  }
 
   const [ivB64, authTagB64, ciphertextB64] = parts
   const iv         = Buffer.from(ivB64,         'base64')
   const authTag    = Buffer.from(authTagB64,     'base64')
   const ciphertext = Buffer.from(ciphertextB64,  'base64')
 
-  const decipher = createDecipheriv(ALGORITHM, key, iv)
-  decipher.setAuthTag(authTag)
-
-  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8')
+  try {
+    const decipher = createDecipheriv(ALGORITHM, key, iv)
+    decipher.setAuthTag(authTag)
+    return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8')
+  } catch {
+    console.error(
+      '[encryption] Auth tag mismatch — FIELD_ENCRYPTION_KEY does not match the key used to encrypt this value. ' +
+      'Restore the original key or delete and recreate the affected record.'
+    )
+    return DECRYPTION_FAILED
+  }
 }
 
 /** Encrypt if not null/undefined. */

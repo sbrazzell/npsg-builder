@@ -79,10 +79,22 @@ export default async function FilingsPage({ params }: { params: Promise<{ id: st
         ) : (
           <div className="space-y-3">
             {drafts.map((draft) => {
-              const snapshot = JSON.parse(draft.snapshotJson)
+              // snapshotJson is null when decryption failed (key mismatch)
+              const decryptionFailed = draft.snapshotJson === null
+              const snapshot = decryptionFailed ? null : (() => {
+                try { return JSON.parse(draft.snapshotJson as string) } catch { return null }
+              })()
+
               return (
                 <Card key={draft.id} className={draft.status === 'final' ? 'border-emerald-200 bg-emerald-50/30' : ''}>
                   <CardContent className="py-4">
+                    {decryptionFailed && (
+                      <div className="mb-3 rounded-sm px-3 py-2 text-xs flex items-center gap-2" style={{ background: '#fef2f2', color: '#7f1d1d', border: '1px solid #fecaca' }}>
+                        <span className="font-semibold">Decryption failed</span>
+                        — this draft was encrypted with a different key. Restore the original{' '}
+                        <code className="font-mono">FIELD_ENCRYPTION_KEY</code> or delete and recreate this draft.
+                      </div>
+                    )}
                     <div className="flex items-start gap-4">
                       {/* Version indicator */}
                       <div className="shrink-0 w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
@@ -105,11 +117,17 @@ export default async function FilingsPage({ params }: { params: Promise<{ id: st
                         </div>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                           <span>Saved {new Date(draft.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                          <span>{snapshot.threats?.length ?? 0} threats</span>
-                          <span>{snapshot.projects?.length ?? 0} projects</span>
-                          <span>${snapshot.totalBudget?.toLocaleString() ?? 0} total budget</span>
-                          {snapshot.analysisScore != null && (
-                            <span>Analysis score: {snapshot.analysisScore}/100</span>
+                          {snapshot ? (
+                            <>
+                              <span>{snapshot.threats?.length ?? 0} threats</span>
+                              <span>{snapshot.projects?.length ?? 0} projects</span>
+                              <span>${snapshot.totalBudget?.toLocaleString() ?? 0} total budget</span>
+                              {snapshot.analysisScore != null && (
+                                <span>Analysis score: {snapshot.analysisScore}/100</span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="italic">snapshot unavailable</span>
                           )}
                         </div>
                         {draft.notes && (
@@ -119,11 +137,13 @@ export default async function FilingsPage({ params }: { params: Promise<{ id: st
 
                       {/* Actions */}
                       <div className="shrink-0 flex items-center gap-2">
-                        <Button asChild size="sm" variant="ghost">
-                          <Link href={`/sites/${id}/filings/${draft.id}`}>
-                            View Forms <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                          </Link>
-                        </Button>
+                        {!decryptionFailed && (
+                          <Button asChild size="sm" variant="ghost">
+                            <Link href={`/sites/${id}/filings/${draft.id}`}>
+                              View Forms <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                            </Link>
+                          </Button>
+                        )}
                         <DraftActions draftId={draft.id} siteId={id} status={draft.status} />
                       </div>
                     </div>
