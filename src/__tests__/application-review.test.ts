@@ -56,6 +56,8 @@ function makeProject(
     timelineSource: 'user',
     sustainmentSource: 'user',
     generationWarnings: [],
+    includedInFiling: true,
+    sortOrder: 0,
     ...overrides,
   }
 }
@@ -111,6 +113,8 @@ function makeSnapshot(overrides: Partial<FilingSnapshot> = {}): FilingSnapshot {
         sourceAgency: 'Chicago Police Department',
         vulnerabilityNotes: 'All four entry points are unlocked during open hours. No cameras cover the rear entrance.',
         incidentHistory: 'In 2024, an unidentified individual entered the sanctuary during Sunday service and was removed by ushers. In 2023, a similar incident occurred at the food pantry entrance.',
+        includedInFiling: true,
+        sortOrder: 0,
       },
     ],
     securityMeasures: [
@@ -120,8 +124,11 @@ function makeSnapshot(overrides: Partial<FilingSnapshot> = {}): FilingSnapshot {
         description: 'Traditional key-and-lock system on all doors.',
         effectivenessRating: 1,
         gapsRemaining: 'Keys cannot be revoked remotely; no audit trail; no camera coverage at any entry point.',
+        includedInFiling: true,
+        sortOrder: 0,
       },
     ],
+    observations: [],
     projects: [project],
     narratives: {
       threat_overview: 'The site has experienced repeated acts of unauthorized entry.',
@@ -670,6 +677,8 @@ describe('Project alignment checks', () => {
           sourceAgency: null,
           vulnerabilityNotes: 'Open entry, no panic buttons, no CCTV coverage.',
           incidentHistory: 'In 2024, a threat was made via social media.',
+          includedInFiling: true,
+          sortOrder: 1,
         },
       ],
       // project only addresses Unauthorized Entry, not Active Shooter

@@ -14,7 +14,8 @@ const CATEGORY_ORDER = [
 ]
 
 export function FormBudget({ snapshot }: { snapshot: FilingSnapshot }) {
-  const { organization: org, projects, totalBudget, narratives } = snapshot
+  const { organization: org, totalBudget, narratives } = snapshot
+  const projects = snapshot.projects.filter((p) => p.includedInFiling)
   const site = snapshot.site ?? { siteName: 'Unknown Site', id: '', address: null }
 
   // Roll up budget items by category across all projects

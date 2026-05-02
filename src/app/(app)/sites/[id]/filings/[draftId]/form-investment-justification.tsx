@@ -128,8 +128,10 @@ function ProjectSection({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnapshot }) {
-  const { organization: org, threats, securityMeasures, projects, narratives, totalBudget } =
-    snapshot
+  const { organization: org, narratives, totalBudget } = snapshot
+  const threats = snapshot.threats.filter((t) => t.includedInFiling)
+  const securityMeasures = snapshot.securityMeasures.filter((m) => m.includedInFiling)
+  const projects = snapshot.projects.filter((p) => p.includedInFiling)
   const site = snapshot.site ?? { siteName: 'Unknown Site', id: '', address: null }
   const orgAddress = [org.address, org.city, org.state, org.zip].filter(Boolean).join(', ')
   const highRisk = threats.filter((t) => t.riskLevel === 'high' || t.riskLevel === 'critical')

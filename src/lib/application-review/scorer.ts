@@ -8,9 +8,11 @@ import { isGenericItemName } from '@/lib/export-validation'
 import { detectVagueTerms, mentionsMaintenance, mentionsOwnership } from './utils'
 
 // ── Sub-scorers (each returns 0-100) ─────────────────────────────────────────
+// All scorers operate on INCLUDED items only. Excluded items do not affect scores.
 
 function scoreThreatEvidence(snapshot: FilingSnapshot): number {
-  const { threats, site } = snapshot
+  const { site } = snapshot
+  const threats = snapshot.threats.filter((t) => t.includedInFiling)
   if (threats.length === 0) return 0
 
   let pts = 0
@@ -34,7 +36,9 @@ function scoreThreatEvidence(snapshot: FilingSnapshot): number {
 }
 
 function scoreVulnerabilitySpecificity(snapshot: FilingSnapshot): number {
-  const { securityMeasures, threats, site, projects } = snapshot
+  const { site } = snapshot
+  const securityMeasures = snapshot.securityMeasures.filter((m) => m.includedInFiling)
+  const threats = snapshot.threats.filter((t) => t.includedInFiling)
   let pts = 0
 
   // Security measures documented (20)
@@ -66,7 +70,8 @@ function scoreVulnerabilitySpecificity(snapshot: FilingSnapshot): number {
 }
 
 function scoreProjectAlignment(snapshot: FilingSnapshot): number {
-  const { projects, threats } = snapshot
+  const projects = snapshot.projects.filter((p) => p.includedInFiling)
+  const threats = snapshot.threats.filter((t) => t.includedInFiling)
   if (projects.length === 0) return 0
 
   let pts = 0
@@ -106,7 +111,9 @@ function scoreProjectAlignment(snapshot: FilingSnapshot): number {
 }
 
 function scoreBudgetQuality(snapshot: FilingSnapshot): number {
-  const allItems = snapshot.projects.flatMap((p) => p.budgetItems)
+  const allItems = snapshot.projects
+    .filter((p) => p.includedInFiling)
+    .flatMap((p) => p.budgetItems)
   if (allItems.length === 0) return 0
 
   let pts = 0
@@ -126,17 +133,16 @@ function scoreBudgetQuality(snapshot: FilingSnapshot): number {
   pts += justPct >= 0.75 ? 25 : Math.round(justPct * 25)
 
   // Budget math clean (20)
-  const computedTotal = snapshot.projects.reduce(
-    (sum, p) => sum + p.budgetItems.reduce((s, b) => s + b.totalCost, 0),
-    0,
-  )
+  const computedTotal = snapshot.projects
+    .filter((p) => p.includedInFiling)
+    .reduce((sum, p) => sum + p.budgetItems.reduce((s, b) => s + b.totalCost, 0), 0)
   if (Math.abs(computedTotal - snapshot.totalBudget) < 0.01) pts += 20
 
   return Math.min(100, pts)
 }
 
 function scoreImplementationFeasibility(snapshot: FilingSnapshot): ReviewScores['implementation_feasibility'] {
-  const { projects } = snapshot
+  const projects = snapshot.projects.filter((p) => p.includedInFiling)
   if (projects.length === 0) return 0
 
   let pts = 0
@@ -161,7 +167,7 @@ function scoreImplementationFeasibility(snapshot: FilingSnapshot): ReviewScores[
 }
 
 function scoreSustainmentQuality(snapshot: FilingSnapshot): number {
-  const { projects } = snapshot
+  const projects = snapshot.projects.filter((p) => p.includedInFiling)
   if (projects.length === 0) return 0
 
   let pts = 0
@@ -201,10 +207,9 @@ function scoreAttachmentReadiness(snapshot: FilingSnapshot): number {
   if (org.contactEmail?.trim()) pts += 25
 
   // No budget math error (25)
-  const computedTotal = snapshot.projects.reduce(
-    (sum, p) => sum + p.budgetItems.reduce((s, b) => s + b.totalCost, 0),
-    0,
-  )
+  const computedTotal = snapshot.projects
+    .filter((p) => p.includedInFiling)
+    .reduce((sum, p) => sum + p.budgetItems.reduce((s, b) => s + b.totalCost, 0), 0)
   if (Math.abs(computedTotal - snapshot.totalBudget) < 0.01) pts += 25
 
   return Math.min(100, pts)

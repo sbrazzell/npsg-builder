@@ -60,6 +60,8 @@ export interface FilingSnapshot {
     incidentHistory?: string | null
     source: string
     sourceAgency?: string | null
+    includedInFiling: boolean
+    sortOrder: number
   }>
   securityMeasures: Array<{
     id: string
@@ -67,6 +69,18 @@ export interface FilingSnapshot {
     description?: string | null
     effectivenessRating: number
     gapsRemaining?: string | null
+    includedInFiling: boolean
+    sortOrder: number
+  }>
+  observations: Array<{
+    id: string
+    title: string
+    locationDescription?: string | null
+    observationType?: string | null
+    severity: number
+    notes?: string | null
+    includedInFiling: boolean
+    sortOrder: number
   }>
   projects: Array<{
     id: string
@@ -98,6 +112,8 @@ export interface FilingSnapshot {
     timelineSource: NarrativeSource
     sustainmentSource: NarrativeSource
     generationWarnings: string[]
+    includedInFiling: boolean
+    sortOrder: number
   }>
   narratives: Record<string, string>
   totalBudget: number
@@ -112,14 +128,15 @@ async function buildSnapshot(siteId: string): Promise<FilingSnapshot> {
     where: { id: siteId },
     include: {
       organization: true,
-      threatAssessments: { orderBy: [{ likelihood: 'desc' }, { impact: 'desc' }] },
-      securityMeasures: { orderBy: { category: 'asc' } },
+      threatAssessments: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }] },
+      securityMeasures: { orderBy: [{ sortOrder: 'asc' }, { category: 'asc' }] },
+      siteObservations: { orderBy: [{ sortOrder: 'asc' }, { severity: 'desc' }] },
       projectProposals: {
         include: {
           budgetItems: { orderBy: { createdAt: 'asc' } },
           threatLinks: { include: { threat: true } },
         },
-        orderBy: { priority: 'asc' },
+        orderBy: [{ sortOrder: 'asc' }, { priority: 'asc' }],
       },
       narrativeDrafts: { orderBy: [{ sectionName: 'asc' }, { versionNumber: 'desc' }] },
       grantAnalyses: { orderBy: { createdAt: 'desc' }, take: 1 },
@@ -135,14 +152,17 @@ async function buildSnapshot(siteId: string): Promise<FilingSnapshot> {
     }
   }
 
-  const totalBudget = facility.projectProposals.reduce(
-    (s, p) => s + p.budgetItems.reduce((b, i) => b + i.totalCost, 0), 0
-  )
+  // Budget and risk counts use only items included in the filing
+  const totalBudget = facility.projectProposals
+    .filter((p) => (p as any).includedInFiling !== false)
+    .reduce((s, p) => s + p.budgetItems.reduce((b, i) => b + i.totalCost, 0), 0)
 
-  const highRiskThreatCount = facility.threatAssessments.filter((t) => {
-    const lvl = getRiskLevel(calculateRiskScore(t.likelihood, t.impact))
-    return lvl === 'high' || lvl === 'critical'
-  }).length
+  const highRiskThreatCount = facility.threatAssessments
+    .filter((t) => (t as any).includedInFiling !== false)
+    .filter((t) => {
+      const lvl = getRiskLevel(calculateRiskScore(t.likelihood, t.impact))
+      return lvl === 'high' || lvl === 'critical'
+    }).length
 
   const f = facility as any
 
@@ -194,6 +214,8 @@ async function buildSnapshot(siteId: string): Promise<FilingSnapshot> {
       incidentHistory: t.incidentHistory,
       source: (t as any).source ?? 'self_assessed',
       sourceAgency: (t as any).sourceAgency ?? null,
+      includedInFiling: (t as any).includedInFiling ?? true,
+      sortOrder: (t as any).sortOrder ?? 0,
     })),
     securityMeasures: facility.securityMeasures.map((m) => ({
       id: m.id,
@@ -201,6 +223,18 @@ async function buildSnapshot(siteId: string): Promise<FilingSnapshot> {
       description: m.description,
       effectivenessRating: m.effectivenessRating,
       gapsRemaining: m.gapsRemaining,
+      includedInFiling: (m as any).includedInFiling ?? true,
+      sortOrder: (m as any).sortOrder ?? 0,
+    })),
+    observations: facility.siteObservations.map((o) => ({
+      id: o.id,
+      title: o.title,
+      locationDescription: o.locationDescription,
+      observationType: o.observationType,
+      severity: o.severity,
+      notes: o.notes,
+      includedInFiling: (o as any).includedInFiling ?? true,
+      sortOrder: (o as any).sortOrder ?? 0,
     })),
     projects: facility.projectProposals.map((p) => {
       const budgetItems = p.budgetItems.map((b) => ({
@@ -259,6 +293,8 @@ async function buildSnapshot(siteId: string): Promise<FilingSnapshot> {
         timelineSource: narrativeResult.timelineSource,
         sustainmentSource: narrativeResult.sustainmentSource,
         generationWarnings: narrativeResult.generationWarnings,
+        includedInFiling: (p as any).includedInFiling ?? true,
+        sortOrder: (p as any).sortOrder ?? 0,
       }
     }),
     narratives,

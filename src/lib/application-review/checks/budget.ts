@@ -38,7 +38,7 @@ function suggestSpecificName(
 
 export function checkBudgetQuality(snapshot: FilingSnapshot): ReviewFinding[] {
   const findings: ReviewFinding[] = []
-  const { projects } = snapshot
+  const projects = snapshot.projects.filter((p) => p.includedInFiling)
 
   for (const project of projects) {
     const pid = slug(project.id)

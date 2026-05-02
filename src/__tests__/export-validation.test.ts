@@ -48,6 +48,8 @@ function makeProject(
     timelineSource: 'inferred',
     sustainmentSource: 'inferred',
     generationWarnings: [],
+    includedInFiling: true,
+    sortOrder: 0,
     ...overrides,
   }
 }
@@ -85,9 +87,12 @@ function makeSnapshot(
         riskScore: 16,
         riskLevel: 'high',
         source: 'self_assessed',
+        includedInFiling: true,
+        sortOrder: 0,
       },
     ],
     securityMeasures: [],
+    observations: [],
     projects: [project],
     narratives: {
       threat_overview: 'The site has experienced repeated acts of vandalism.',

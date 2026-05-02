@@ -117,3 +117,29 @@ export async function unlinkThreatFromProject(projectId: string, threatId: strin
     return { success: false, error: 'Failed to unlink threat from project' }
   }
 }
+
+export async function toggleProjectIncluded(id: string, includedInFiling: boolean, siteId: string) {
+  await requireAuth()
+  try {
+    await prisma.projectProposal.update({ where: { id }, data: { includedInFiling } })
+    revalidatePath(`/sites/${siteId}/projects`)
+    return { success: true }
+  } catch {
+    return { success: false, error: 'Failed to update project' }
+  }
+}
+
+export async function reorderProjects(siteId: string, orderedIds: string[]) {
+  await requireAuth()
+  try {
+    await Promise.all(
+      orderedIds.map((id, index) =>
+        prisma.projectProposal.update({ where: { id }, data: { sortOrder: index } })
+      )
+    )
+    revalidatePath(`/sites/${siteId}/projects`)
+    return { success: true }
+  } catch {
+    return { success: false, error: 'Failed to reorder projects' }
+  }
+}

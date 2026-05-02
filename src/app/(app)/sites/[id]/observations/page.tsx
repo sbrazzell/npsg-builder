@@ -1,11 +1,9 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { Header } from '@/components/layout/header'
-import { PageHeader } from '@/components/shared/page-header'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Eye } from 'lucide-react'
-import { ObservationCard } from './observation-card'
+import { ObservationList } from './observation-list'
 import { ObservationForm } from './observation-form'
 import { Card, CardContent } from '@/components/ui/card'
 
@@ -15,11 +13,23 @@ export default async function ObservationsPage({ params }: { params: Promise<{ i
     where: { id },
     include: {
       organization: true,
-      siteObservations: { orderBy: { severity: 'desc' } },
+      siteObservations: { orderBy: [{ sortOrder: 'asc' }, { severity: 'desc' }] },
     },
   })
 
   if (!facility) notFound()
+
+  const observations = facility.siteObservations.map((o) => ({
+    id: o.id,
+    siteId: id,
+    title: o.title,
+    locationDescription: o.locationDescription,
+    observationType: o.observationType,
+    severity: o.severity,
+    notes: o.notes,
+    includedInFiling: (o as any).includedInFiling ?? true,
+    sortOrder: (o as any).sortOrder ?? 0,
+  }))
 
   return (
     <div>
@@ -28,31 +38,36 @@ export default async function ObservationsPage({ params }: { params: Promise<{ i
         { label: facility.siteName, href: `/sites/${id}` },
         { label: 'Site Observations' },
       ]} />
-      <div className="p-4 md:p-8">
-        <PageHeader
-          title="Site Observations"
-          description={`Field observations from site walkthrough at ${facility.siteName}`}
-        />
+      <div className="px-8 pb-16">
+
+        {/* Page header */}
+        <div className="pt-8 pb-6">
+          <p className="eyebrow mb-2">Field walkthrough · {facility.siteName}</p>
+          <h1 className="font-serif font-medium"
+            style={{ fontSize: '28px', letterSpacing: '-0.02em', color: 'var(--ink)' }}>
+            Site Observations
+          </h1>
+          <p className="mt-1.5 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>
+            {observations.length} {observations.length === 1 ? 'observation' : 'observations'} ·{' '}
+            {observations.filter(o => o.includedInFiling).length} included in filing
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Observations List */}
+          {/* List */}
           <div className="lg:col-span-2">
-            {facility.siteObservations.length === 0 ? (
+            {observations.length === 0 ? (
               <EmptyState
                 icon={Eye}
                 title="No observations recorded"
                 description="Document field observations from your site walkthrough to support the security assessment narrative."
               />
             ) : (
-              <div className="space-y-3">
-                {facility.siteObservations.map((obs) => (
-                  <ObservationCard key={obs.id} obs={obs} siteId={id} />
-                ))}
-              </div>
+              <ObservationList observations={observations} siteId={id} />
             )}
           </div>
 
-          {/* Add Form */}
+          {/* Add form */}
           <div>
             <Card>
               <CardContent className="pt-5">

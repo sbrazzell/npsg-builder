@@ -75,6 +75,9 @@ model ThreatAssessment {
   // Source of this threat assessment
   source              String    @default("self_assessed")
   sourceAgency        String?
+  // Filing control
+  includedInFiling    Boolean   @default(true)
+  sortOrder           Int       @default(0)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   projectLinks        ProjectThreatLink[]
@@ -89,6 +92,9 @@ model ExistingSecurityMeasure {
   effectivenessRating Int       @default(3)
   gapsRemaining       String?
   notes               String?
+  // Filing control
+  includedInFiling    Boolean   @default(true)
+  sortOrder           Int       @default(0)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }
@@ -112,6 +118,9 @@ model ProjectProposal {
   // User-authored narrative overrides (take priority over auto-generated)
   timelineNarrative       String?
   sustainmentNarrative    String?
+  // Filing control
+  includedInFiling        Boolean   @default(true)
+  sortOrder               Int       @default(0)
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
   budgetItems             BudgetItem[]
@@ -167,6 +176,9 @@ model SiteObservation {
   severity            Int       @default(3)
   notes               String?
   photoFilename       String?
+  // Filing control
+  includedInFiling    Boolean   @default(true)
+  sortOrder           Int       @default(0)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }

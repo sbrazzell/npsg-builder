@@ -65,3 +65,29 @@ export async function deleteObservation(id: string, siteId: string) {
     return { success: false, error: 'Failed to delete observation' }
   }
 }
+
+export async function toggleObservationIncluded(id: string, includedInFiling: boolean, siteId: string) {
+  await requireAuth()
+  try {
+    await prisma.siteObservation.update({ where: { id }, data: { includedInFiling } })
+    revalidatePath(`/sites/${siteId}/observations`)
+    return { success: true }
+  } catch {
+    return { success: false, error: 'Failed to update observation' }
+  }
+}
+
+export async function reorderObservations(siteId: string, orderedIds: string[]) {
+  await requireAuth()
+  try {
+    await Promise.all(
+      orderedIds.map((id, index) =>
+        prisma.siteObservation.update({ where: { id }, data: { sortOrder: index } })
+      )
+    )
+    revalidatePath(`/sites/${siteId}/observations`)
+    return { success: true }
+  } catch {
+    return { success: false, error: 'Failed to reorder observations' }
+  }
+}
