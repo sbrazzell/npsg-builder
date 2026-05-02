@@ -15,6 +15,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ id: s
     where: { id },
     include: {
       organization: true,
+      threatAssessments: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], select: { id: true, threatType: true } },
       projectProposals: {
         include: {
           budgetItems: true,
@@ -73,7 +74,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ id: s
             </p>
           </div>
           <div className="flex items-center gap-2 mt-0.5">
-            <ProjectGenerator siteId={id} hasExistingProjects={projects.length > 0} />
+            <ProjectGenerator siteId={id} hasExistingProjects={projects.length > 0} siteThreats={facility.threatAssessments} />
             <Link
               href={`/sites/${id}/projects/new`}
               className="inline-flex items-center gap-1.5 px-3 py-[7px] rounded-sm text-[13px] font-medium"
@@ -87,7 +88,7 @@ export default async function ProjectsPage({ params }: { params: Promise<{ id: s
 
         {projects.length === 0 ? (
           <div className="space-y-6">
-            <ProjectGenerator siteId={id} hasExistingProjects={false} />
+            <ProjectGenerator siteId={id} hasExistingProjects={false} siteThreats={facility.threatAssessments} />
             <EmptyState
               icon={FileText}
               title="No project proposals yet"

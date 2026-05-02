@@ -160,7 +160,15 @@ type ProjectReviewState = {
   expanded: boolean
 }
 
-export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: string; hasExistingProjects: boolean }) {
+export function ProjectGenerator({
+  siteId,
+  hasExistingProjects,
+  siteThreats = [],
+}: {
+  siteId: string
+  hasExistingProjects: boolean
+  siteThreats?: { id: string; threatType: string }[]
+}) {
   const router = useRouter()
   const [phase, setPhase] = useState<Phase>('idle')
   const [result, setResult] = useState<GenerationResult | null>(null)
@@ -237,6 +245,9 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
   function toggleExpanded(idx: number) {
     setProjectStates((prev) => prev.map((s, i) => i === idx ? { ...s, expanded: !s.expanded } : s))
   }
+
+  // Build a type→label map for display in the review panel ("T-1", "T-2", ...)
+  const threatLabelByType = new Map(siteThreats.map((t, i) => [t.threatType.toLowerCase(), `T-${i + 1}`]))
 
   const includedProjects = projectStates.filter((s) => s.included)
   const selectedBudget = includedProjects
@@ -324,6 +335,7 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
                 const idx = projectStates.indexOf(s)
                 return (
                   <ProjectReviewCard key={idx} state={s}
+                    threatLabelByType={threatLabelByType}
                     onToggleIncluded={() => toggleIncluded(idx)}
                     onToggleStatus={() => toggleStatus(idx)}
                     onToggleExpanded={() => toggleExpanded(idx)}
@@ -351,6 +363,7 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
                 const idx = projectStates.indexOf(s)
                 return (
                   <ProjectReviewCard key={idx} state={s}
+                    threatLabelByType={threatLabelByType}
                     onToggleIncluded={() => toggleIncluded(idx)}
                     onToggleStatus={() => toggleStatus(idx)}
                     onToggleExpanded={() => toggleExpanded(idx)}
@@ -402,9 +415,10 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
 // ─── Review card ──────────────────────────────────────────────────────────────
 
 function ProjectReviewCard({
-  state, onToggleIncluded, onToggleStatus, onToggleExpanded,
+  state, threatLabelByType, onToggleIncluded, onToggleStatus, onToggleExpanded,
 }: {
   state: ProjectReviewState
+  threatLabelByType: Map<string, string>
   onToggleIncluded: () => void
   onToggleStatus: () => void
   onToggleExpanded: () => void
@@ -412,6 +426,11 @@ function ProjectReviewCard({
   const { project, included, status, expanded } = state
   const catStyle = CATEGORY_COLORS[project.category] ?? { bg: 'var(--paper-2)', text: 'var(--ink-3)', border: 'var(--rule)' }
   const projectBudget = project.budgetItems.reduce((s, b) => s + b.totalCost, 0)
+
+  // Resolve threat labels for this project (e.g. ["T-1", "T-3"])
+  const threatRefs = (project.addressedThreatTypes ?? [])
+    .map((t) => ({ label: threatLabelByType.get(t.toLowerCase()), type: t }))
+    .filter((r): r is { label: string; type: string } => !!r.label)
 
   return (
     <div
@@ -458,6 +477,16 @@ function ProjectReviewCard({
               Priority {project.priority} — {PRIORITY_LABEL[project.priority] ?? ''}
             </span>
           </div>
+          {threatRefs.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {threatRefs.map((r) => (
+                <span key={r.label} className="text-[10.5px] px-1.5 py-0.5 rounded-sm font-mono" style={{ background: 'var(--nav-wash)', color: 'var(--nav-accent)', border: '1px solid var(--rule)' }}>
+                  {r.label}
+                </span>
+              ))}
+              <span className="text-[10.5px] self-center" style={{ color: 'var(--ink-4)' }}>mitigated</span>
+            </div>
+          )}
           {!expanded && project.problemStatement && (
             <p className="text-[12px] mt-0.5 truncate" style={{ color: 'var(--ink-3)' }}>
               {project.problemStatement}
@@ -495,7 +524,19 @@ function ProjectReviewCard({
       {/* Expanded detail */}
       {expanded && (
         <div className="px-4 pb-4 border-t space-y-3" style={{ borderColor: 'var(--rule-2)' }}>
-          <div className="pt-3 grid grid-cols-2 gap-4">
+          {threatRefs.length > 0 && (
+            <div className="pt-3">
+              <p className="text-[10.5px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--ink-3)' }}>Threats Mitigated</p>
+              <div className="flex flex-wrap gap-1.5">
+                {threatRefs.map((r) => (
+                  <span key={r.label} className="text-[11px] px-2 py-0.5 rounded-sm font-mono" style={{ background: 'var(--nav-wash)', color: 'var(--nav-accent)', border: '1px solid #c5cde8' }}>
+                    {r.label} · {r.type}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className={threatRefs.length > 0 ? 'grid grid-cols-2 gap-4' : 'pt-3 grid grid-cols-2 gap-4'}>
             <DetailField label="Problem Statement" value={project.problemStatement} />
             <DetailField label="Proposed Solution" value={project.proposedSolution} />
             <DetailField label="Risk Reduction / NSGP Alignment" value={project.riskReductionRationale} />

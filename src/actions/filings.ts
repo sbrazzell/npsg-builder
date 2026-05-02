@@ -104,6 +104,7 @@ export interface FilingSnapshot {
       justification?: string | null
     }>
     linkedThreatTypes: string[]
+    linkedThreatIds?: string[]
     // Implementation, Timeline & Sustainment — always populated in new snapshots
     implementationNarrative: string
     implementationSource: NarrativeSource
@@ -286,6 +287,7 @@ async function buildSnapshot(siteId: string): Promise<FilingSnapshot> {
         projectBudget: p.budgetItems.reduce((s, b) => s + b.totalCost, 0),
         budgetItems,
         linkedThreatTypes: p.threatLinks.map((l) => l.threat.threatType),
+        linkedThreatIds: p.threatLinks.map((l) => l.threat.id),
         implementationNarrative: narrativeResult.implementationNarrative,
         implementationSource: narrativeResult.implementationSource,
         timelineNarrative: narrativeResult.timelineNarrative,

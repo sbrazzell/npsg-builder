@@ -21,6 +21,8 @@ export interface GeneratedProject {
   priority: number
   status: 'selected' | 'consideration'
   budgetItems: GeneratedBudgetItem[]
+  /** Threat type strings (exactly as they appear in the documented threats input) this project mitigates */
+  addressedThreatTypes?: string[]
 }
 
 export interface GenerationResult {
@@ -181,6 +183,7 @@ OUTPUT FORMAT — respond with ONLY a raw JSON object. Do NOT wrap in markdown c
       "implementationNotes": "1 sentence: implementation approach",
       "priority": 1,
       "status": "selected" | "consideration",
+      "addressedThreatTypes": ["exact threat type string from DOCUMENTED THREATS above", ...],
       "budgetItems": [
         {
           "itemName": "string — specific product/service name",
@@ -195,6 +198,8 @@ OUTPUT FORMAT — respond with ONLY a raw JSON object. Do NOT wrap in markdown c
   "budgetStrategy": "string — 2 sentences max",
   "layeredSecuritySummary": "string — 1 sentence"
 }
+
+For addressedThreatTypes: copy the threat type strings EXACTLY as they appear in the DOCUMENTED THREATS section above. Every project must address at least one threat.
 
 Write in formal, third-person grant language. Do not use placeholder text. Be specific to the documented threats and site context.`
 }

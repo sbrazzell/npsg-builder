@@ -162,6 +162,7 @@ type GeneratedProjectInput = {
   priority: number
   status: string
   budgetItems: GeneratedBudgetItemInput[]
+  addressedThreatTypes?: string[]
 }
 
 export async function saveGeneratedProjects(siteId: string, projects: GeneratedProjectInput[]) {
@@ -171,12 +172,18 @@ export async function saveGeneratedProjects(siteId: string, projects: GeneratedP
   }
 
   try {
-    // Assign sortOrders starting after any existing projects
+    // Build a type→id map for the site's threats so we can auto-link
+    const siteThreats = await prisma.threatAssessment.findMany({
+      where: { siteId },
+      select: { id: true, threatType: true },
+    })
+    const threatTypeToId = new Map(siteThreats.map((t) => [t.threatType.toLowerCase(), t.id]))
+
     const existing = await prisma.projectProposal.count({ where: { siteId } })
 
     await Promise.all(
-      projects.map((p, i) =>
-        prisma.projectProposal.create({
+      projects.map(async (p, i) => {
+        const created = await prisma.projectProposal.create({
           data: {
             siteId,
             title: p.title,
@@ -199,7 +206,22 @@ export async function saveGeneratedProjects(siteId: string, projects: GeneratedP
             },
           },
         })
-      )
+
+        // Auto-create threat links from the AI's addressedThreatTypes
+        if (p.addressedThreatTypes && p.addressedThreatTypes.length > 0) {
+          const threatIds = p.addressedThreatTypes
+            .map((t) => threatTypeToId.get(t.toLowerCase()))
+            .filter((id): id is string => id !== undefined)
+
+          if (threatIds.length > 0) {
+            await Promise.all(
+              threatIds.map((threatId) =>
+                prisma.projectThreatLink.create({ data: { projectId: created.id, threatId } })
+              )
+            )
+          }
+        }
+      })
     )
 
     revalidatePath(`/sites/${siteId}/projects`)

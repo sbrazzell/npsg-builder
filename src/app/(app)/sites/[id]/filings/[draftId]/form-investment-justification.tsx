@@ -137,6 +137,11 @@ export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnap
   const highRisk = threats.filter((t) => t.riskLevel === 'high' || t.riskLevel === 'critical')
   const leReceived = !!(site as Record<string, unknown>).lawEnforcementResponseDate
 
+  // Build label maps so projects can cross-reference "T-1", "T-2", etc.
+  // Primary: by ID (new snapshots). Fallback: by type string (old snapshots).
+  const threatLabelById = new Map<string, string>(threats.map((t, i) => [t.id, `T-${i + 1}`]))
+  const threatLabelByType = new Map<string, string>(threats.map((t, i) => [t.threatType, `T-${i + 1}`]))
+
   return (
     <div className="font-sans text-gray-900 bg-white" id="form-ij">
       {/* ── Cover ── */}
@@ -256,6 +261,7 @@ export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnap
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-100">
+                    <th className="border border-slate-300 p-2 text-center w-10">#</th>
                     <th className="border border-slate-300 p-2 text-left">Threat</th>
                     <th className="border border-slate-300 p-2 text-center">Likelihood</th>
                     <th className="border border-slate-300 p-2 text-center">Impact</th>
@@ -265,7 +271,7 @@ export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnap
                   </tr>
                 </thead>
                 <tbody>
-                  {threats.map((t) => (
+                  {threats.map((t, ti) => (
                     <tr
                       key={t.id}
                       className={
@@ -276,6 +282,9 @@ export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnap
                             : ''
                       }
                     >
+                      <td className="border border-slate-300 p-2 text-center font-mono text-xs font-semibold text-slate-500">
+                        T-{ti + 1}
+                      </td>
                       <td className="border border-slate-300 p-2">
                         <p className="font-medium">{t.threatType}</p>
                         {t.description && (
@@ -360,13 +369,36 @@ export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnap
           )}
 
           {projects.map((project, i) => {
-            // Build a de-duplicated list of the threat types this project links to
-            const linkedThreats =
-              project.linkedThreatTypes.length > 0
-                ? project.linkedThreatTypes
-                : threats
-                    .filter((t) => t.riskLevel === 'high' || t.riskLevel === 'critical')
-                    .map((t) => t.threatType)
+            // Resolve linked threat refs using IDs (new snapshots) or type strings (old snapshots)
+            type ThreatRef = { label: string; threatType: string }
+            const linkedRefs: ThreatRef[] = (() => {
+              const ids: string[] = (project as Record<string, unknown>).linkedThreatIds as string[] ?? []
+              if (ids.length > 0) {
+                return ids
+                  .map((id) => {
+                    const label = threatLabelById.get(id)
+                    const threat = threats.find((t) => t.id === id)
+                    return label && threat ? { label, threatType: threat.threatType } : null
+                  })
+                  .filter((r): r is ThreatRef => r !== null)
+              }
+              // Fallback: type-string lookup (pre-linkedThreatIds snapshots)
+              return project.linkedThreatTypes
+                .map((tt) => {
+                  const label = threatLabelByType.get(tt)
+                  return label ? { label, threatType: tt } : null
+                })
+                .filter((r): r is ThreatRef => r !== null)
+            })()
+
+            // When there are no explicit links, fall back to all high/critical threats
+            const fallbackRefs: ThreatRef[] = threats
+              .filter((t) => t.riskLevel === 'high' || t.riskLevel === 'critical')
+              .map((t) => ({ label: threatLabelById.get(t.id) ?? '', threatType: t.threatType }))
+              .filter((r) => r.label)
+
+            const displayRefs = linkedRefs.length > 0 ? linkedRefs : fallbackRefs
+            const refList = displayRefs.map((r) => r.label).join(', ')
 
             return (
               <div
@@ -392,17 +424,22 @@ export function FormInvestmentJustification({ snapshot }: { snapshot: FilingSnap
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
                       Threats Addressed
                     </p>
-                    {linkedThreats.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        {linkedThreats.map((tt) => (
-                          <span
-                            key={tt}
-                            className="text-xs px-2 py-0.5 bg-slate-200 text-slate-700 rounded"
-                          >
-                            {tt}
-                          </span>
-                        ))}
-                      </div>
+                    {displayRefs.length > 0 ? (
+                      <>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {displayRefs.map((ref) => (
+                            <span
+                              key={ref.label}
+                              className="text-xs px-2 py-0.5 bg-slate-200 text-slate-700 rounded font-mono"
+                            >
+                              {ref.label} · {ref.threatType}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2 italic">
+                          This project mitigates {refList} identified in Part 2 (Threat Assessment) above.
+                        </p>
+                      </>
                     ) : (
                       <p className="text-xs text-amber-600 italic">
                         No threats linked — link threats in the project editor
