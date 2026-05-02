@@ -294,6 +294,24 @@ import { calculateRiskScore, getRiskLevel, formatCurrency } from '@/lib/scoring'
 
 `ThreatCard` (`threat-card.tsx`) — per-item card with view/edit toggle. Edit mode expands inline with all fields (threat type, description, sliders, source, agency, vulnerability notes, incident history) + live risk score badge. Follows the same view/edit pattern as `ObservationCard`.
 
+### Project Proposals page pattern
+`ProjectGenerator` (`project-generator.tsx`) — client component with idle → loading → review → saving state machine.
+- Click triggers `POST /api/ai/generate-projects` with the siteId
+- During loading shows `GenerationProgress`: step-by-step checklist (Collecting site info → Analyzing gaps → Building prompt → Waiting for Claude → Parsing) with a live elapsed-second counter on the AI step
+- On response, shows review panel: Budget Strategy summary, "Selected for Grant Inclusion" group (priority 4–5), "Consideration Phase" group (priority 1–3). Each card has a checkbox, status toggle, and expand for full narratives + budget table
+- Save calls `saveGeneratedProjects` server action which bulk-creates ProjectProposal + BudgetItems
+
+`BudgetStrategyPanel` (`budget-strategy.tsx`) — shows progress bar toward $200k NSGP ceiling, security layer coverage badges (Access Control / Surveillance / Lighting / Physical Hardening / Communication), and remaining capacity. Only renders when there are `status='selected'` projects.
+
+`ProjectList` (`project-list.tsx`) — groups projects into three sections (Selected for Grant / Consideration Phase / Other), each with its own independent `SortableList`. Section headers show item count and budget total for the Selected group.
+
+### AI project generation API (`/api/ai/generate-projects`)
+`POST /api/ai/generate-projects` — accepts `{ siteId }`, fetches site context, calls Claude claude-sonnet-4-6 to generate 6–10 structured NSGP proposals. Key details:
+- Input is capped: top 15 threats by risk score, top 12 observations by severity, all text fields truncated to 200 chars — keeps the prompt focused on the highest-signal data
+- Output max_tokens: 8000 (sufficient for 6–10 projects with budget items, ~4k–5k tokens used)
+- JSON is extracted via `extractJson()` — a brace-depth character walker that correctly finds the outermost `{}` regardless of preamble text or trailing notes Claude adds after the JSON
+- `GenerationResult` type is exported from the route for use by the client component
+
 ---
 
 ## PDF export system
@@ -519,8 +537,10 @@ AES-256-GCM encryption is applied transparently via a Prisma `$extends` query ex
 **Migration safety:** values without the `enc:` prefix are returned as-is — existing plaintext rows continue to work.  
 **Key generation:** `openssl rand -hex 32`
 
+**Key mismatch / graceful failure:** `decrypt()` never throws — on AES-256-GCM auth-tag verification failure (wrong key) it returns the `DECRYPTION_FAILED` sentinel (`'__decryption_failed__'`). `decryptRecord()` in `prisma.ts` maps that sentinel to `null` so callers can detect the failure without a hard crash. In `FilingsPage`, `draft.snapshotJson === null` is used as the decryption-failure flag — affected drafts show a red warning banner and the "View Forms" button is hidden; unaffected drafts still work normally. **Changing `FIELD_ENCRYPTION_KEY` after data has been written makes those rows permanently unreadable without the original key.** Never rotate the key without first re-encrypting all existing rows.
+
 ```ts
-import { encrypt, decrypt, encryptNullable, decryptNullable } from '@/lib/encryption'
+import { encrypt, decrypt, encryptNullable, decryptNullable, DECRYPTION_FAILED } from '@/lib/encryption'
 ```
 
 ### DB-backed allowlist (Option B)
@@ -677,3 +697,5 @@ CSS print rules live in the `<style>` block inside `src/app/(print)/sites/[id]/f
 - Do **not** use `array.indexOf(item)` to compute position inside `SortableList.renderItem` — after `router.refresh()` the internal state holds old references, so `indexOf` returns `-1`. Use the `index` parameter passed as the 4th argument to `renderItem` instead.
 - Do **not** forget to apply schema migrations to the **Turso** database in addition to local `dev.db`. After adding columns with `sqlite3 dev.db "ALTER TABLE..."`, run the same SQL via `turso db shell <db-name>` for production. A missing Turso migration causes `DriverAdapterError: no such column` at runtime even though `dev.db` is fine.
 - Do **not** forget to regenerate the Prisma client (`DATABASE_URL="file:./dev.db" npx prisma generate`) and restart the dev server (`rm -rf .next && npm run dev`) after adding new schema columns — Turbopack caches the old compiled client and throws `PrismaClientValidationError: Unknown argument` even after the DB migration is applied.
+- Do **not** rotate `FIELD_ENCRYPTION_KEY` without first re-encrypting all existing encrypted rows — old rows written with the previous key will fail with `Unsupported state or unable to authenticate data` at decrypt time, setting `snapshotJson` to `null` and breaking filing views. There is no automatic key migration; re-encryption must be done manually.
+- Do **not** use `lastIndexOf('}')` to extract JSON from AI responses — it finds the last `}` in the string, which breaks when Claude appends a trailing sentence or explanation after the JSON object. Always use the `extractJson()` brace-depth character walker in `src/app/api/ai/generate-projects/route.ts`.
