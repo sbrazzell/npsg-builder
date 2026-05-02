@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -9,10 +9,10 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
   type DraggableAttributes,
   type DraggableSyntheticListeners,
 } from '@dnd-kit/core'
-
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -24,7 +24,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
 import { toast } from 'sonner'
 
-// ─── Drag handle ────────────────────────────────────────────────────────────
+// ─── Drag handle ─────────────────────────────────────────────────────────────
 
 export function DragHandle({ listeners, attributes }: {
   listeners?: DraggableSyntheticListeners
@@ -70,13 +70,18 @@ export function SortableItem({
   )
 }
 
-// ─── Sortable list container ─────────────────────────────────────────────────
+// ─── Sortable list container ──────────────────────────────────────────────────
 
 interface SortableListProps<T extends { id: string }> {
   items: T[]
   onReorder: (siteId: string, orderedIds: string[]) => Promise<{ success: boolean; error?: string }>
   siteId: string
-  renderItem: (item: T, dragHandleProps: { listeners?: DraggableSyntheticListeners; attributes?: DraggableAttributes }, isDragging: boolean) => React.ReactNode
+  renderItem: (
+    item: T,
+    dragHandleProps: { listeners?: DraggableSyntheticListeners; attributes?: DraggableAttributes },
+    isDragging: boolean,
+    index: number,
+  ) => React.ReactNode
 }
 
 export function SortableList<T extends { id: string }>({
@@ -86,16 +91,34 @@ export function SortableList<T extends { id: string }>({
   renderItem,
 }: SortableListProps<T>) {
   const [items, setItems] = useState(initialItems)
+  // True while a drag-reorder is in flight — prevents props sync from overwriting optimistic order
+  const reorderInFlight = useRef(false)
+
+  // Sync internal state when the server refreshes data (e.g. after editing an item).
+  // Skipped while a drag reorder is in flight to preserve the optimistic order.
+  useEffect(() => {
+    if (!reorderInFlight.current) {
+      setItems(initialItems)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialItems])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
+  const handleDragStart = useCallback((_event: DragStartEvent) => {
+    reorderInFlight.current = true
+  }, [])
+
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event
-      if (!over || active.id === over.id) return
+      if (!over || active.id === over.id) {
+        reorderInFlight.current = false
+        return
+      }
 
       const oldIndex = items.findIndex((i) => i.id === active.id)
       const newIndex = items.findIndex((i) => i.id === over.id)
@@ -103,6 +126,7 @@ export function SortableList<T extends { id: string }>({
 
       setItems(reordered) // optimistic update
       const result = await onReorder(siteId, reordered.map((i) => i.id))
+      reorderInFlight.current = false
       if (!result.success) {
         setItems(items) // revert
         toast.error(result.error || 'Failed to save order')
@@ -112,11 +136,16 @@ export function SortableList<T extends { id: string }>({
   )
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-        {items.map((item) => (
+        {items.map((item, idx) => (
           <SortableItem key={item.id} id={item.id}>
-            {({ dragHandleProps, isDragging }) => renderItem(item, dragHandleProps, isDragging)}
+            {({ dragHandleProps, isDragging }) => renderItem(item, dragHandleProps, isDragging, idx)}
           </SortableItem>
         ))}
       </SortableContext>

@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/shared/empty-state'
 import { calculateRiskScore, getRiskLevel } from '@/lib/scoring'
 import { AlertTriangle, Plus } from 'lucide-react'
 import { ThreatList } from './threat-list'
+import { ThreatSplitLayout } from './threat-split-layout'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -151,10 +152,9 @@ export default async function ThreatsPage({ params }: { params: Promise<{ id: st
             actionHref={`/sites/${id}/threats/new`}
           />
         ) : (
-          <div className="grid gap-5" style={{ gridTemplateColumns: '1fr 320px' }}>
-
-            {/* ── 5×5 Heatmap ─────────────────────────────────────── */}
-            <div className="bg-white rounded-sm border px-7 py-6" style={{ borderColor: 'var(--rule)' }}>
+          <ThreatSplitLayout
+            matrix={
+            <div className="bg-white rounded-sm border px-7 py-6 mr-1" style={{ borderColor: 'var(--rule)' }}>
               <div className="flex items-baseline justify-between mb-5">
                 <p className="font-serif font-semibold text-[17px]" style={{ letterSpacing: '-0.01em' }}>
                   Risk Matrix
@@ -297,23 +297,26 @@ export default async function ThreatsPage({ params }: { params: Promise<{ id: st
                 ))}
               </div>
             </div>
-
-            {/* ── Threat list (sortable + filing toggle) ───────────── */}
-            <ThreatList
-              threats={listOrder.map(t => ({
-                id: t.id,
-                threatType: t.threatType,
-                description: t.description,
-                likelihood: t.likelihood,
-                impact: t.impact,
-                source: (t as any).source ?? 'self_assessed',
-                sourceAgency: (t as any).sourceAgency ?? null,
-                includedInFiling: (t as any).includedInFiling ?? true,
-                sortOrder: (t as any).sortOrder ?? 0,
-              }))}
-              siteId={id}
-            />
-          </div>
+            }
+            list={
+              <ThreatList
+                threats={listOrder.map(t => ({
+                  id: t.id,
+                  threatType: t.threatType,
+                  description: t.description,
+                  likelihood: t.likelihood,
+                  impact: t.impact,
+                  source: (t as any).source ?? 'self_assessed',
+                  sourceAgency: (t as any).sourceAgency ?? null,
+                  vulnerabilityNotes: (t as any).vulnerabilityNotes ?? null,
+                  incidentHistory: (t as any).incidentHistory ?? null,
+                  includedInFiling: (t as any).includedInFiling ?? true,
+                  sortOrder: (t as any).sortOrder ?? 0,
+                }))}
+                siteId={id}
+              />
+            }
+          />
         )}
       </div>
     </div>
