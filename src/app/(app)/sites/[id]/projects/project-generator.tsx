@@ -1,11 +1,143 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveGeneratedProjects } from '@/actions/projects'
 import { formatCurrency } from '@/lib/scoring'
 import { Sparkles, X, ChevronDown, ChevronUp, DollarSign, Shield, AlertCircle, Loader2, Check } from 'lucide-react'
 import type { GenerationResult, GeneratedProject } from '@/app/api/ai/generate-projects/route'
+
+// ─── Step-by-step progress indicator ─────────────────────────────────────────
+
+type StepStatus = 'waiting' | 'active' | 'done'
+
+const STEPS: { label: string; detail: string }[] = [
+  { label: 'Collecting site information',  detail: 'threats, measures, observations' },
+  { label: 'Analyzing security gaps',      detail: 'vulnerability mapping' },
+  { label: 'Building analysis prompt',     detail: 'structuring for NSGP context' },
+  { label: 'Waiting for Claude',           detail: 'AI generating proposals…' },
+  { label: 'Parsing project proposals',   detail: 'extracting structured data' },
+]
+
+// How long each pre-AI step is visible (ms) before auto-advancing
+const PRE_STEP_DURATIONS = [700, 800, 600] // steps 0→1, 1→2, 2→3
+
+function GenerationProgress({
+  advanceFnRef,
+}: {
+  // Parent writes a callback here so it can trigger the post-AI steps
+  advanceFnRef: React.MutableRefObject<(() => void) | null>
+}) {
+  const [statuses, setStatuses] = useState<StepStatus[]>(
+    STEPS.map((_, i) => (i === 0 ? 'active' : 'waiting'))
+  )
+  const [elapsed, setElapsed] = useState(0)
+  const aiStartRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = []
+
+    function advanceTo(step: number) {
+      setStatuses(STEPS.map((_, i) =>
+        i < step ? 'done' : i === step ? 'active' : 'waiting'
+      ))
+      if (step === 3) aiStartRef.current = Date.now()
+    }
+
+    // Advance through pre-AI steps on timers
+    let acc = 0
+    PRE_STEP_DURATIONS.forEach((dur, i) => {
+      acc += dur
+      timers.push(setTimeout(() => advanceTo(i + 1), acc))
+    })
+
+    // Register the "fetch resolved" callback in the parent's ref
+    advanceFnRef.current = () => {
+      timers.forEach(clearTimeout)
+      advanceTo(4)
+      setTimeout(() => {
+        setStatuses(STEPS.map(() => 'done'))
+      }, 500)
+    }
+
+    return () => {
+      timers.forEach(clearTimeout)
+      advanceFnRef.current = null
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Tick the elapsed counter while waiting for Claude
+  useEffect(() => {
+    if (statuses[3] !== 'active') return
+    const id = setInterval(() => {
+      setElapsed(aiStartRef.current ? Math.floor((Date.now() - aiStartRef.current) / 1000) : 0)
+    }, 1000)
+    return () => clearInterval(id)
+  }, [statuses])
+
+  return (
+    <div className="rounded-sm border p-6" style={{ borderColor: 'var(--rule)', background: 'var(--paper-2)' }}>
+      <p className="font-semibold text-[14px] mb-5" style={{ color: 'var(--ink)' }}>
+        Generating AI project proposals…
+      </p>
+      <ol className="space-y-4">
+        {STEPS.map((step, i) => {
+          const status = statuses[i]
+          const isAiStep = i === 3
+          return (
+            <li key={i} className="flex items-start gap-3">
+              {/* Status icon */}
+              <div className="mt-0.5 shrink-0" style={{ width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {status === 'done' ? (
+                  <div
+                    className="flex items-center justify-center rounded-full"
+                    style={{ width: 20, height: 20, background: 'var(--ok)' }}
+                  >
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                ) : status === 'active' ? (
+                  <Loader2 className="animate-spin" style={{ width: 18, height: 18, color: 'var(--nav-accent)' }} />
+                ) : (
+                  <div
+                    className="rounded-full border-2"
+                    style={{ width: 16, height: 16, borderColor: 'var(--rule)' }}
+                  />
+                )}
+              </div>
+              {/* Text */}
+              <div>
+                <p
+                  className="text-[13px] font-medium"
+                  style={{
+                    color: status === 'done' ? 'var(--ink-3)' : status === 'active' ? 'var(--ink)' : 'var(--ink-4)',
+                  }}
+                >
+                  {step.label}
+                  {isAiStep && status === 'active' && elapsed > 0 && (
+                    <span
+                      className="ml-2 font-normal tabular-nums"
+                      style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-geist-mono)' }}
+                    >
+                      {elapsed}s
+                    </span>
+                  )}
+                </p>
+                {status === 'active' && step.detail && (
+                  <p className="text-[11.5px] mt-0.5" style={{ color: 'var(--ink-4)' }}>
+                    {step.detail}
+                  </p>
+                )}
+              </div>
+            </li>
+          )
+        })}
+      </ol>
+    </div>
+  )
+}
+
+// ─── Category colors ──────────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   'Access Control':    { bg: '#e9ecf5', text: '#1f2d5c', border: '#c5cde8' },
@@ -16,6 +148,8 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
 }
 
 const PRIORITY_LABEL: Record<number, string> = { 5: 'Critical', 4: 'High', 3: 'Medium', 2: 'Low', 1: 'Minimal' }
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 type Phase = 'idle' | 'loading' | 'review' | 'saving'
 
@@ -32,6 +166,8 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
   const [result, setResult] = useState<GenerationResult | null>(null)
   const [projectStates, setProjectStates] = useState<ProjectReviewState[]>([])
   const [error, setError] = useState<string | null>(null)
+  // GenerationProgress writes its advance function here; handleGenerate calls it when fetch resolves
+  const advanceFnRef = useRef<(() => void) | null>(null)
 
   async function handleGenerate() {
     setError(null)
@@ -43,22 +179,26 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
         body: JSON.stringify({ siteId }),
       })
       const data = await res.json()
+
+      // Signal the progress stepper that the AI responded
+      advanceFnRef.current?.()
+
       if (!res.ok) {
         setError(data.error || 'Generation failed. Please try again.')
         setPhase('idle')
         return
       }
+
       const gen = data as GenerationResult
       setResult(gen)
-      setProjectStates(
-        gen.projects.map((p) => ({
-          project: p,
-          included: true,
-          status: p.status,
-          expanded: false,
-        }))
-      )
-      setPhase('review')
+      setProjectStates(gen.projects.map((p) => ({
+        project: p,
+        included: true,
+        status: p.status,
+        expanded: false,
+      })))
+      // Brief pause so user sees the final steps check off before switching to review
+      setTimeout(() => setPhase('review'), 1100)
     } catch {
       setError('Network error. Please try again.')
       setPhase('idle')
@@ -69,12 +209,12 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
     const toSave = projectStates.filter((s) => s.included)
     if (toSave.length === 0) return
     setPhase('saving')
-    const result = await saveGeneratedProjects(
+    const res = await saveGeneratedProjects(
       siteId,
       toSave.map((s) => ({ ...s.project, status: s.status }))
     )
-    if (!result.success) {
-      setError(result.error || 'Save failed.')
+    if (!res.success) {
+      setError(res.error || 'Save failed.')
       setPhase('review')
       return
     }
@@ -85,23 +225,17 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
   }
 
   function toggleIncluded(idx: number) {
-    setProjectStates((prev) =>
-      prev.map((s, i) => (i === idx ? { ...s, included: !s.included } : s))
-    )
+    setProjectStates((prev) => prev.map((s, i) => i === idx ? { ...s, included: !s.included } : s))
   }
 
   function toggleStatus(idx: number) {
     setProjectStates((prev) =>
-      prev.map((s, i) =>
-        i === idx ? { ...s, status: s.status === 'selected' ? 'consideration' : 'selected' } : s
-      )
+      prev.map((s, i) => i === idx ? { ...s, status: s.status === 'selected' ? 'consideration' : 'selected' } : s)
     )
   }
 
   function toggleExpanded(idx: number) {
-    setProjectStates((prev) =>
-      prev.map((s, i) => (i === idx ? { ...s, expanded: !s.expanded } : s))
-    )
+    setProjectStates((prev) => prev.map((s, i) => i === idx ? { ...s, expanded: !s.expanded } : s))
   }
 
   const includedProjects = projectStates.filter((s) => s.included)
@@ -109,6 +243,7 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
     .filter((s) => s.status === 'selected')
     .reduce((sum, s) => sum + s.project.budgetItems.reduce((b, item) => b + item.totalCost, 0), 0)
 
+  // ── Idle ──
   if (phase === 'idle') {
     return (
       <div className="flex items-center gap-3">
@@ -130,21 +265,9 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
     )
   }
 
+  // ── Loading ──
   if (phase === 'loading') {
-    return (
-      <div
-        className="rounded-sm border p-6 flex flex-col items-center gap-3"
-        style={{ borderColor: 'var(--rule)', background: 'var(--paper-2)' }}
-      >
-        <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--nav-accent)' }} />
-        <p className="text-[13.5px] font-medium" style={{ color: 'var(--ink-2)' }}>
-          Analyzing threats and generating project proposals…
-        </p>
-        <p className="text-[12px]" style={{ color: 'var(--ink-4)' }}>
-          This takes 15–30 seconds
-        </p>
-      </div>
-    )
+    return <GenerationProgress advanceFnRef={advanceFnRef} />
   }
 
   if (!result || projectStates.length === 0) return null
@@ -152,18 +275,14 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
   const selectedStates = projectStates.filter((s) => s.status === 'selected')
   const considerationStates = projectStates.filter((s) => s.status === 'consideration')
 
+  // ── Review ──
   return (
     <div className="rounded-sm border overflow-hidden" style={{ borderColor: 'var(--nav-accent)', borderWidth: '1.5px' }}>
       {/* Header */}
-      <div
-        className="px-5 py-3.5 flex items-center justify-between"
-        style={{ background: 'var(--nav-accent)' }}
-      >
+      <div className="px-5 py-3.5 flex items-center justify-between" style={{ background: 'var(--nav-accent)' }}>
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-white" />
-          <p className="font-semibold text-[14px] text-white">
-            AI-Generated Project Proposals
-          </p>
+          <p className="font-semibold text-[14px] text-white">AI-Generated Project Proposals</p>
           <span className="text-[12px] text-white/70 ml-1">
             {result.projects.length} proposals · review and select before saving
           </span>
@@ -176,7 +295,7 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
         </button>
       </div>
 
-      {/* Budget strategy summary */}
+      {/* Budget strategy */}
       <div className="px-5 py-3.5 border-b" style={{ borderColor: 'var(--rule)', background: 'var(--nav-wash)' }}>
         <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>
           <span className="font-semibold" style={{ color: 'var(--nav-accent)' }}>Budget Strategy: </span>
@@ -188,7 +307,7 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
       </div>
 
       <div className="p-5 space-y-5">
-        {/* Selected for Grant */}
+        {/* Selected */}
         {selectedStates.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-3">
@@ -197,17 +316,14 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
                 Selected for Grant Inclusion
               </p>
               <span className="text-[11px]" style={{ color: 'var(--ink-4)' }}>
-                {selectedStates.filter((s) => s.included).length} included ·{' '}
-                {formatCurrency(selectedBudget)} est. budget
+                {selectedStates.filter((s) => s.included).length} included · {formatCurrency(selectedBudget)} est. budget
               </span>
             </div>
             <div className="space-y-2">
               {selectedStates.map((s) => {
                 const idx = projectStates.indexOf(s)
                 return (
-                  <ProjectReviewCard
-                    key={idx}
-                    state={s}
+                  <ProjectReviewCard key={idx} state={s}
                     onToggleIncluded={() => toggleIncluded(idx)}
                     onToggleStatus={() => toggleStatus(idx)}
                     onToggleExpanded={() => toggleExpanded(idx)}
@@ -218,7 +334,7 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
           </div>
         )}
 
-        {/* Consideration Phase */}
+        {/* Consideration */}
         {considerationStates.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-3">
@@ -234,9 +350,7 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
               {considerationStates.map((s) => {
                 const idx = projectStates.indexOf(s)
                 return (
-                  <ProjectReviewCard
-                    key={idx}
-                    state={s}
+                  <ProjectReviewCard key={idx} state={s}
                     onToggleIncluded={() => toggleIncluded(idx)}
                     onToggleStatus={() => toggleStatus(idx)}
                     onToggleExpanded={() => toggleExpanded(idx)}
@@ -247,14 +361,13 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
           </div>
         )}
 
-        {/* Footer actions */}
+        {/* Footer */}
         {error && (
           <p className="text-[12.5px] flex items-center gap-1.5" style={{ color: 'var(--bad)' }}>
             <AlertCircle className="h-3.5 w-3.5" />
             {error}
           </p>
         )}
-
         <div className="flex items-center justify-between pt-1 border-t" style={{ borderColor: 'var(--rule)' }}>
           <p className="text-[12.5px]" style={{ color: 'var(--ink-3)' }}>
             {includedProjects.length} of {projectStates.length} proposals selected to save
@@ -274,15 +387,9 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
               style={{ background: 'var(--nav-accent)', color: '#fff' }}
             >
               {phase === 'saving' ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Saving…
-                </>
+                <><Loader2 className="h-3.5 w-3.5 animate-spin" />Saving…</>
               ) : (
-                <>
-                  <Check className="h-3.5 w-3.5" />
-                  Add {includedProjects.length} Project{includedProjects.length !== 1 ? 's' : ''}
-                </>
+                <><Check className="h-3.5 w-3.5" />Add {includedProjects.length} Project{includedProjects.length !== 1 ? 's' : ''}</>
               )}
             </button>
           </div>
@@ -292,11 +399,10 @@ export function ProjectGenerator({ siteId, hasExistingProjects }: { siteId: stri
   )
 }
 
+// ─── Review card ──────────────────────────────────────────────────────────────
+
 function ProjectReviewCard({
-  state,
-  onToggleIncluded,
-  onToggleStatus,
-  onToggleExpanded,
+  state, onToggleIncluded, onToggleStatus, onToggleExpanded,
 }: {
   state: ProjectReviewState
   onToggleIncluded: () => void
@@ -316,36 +422,32 @@ function ProjectReviewCard({
         opacity: included ? 1 : 0.55,
       }}
     >
-      {/* Card header row */}
       <div className="flex items-center gap-3 px-4 py-3">
         {/* Checkbox */}
         <button
           onClick={onToggleIncluded}
-          className="shrink-0 w-4.5 h-4.5 rounded border-2 flex items-center justify-center transition-colors"
+          className="shrink-0 rounded border-2 flex items-center justify-center transition-colors"
           style={{
             width: 18, height: 18,
             borderColor: included ? 'var(--nav-accent)' : 'var(--rule)',
             background: included ? 'var(--nav-accent)' : 'white',
           }}
-          title={included ? 'Deselect' : 'Select'}
         >
           {included && <Check className="h-2.5 w-2.5 text-white" />}
         </button>
 
-        {/* Priority badge */}
+        {/* Priority */}
         <div
-          className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-serif font-semibold text-white text-[12px]"
-          style={{ background: project.priority >= 4 ? 'var(--nav-accent)' : 'var(--ink-4)' }}
+          className="shrink-0 rounded-full flex items-center justify-center font-serif font-semibold text-white"
+          style={{ width: 28, height: 28, background: project.priority >= 4 ? 'var(--nav-accent)' : 'var(--ink-4)', fontSize: 12 }}
         >
           {project.priority}
         </div>
 
-        {/* Title + category */}
+        {/* Title + badges */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-[13.5px]" style={{ color: 'var(--ink)' }}>
-              {project.title}
-            </span>
+            <span className="font-semibold text-[13.5px]" style={{ color: 'var(--ink)' }}>{project.title}</span>
             <span
               className="text-[11px] px-1.5 py-0.5 rounded-sm border"
               style={{ background: catStyle.bg, color: catStyle.text, borderColor: catStyle.border }}
@@ -367,8 +469,7 @@ function ProjectReviewCard({
         <div className="flex items-center gap-2 shrink-0">
           {projectBudget > 0 && (
             <span className="flex items-center gap-0.5 text-[12.5px] font-medium" style={{ color: 'var(--ok)' }}>
-              <DollarSign className="h-3 w-3" />
-              {formatCurrency(projectBudget)}
+              <DollarSign className="h-3 w-3" />{formatCurrency(projectBudget)}
             </span>
           )}
           <button
@@ -379,13 +480,11 @@ function ProjectReviewCard({
                 ? { background: '#e4ede4', color: 'var(--ok)', borderColor: '#b5d4b5' }
                 : { background: 'var(--paper-2)', color: 'var(--ink-3)', borderColor: 'var(--rule)' }
             }
-            title="Toggle between Selected / Consideration"
+            title="Toggle Selected / Consideration"
           >
-            {status === 'selected' ? (
-              <span className="flex items-center gap-1"><Shield className="h-3 w-3" />Selected</span>
-            ) : (
-              'Consideration'
-            )}
+            {status === 'selected'
+              ? <span className="flex items-center gap-1"><Shield className="h-3 w-3" />Selected</span>
+              : 'Consideration'}
           </button>
           <button onClick={onToggleExpanded} style={{ color: 'var(--ink-4)' }}>
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -402,7 +501,6 @@ function ProjectReviewCard({
             <DetailField label="Risk Reduction / NSGP Alignment" value={project.riskReductionRationale} />
             <DetailField label="Implementation Notes" value={project.implementationNotes} />
           </div>
-
           {project.budgetItems.length > 0 && (
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--ink-3)' }}>
@@ -448,12 +546,8 @@ function DetailField({ label, value }: { label: string; value: string | null | u
   if (!value) return null
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--ink-3)' }}>
-        {label}
-      </p>
-      <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>
-        {value}
-      </p>
+      <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--ink-3)' }}>{label}</p>
+      <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--ink-2)' }}>{value}</p>
     </div>
   )
 }
