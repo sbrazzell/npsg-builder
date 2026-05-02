@@ -8,7 +8,8 @@ import { slug, isTooShort } from '../utils'
 
 export function checkProjectAlignment(snapshot: FilingSnapshot): ReviewFinding[] {
   const findings: ReviewFinding[] = []
-  const { threats, projects } = snapshot
+  const threats = snapshot.threats.filter((t) => t.includedInFiling)
+  const projects = snapshot.projects.filter((p) => p.includedInFiling)
 
   if (projects.length === 0 || threats.length === 0) return findings
 
@@ -134,6 +135,7 @@ export function checkProjectAlignment(snapshot: FilingSnapshot): ReviewFinding[]
     (sum, p) => sum + p.budgetItems.reduce((s, b) => s + b.totalCost, 0),
     0,
   )
+  // snapshot.totalBudget is already computed from included projects only
   if (Math.abs(computedTotal - snapshot.totalBudget) > 0.01) {
     findings.push({
       id: 'alignment-budget-total-mismatch',

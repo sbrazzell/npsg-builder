@@ -193,6 +193,10 @@ const PROJECT_REQUIRED_SECTIONS: ProjectSection[] = [
 export function validateSnapshot(snapshot: FilingSnapshot): ValidationResult {
   const issues: ValidationIssue[] = []
 
+  // Validation operates on included items only
+  const includedThreats = snapshot.threats.filter((t) => t.includedInFiling)
+  const includedProjects = snapshot.projects.filter((p) => p.includedInFiling)
+
   // ── 1. SF-424 field checks ────────────────────────────────────────────────
   for (const f of SF424_CHECKED_FIELDS) {
     const value = f.getValue(snapshot)
@@ -223,16 +227,18 @@ export function validateSnapshot(snapshot: FilingSnapshot): ValidationResult {
   }
 
   // ── 2. Projects ───────────────────────────────────────────────────────────
-  if (snapshot.projects.length === 0) {
+  if (includedProjects.length === 0) {
     issues.push({
       severity: 'error',
       code: 'NO_PROJECTS',
       field: 'Projects',
-      message: 'No project proposals have been added',
+      message: snapshot.projects.length > 0
+        ? 'All project proposals are excluded from the filing — include at least one'
+        : 'No project proposals have been added',
     })
   }
 
-  for (const project of snapshot.projects) {
+  for (const project of includedProjects) {
     for (const section of PROJECT_REQUIRED_SECTIONS) {
       const value = section.getValue(project)
       if (!value || value.trim() === '') {
@@ -356,17 +362,19 @@ export function validateSnapshot(snapshot: FilingSnapshot): ValidationResult {
   }
 
   // ── 4. Threats ────────────────────────────────────────────────────────────
-  if (snapshot.threats.length === 0) {
+  if (includedThreats.length === 0) {
     issues.push({
       severity: 'error',
       code: 'NO_THREATS',
       field: 'Threat Assessments',
-      message: 'No threat assessments have been entered — the IJ requires documented threats',
+      message: snapshot.threats.length > 0
+        ? 'All threat assessments are excluded from the filing — include at least one'
+        : 'No threat assessments have been entered — the IJ requires documented threats',
     })
   }
 
   // ── 5. Budget math integrity ──────────────────────────────────────────────
-  const computedTotal = snapshot.projects.reduce(
+  const computedTotal = includedProjects.reduce(
     (sum, p) => sum + p.budgetItems.reduce((s, b) => s + b.totalCost, 0),
     0,
   )

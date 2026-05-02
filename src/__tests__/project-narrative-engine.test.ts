@@ -613,6 +613,8 @@ function makeStatusProject(overrides: Record<string, unknown> = {}) {
     timelineSource: 'user' as NarrativeSource,
     sustainmentSource: 'user' as NarrativeSource,
     generationWarnings: [] as string[],
+    includedInFiling: true,
+    sortOrder: 0,
     ...overrides,
   }
 }
@@ -647,9 +649,12 @@ function makeStatusSnapshot(overrides: Record<string, unknown> = {}) {
         riskScore: 16,
         riskLevel: 'high',
         source: 'self_assessed',
+        includedInFiling: true,
+        sortOrder: 0,
       },
     ],
     securityMeasures: [],
+    observations: [],
     projects: [makeStatusProject()],
     narratives: { threat_overview: 'Known threats exist.' },
     totalBudget: 10000,

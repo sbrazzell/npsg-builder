@@ -9,7 +9,7 @@ import { slug, detectVagueTerms, mentionsMaintenance, mentionsOwnership, isTooSh
 export function checkSustainment(snapshot: FilingSnapshot): ReviewFinding[] {
   const findings: ReviewFinding[] = []
 
-  for (const project of snapshot.projects) {
+  for (const project of snapshot.projects.filter((p) => p.includedInFiling)) {
     const pid = slug(project.id)
     const narrative = project.sustainmentNarrative ?? ''
     const source = project.sustainmentSource

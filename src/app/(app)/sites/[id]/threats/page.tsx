@@ -4,9 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { Header } from '@/components/layout/header'
 import { EmptyState } from '@/components/shared/empty-state'
 import { calculateRiskScore, getRiskLevel } from '@/lib/scoring'
-import { AlertTriangle, BadgeCheck, Pencil, Plus } from 'lucide-react'
-import { ThreatActions } from './threat-actions'
-import { THREAT_SOURCES } from '@/lib/validations'
+import { AlertTriangle, Plus } from 'lucide-react'
+import { ThreatList } from './threat-list'
+import { ThreatSplitLayout } from './threat-split-layout'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -45,15 +45,18 @@ export default async function ThreatsPage({ params }: { params: Promise<{ id: st
     where: { id },
     include: {
       organization: true,
-      threatAssessments: { orderBy: { createdAt: 'desc' } },
+      threatAssessments: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }] },
     },
   })
 
   if (!facility) notFound()
 
+  // For risk matrix, sort by risk score descending (display only)
   const sorted = [...facility.threatAssessments].sort(
     (a, b) => calculateRiskScore(b.likelihood, b.impact) - calculateRiskScore(a.likelihood, a.impact)
   )
+  // For the list panel, use the sortOrder-based order
+  const listOrder = facility.threatAssessments
 
   // Group threats by cell for positioning
   const cellGroups: Record<string, typeof sorted> = {}
@@ -126,7 +129,8 @@ export default async function ThreatsPage({ params }: { params: Promise<{ id: st
             </h1>
             <p className="mt-1.5 text-[13.5px]" style={{ color: 'var(--ink-3)' }}>
               {sorted.length} {sorted.length === 1 ? 'threat' : 'threats'} documented ·{' '}
-              {sorted.filter(t => ['high','critical'].includes(getRiskLevel(calculateRiskScore(t.likelihood, t.impact)))).length} high or critical
+              {sorted.filter(t => ['high','critical'].includes(getRiskLevel(calculateRiskScore(t.likelihood, t.impact)))).length} high or critical ·{' '}
+              {sorted.filter(t => (t as any).includedInFiling !== false).length} included in filing
             </p>
           </div>
           <Link
@@ -148,10 +152,9 @@ export default async function ThreatsPage({ params }: { params: Promise<{ id: st
             actionHref={`/sites/${id}/threats/new`}
           />
         ) : (
-          <div className="grid gap-5" style={{ gridTemplateColumns: '1fr 320px' }}>
-
-            {/* ── 5×5 Heatmap ─────────────────────────────────────── */}
-            <div className="bg-white rounded-sm border px-7 py-6" style={{ borderColor: 'var(--rule)' }}>
+          <ThreatSplitLayout
+            matrix={
+            <div className="bg-white rounded-sm border px-7 py-6 mr-1" style={{ borderColor: 'var(--rule)' }}>
               <div className="flex items-baseline justify-between mb-5">
                 <p className="font-serif font-semibold text-[17px]" style={{ letterSpacing: '-0.01em' }}>
                   Risk Matrix
@@ -294,88 +297,26 @@ export default async function ThreatsPage({ params }: { params: Promise<{ id: st
                 ))}
               </div>
             </div>
-
-            {/* ── Threat list ──────────────────────────────────────── */}
-            <div className="rounded-sm border overflow-hidden" style={{ borderColor: 'var(--rule)' }}>
-              <div className="px-4 py-3.5 border-b flex items-center justify-between"
-                style={{ background: 'var(--paper-2)', borderColor: 'var(--rule)' }}>
-                <p className="font-serif font-semibold text-[15px]" style={{ color: 'var(--ink)' }}>
-                  Threats
-                </p>
-                <span
-                  className="text-[11px] tabular-nums"
-                  style={{ fontFamily: 'var(--font-geist-mono)', color: 'var(--ink-3)' }}
-                >
-                  {sorted.length} total
-                </span>
-              </div>
-
-              <div className="divide-y" style={{ '--tw-divide-opacity': '1' } as React.CSSProperties}>
-                {dots.map(dot => {
-                  const t = dot.threat
-                  const source = THREAT_SOURCES.find(s => s.value === t.source)
-                  return (
-                    <div
-                      key={t.id}
-                      className="px-4 py-3 grid gap-2.5 items-center hover:bg-[var(--paper-2)] transition-colors"
-                      style={{
-                        gridTemplateColumns: '26px 1fr auto',
-                        borderColor: 'var(--rule-2)',
-                      }}
-                    >
-                      {/* Number badge */}
-                      <div
-                        className="w-[24px] h-[24px] rounded-full flex items-center justify-center font-serif font-semibold text-white flex-shrink-0"
-                        style={{ fontSize: '11.5px', background: DOT_COLORS[dot.level] }}
-                      >
-                        {dot.idx}
-                      </div>
-
-                      {/* Content */}
-                      <div className="min-w-0">
-                        <p className="font-medium text-[13px] truncate" style={{ color: 'var(--ink)' }}>
-                          {t.threatType}
-                        </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span
-                            className="text-[10.5px] tabular-nums"
-                            style={{ fontFamily: 'var(--font-geist-mono)', color: 'var(--ink-3)' }}
-                          >
-                            L{t.likelihood}×I{t.impact} = {calculateRiskScore(t.likelihood, t.impact)}
-                          </span>
-                          {t.source && t.source !== 'self_assessed' && (
-                            <span className="text-[10.5px] flex items-center gap-0.5" style={{ color: 'var(--nav-accent)' }}>
-                              {t.source === 'law_enforcement' && <BadgeCheck className="h-3 w-3" />}
-                              {source?.label ?? t.source}
-                            </span>
-                          )}
-                        </div>
-                        {t.description && (
-                          <p className="text-[11.5px] mt-0.5 line-clamp-2" style={{ color: 'var(--ink-3)' }}>
-                            {t.description}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Edit action */}
-                      <ThreatActions threatId={t.id} siteId={id} />
-                    </div>
-                  )
-                })}
-              </div>
-
-              <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--rule-2)' }}>
-                <Link
-                  href={`/sites/${id}/threats/new`}
-                  className="flex items-center gap-1.5 text-[12.5px] font-medium transition-opacity hover:opacity-70"
-                  style={{ color: 'var(--nav-accent)' }}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Add another threat
-                </Link>
-              </div>
-            </div>
-          </div>
+            }
+            list={
+              <ThreatList
+                threats={listOrder.map(t => ({
+                  id: t.id,
+                  threatType: t.threatType,
+                  description: t.description,
+                  likelihood: t.likelihood,
+                  impact: t.impact,
+                  source: (t as any).source ?? 'self_assessed',
+                  sourceAgency: (t as any).sourceAgency ?? null,
+                  vulnerabilityNotes: (t as any).vulnerabilityNotes ?? null,
+                  incidentHistory: (t as any).incidentHistory ?? null,
+                  includedInFiling: (t as any).includedInFiling ?? true,
+                  sortOrder: (t as any).sortOrder ?? 0,
+                }))}
+                siteId={id}
+              />
+            }
+          />
         )}
       </div>
     </div>

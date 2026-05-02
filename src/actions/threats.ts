@@ -67,3 +67,29 @@ export async function deleteThreat(id: string, siteId: string) {
     return { success: false, error: 'Failed to delete threat assessment' }
   }
 }
+
+export async function toggleThreatIncluded(id: string, includedInFiling: boolean, siteId: string) {
+  await requireAuth()
+  try {
+    await prisma.threatAssessment.update({ where: { id }, data: { includedInFiling } })
+    revalidatePath(`/sites/${siteId}/threats`)
+    return { success: true }
+  } catch {
+    return { success: false, error: 'Failed to update threat' }
+  }
+}
+
+export async function reorderThreats(siteId: string, orderedIds: string[]) {
+  await requireAuth()
+  try {
+    await Promise.all(
+      orderedIds.map((id, index) =>
+        prisma.threatAssessment.update({ where: { id }, data: { sortOrder: index } })
+      )
+    )
+    revalidatePath(`/sites/${siteId}/threats`)
+    return { success: true }
+  } catch {
+    return { success: false, error: 'Failed to reorder threats' }
+  }
+}

@@ -7,7 +7,9 @@ import { slug } from '../utils'
 
 export function checkCompleteness(snapshot: FilingSnapshot): ReviewFinding[] {
   const findings: ReviewFinding[] = []
-  const { organization: org, site, threats, projects } = snapshot
+  const { organization: org, site } = snapshot
+  const threats = snapshot.threats.filter((t) => t.includedInFiling)
+  const projects = snapshot.projects.filter((p) => p.includedInFiling)
 
   // ── Organization ──────────────────────────────────────────────────────────
 
@@ -329,8 +331,8 @@ export function checkCompleteness(snapshot: FilingSnapshot): ReviewFinding[] {
 
     if (
       project.linkedThreatTypes.length === 0 &&
-      // Only flag if threats exist (no threats is already a blocker)
-      snapshot.threats.length > 0
+      // Only flag if included threats exist (no threats is already a blocker)
+      threats.length > 0
     ) {
       findings.push({
         id: `completeness-project-no-threats-${pid}`,

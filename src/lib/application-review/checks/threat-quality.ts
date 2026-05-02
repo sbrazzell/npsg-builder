@@ -7,9 +7,40 @@ import { slug, containsYearReference, mentionsLawEnforcement } from '../utils'
 
 export function checkThreatQuality(snapshot: FilingSnapshot): ReviewFinding[] {
   const findings: ReviewFinding[] = []
-  const { threats, site } = snapshot
+  const { site } = snapshot
 
-  if (threats.length === 0) return findings // already flagged by completeness
+  // Only score included threats; keep excluded for recommendation checks
+  const threats = snapshot.threats.filter((t) => t.includedInFiling)
+  const excludedThreats = snapshot.threats.filter((t) => !t.includedInFiling)
+
+  if (threats.length === 0 && excludedThreats.length === 0) return findings
+
+  // ── Suggest re-including excluded threats that would strengthen the app ───
+
+  for (const t of excludedThreats) {
+    const isHighRisk = t.riskLevel === 'high' || t.riskLevel === 'critical'
+    const hasDetail = (t.incidentHistory?.trim() || t.vulnerabilityNotes?.trim())
+    if (isHighRisk || hasDetail) {
+      findings.push({
+        id: `threat-excluded-valuable-${slug(t.id)}`,
+        severity: 'suggestion',
+        category: 'threat_quality',
+        title: `Excluded threat "${t.threatType}" could strengthen your application`,
+        explanation: isHighRisk
+          ? `"${t.threatType}" is rated ${t.riskLevel} risk but is excluded from the filing. High-risk threats with strong documentation are among the most compelling elements FEMA reviewers look for.`
+          : `"${t.threatType}" has supporting documentation (incident history or vulnerability notes) and is currently excluded. Including it would add depth to your threat narrative.`,
+        affectedSection: 'Threat Assessments — Filing Scope',
+        affectedEntityId: t.id,
+        affectedEntityLabel: t.threatType,
+        recommendedAction: `Re-enable this threat in the filing scope to strengthen your threat evidence score.`,
+        canAutoFix: false,
+        resolved: false,
+        rejected: false,
+      })
+    }
+  }
+
+  if (threats.length === 0) return findings // no included threats — completeness check handles the error
 
   // ── Law enforcement contact on the site ───────────────────────────────────
 
@@ -137,7 +168,7 @@ export function checkThreatQuality(snapshot: FilingSnapshot): ReviewFinding[] {
     }
   }
 
-  // ── Portfolio-level checks ────────────────────────────────────────────────
+  // ── Portfolio-level checks (included threats only) ───────────────────────
 
   // No high-risk threats
   const highRiskThreats = threats.filter(

@@ -2,13 +2,16 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { deleteObservation, updateObservation } from '@/actions/observations'
+import { deleteObservation, updateObservation, toggleObservationIncluded } from '@/actions/observations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { getRiskBgClass } from '@/lib/scoring'
+import { FilingToggle } from '@/components/shared/filing-toggle'
+import { DragHandle } from '@/components/shared/sortable-list'
+import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
 import { toast } from 'sonner'
 import { Trash2, Pencil, X, Check, MapPin } from 'lucide-react'
 
@@ -33,9 +36,19 @@ interface Observation {
   observationType: string | null
   severity: number
   notes: string | null
+  includedInFiling: boolean
+  sortOrder: number
 }
 
-export function ObservationCard({ obs, siteId }: { obs: Observation; siteId: string }) {
+export function ObservationCard({
+  obs,
+  siteId,
+  dragHandleProps,
+}: {
+  obs: Observation
+  siteId: string
+  dragHandleProps?: { listeners?: DraggableSyntheticListeners; attributes?: DraggableAttributes }
+}) {
   const [editing, setEditing]   = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [saving, setSaving]     = useState(false)
@@ -82,7 +95,7 @@ export function ObservationCard({ obs, siteId }: { obs: Observation; siteId: str
   }
 
   return (
-    <Card>
+    <Card style={{ opacity: obs.includedInFiling ? 1 : 0.65 }}>
       <CardContent className="pt-4 pb-4">
         {editing ? (
           /* ── Edit form — full card width ── */
@@ -162,7 +175,8 @@ export function ObservationCard({ obs, siteId }: { obs: Observation; siteId: str
           </form>
         ) : (
           /* ── View mode ── */
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2">
+            {dragHandleProps && <DragHandle {...dragHandleProps} />}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <h3 className="font-semibold text-gray-900">{obs.title}</h3>
@@ -182,6 +196,14 @@ export function ObservationCard({ obs, siteId }: { obs: Observation; siteId: str
               {obs.notes && (
                 <p className="text-sm text-gray-700 mt-2 whitespace-pre-line">{obs.notes}</p>
               )}
+              <div className="mt-2">
+                <FilingToggle
+                  id={obs.id}
+                  siteId={siteId}
+                  includedInFiling={obs.includedInFiling}
+                  onToggle={toggleObservationIncluded}
+                />
+              </div>
             </div>
 
             {/* Action buttons */}
