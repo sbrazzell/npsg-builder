@@ -169,15 +169,15 @@ Total budget for selected projects should be between $120,000 and $180,000.
 Each project gets 2–4 realistic budget line items with specific item names and dollar amounts.
 Use real market pricing for physical security equipment (cameras: $300–$800/unit, card readers: $400–$900/door, lighting fixtures: $150–$500/unit, etc.).
 
-OUTPUT FORMAT — respond with ONLY valid JSON, no markdown, no preamble. Schema:
+OUTPUT FORMAT — respond with ONLY a raw JSON object. Do NOT wrap in markdown code fences. Do NOT add any text before or after the JSON. Schema:
 {
   "projects": [
     {
       "title": "specific descriptive project name",
       "category": "Access Control" or "Surveillance" or "Lighting" or "Physical Hardening" or "Communication",
-      "problemStatement": "2 sentences max: what security gap exists and what harm could result",
-      "proposedSolution": "2 sentences max: what will be installed and how it addresses the gap",
-      "riskReductionRationale": "2 sentences max: how this reduces risk; end with NSGP Physical Protective Measures alignment",
+      "problemStatement": "1 sentence: what security gap exists",
+      "proposedSolution": "1 sentence: what will be installed and how it addresses the gap",
+      "riskReductionRationale": "1 sentence ending with NSGP Physical Protective Measures alignment",
       "implementationNotes": "1 sentence: implementation approach",
       "priority": 1,
       "status": "selected" | "consideration",
@@ -187,13 +187,13 @@ OUTPUT FORMAT — respond with ONLY valid JSON, no markdown, no preamble. Schema
           "quantity": number,
           "unitCost": number,
           "totalCost": number,
-          "justification": "string — 1 sentence explaining why this line item is necessary"
+          "justification": "string — 1 sentence"
         }
       ]
     }
   ],
-  "budgetStrategy": "string — 2–3 sentences explaining why these specific projects were selected and how they work together as a layered defense",
-  "layeredSecuritySummary": "string — 1–2 sentences describing how the selected projects collectively deter, detect, delay, and support response"
+  "budgetStrategy": "string — 2 sentences max",
+  "layeredSecuritySummary": "string — 1 sentence"
 }
 
 Write in formal, third-person grant language. Do not use placeholder text. Be specific to the documented threats and site context.`
@@ -274,11 +274,20 @@ export async function POST(req: NextRequest) {
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 8000,
+      max_tokens: 16000,
       messages: [{ role: 'user', content: prompt }],
     })
 
     const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
+
+    // Truncation check — if the model hit the token limit the JSON will be incomplete
+    if (message.stop_reason === 'max_tokens') {
+      console.error('Project generation hit max_tokens limit. Raw response (first 800 chars):\n', raw.slice(0, 800))
+      return NextResponse.json(
+        { error: 'The AI response was too long and got cut off. This site\'s data is unusually large — try reducing the number of threats or observations and regenerating.' },
+        { status: 500 }
+      )
+    }
 
     const jsonText = extractJson(raw)
 
@@ -290,7 +299,6 @@ export async function POST(req: NextRequest) {
       console.error('Project generation JSON parse error:', parseErr)
       console.error('Stop reason:', message.stop_reason)
       console.error('Raw response (first 800 chars):\n', raw.slice(0, 800))
-      // Include a preview in the client error to help diagnose in production
       const preview = raw.slice(0, 120).replace(/\n/g, ' ')
       return NextResponse.json(
         { error: `AI returned an unexpected response format. Please try again. (Preview: "${preview}")` },
