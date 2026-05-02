@@ -40,38 +40,68 @@ function buildPrompt(siteData: {
 }): string {
   const { siteName, orgName, address, threats, measures, observations, existingProjectTitles } = siteData
 
-  const threatLines = threats
+  // Truncate long text fields so the prompt stays focused regardless of how much
+  // the user typed; beyond ~200 chars the extra detail doesn't change the output.
+  const trunc = (s: string | null | undefined, max = 200) =>
+    s ? (s.length > max ? s.slice(0, max).trimEnd() + '…' : s) : null
+
+  // Prioritise by risk score; cap at 15 — additional low-risk threats don't drive new project ideas
+  const topThreats = [...threats]
     .sort((a, b) => (b.likelihood * b.impact) - (a.likelihood * a.impact))
+    .slice(0, 15)
+
+  const threatLines = topThreats
     .map((t, i) => {
       const score = t.likelihood * t.impact
       const level = score >= 16 ? 'CRITICAL' : score >= 10 ? 'HIGH' : score >= 5 ? 'MEDIUM' : 'LOW'
       const lines = [`${i + 1}. [${level} ${score}/25] ${t.threatType}`]
-      if (t.description) lines.push(`   Description: ${t.description}`)
-      if (t.vulnerabilityNotes) lines.push(`   Vulnerability: ${t.vulnerabilityNotes}`)
-      if (t.incidentHistory) lines.push(`   Incidents: ${t.incidentHistory}`)
+      const desc = trunc(t.description)
+      const vuln = trunc(t.vulnerabilityNotes)
+      const inc  = trunc(t.incidentHistory)
+      if (desc) lines.push(`   Description: ${desc}`)
+      if (vuln) lines.push(`   Vulnerability: ${vuln}`)
+      if (inc)  lines.push(`   Incidents: ${inc}`)
       return lines.join('\n')
     })
     .join('\n')
+
+  const omittedThreats = threats.length - topThreats.length
+  const threatSuffix = omittedThreats > 0
+    ? `\n(${omittedThreats} additional lower-risk threat${omittedThreats > 1 ? 's' : ''} omitted)`
+    : ''
 
   const measureLines = measures
     .map((m, i) => {
       const lines = [`${i + 1}. ${m.category} (Effectiveness: ${m.effectivenessRating}/5)`]
-      if (m.description) lines.push(`   Current: ${m.description}`)
-      if (m.gapsRemaining) lines.push(`   Gaps: ${m.gapsRemaining}`)
+      const desc = trunc(m.description)
+      const gaps = trunc(m.gapsRemaining)
+      if (desc) lines.push(`   Current: ${desc}`)
+      if (gaps) lines.push(`   Gaps: ${gaps}`)
       return lines.join('\n')
     })
     .join('\n')
 
-  const observationLines = observations
+  // Prioritise by severity; cap at 12
+  const topObservations = [...observations]
     .sort((a, b) => b.severity - a.severity)
+    .slice(0, 12)
+
+  const observationLines = topObservations
     .map((o, i) => {
       const lines = [`${i + 1}. [Severity ${o.severity}/5] ${o.title}`]
+      const loc   = trunc(o.locationDescription, 120)
+      const notes = trunc(o.notes)
       if (o.observationType) lines.push(`   Type: ${o.observationType}`)
-      if (o.locationDescription) lines.push(`   Location: ${o.locationDescription}`)
-      if (o.notes) lines.push(`   Notes: ${o.notes}`)
+      if (loc)   lines.push(`   Location: ${loc}`)
+      if (notes) lines.push(`   Notes: ${notes}`)
       return lines.join('\n')
     })
     .join('\n')
+
+  const omittedObs = observations.length - topObservations.length
+  const obsSuffix = omittedObs > 0
+    ? `\n(${omittedObs} additional lower-severity observation${omittedObs > 1 ? 's' : ''} omitted)`
+    : ''
 
   return `You are an expert FEMA Nonprofit Security Grant Program (NSGP) grant writer and physical security consultant. Your task is to generate specific, defensible project proposals for a real nonprofit site seeking NSGP funding.
 
@@ -81,13 +111,13 @@ SITE CONTEXT:
 - Address: ${address || 'Not specified'}
 
 DOCUMENTED THREATS:
-${threatLines || 'No threats documented yet.'}
+${threatLines || 'No threats documented yet.'}${threatSuffix}
 
 EXISTING SECURITY MEASURES:
 ${measureLines || 'No measures documented yet.'}
 
 FIELD OBSERVATIONS:
-${observationLines || 'No observations documented yet.'}
+${observationLines || 'No observations documented yet.'}${obsSuffix}
 
 ${existingProjectTitles.length > 0 ? `ALREADY-PLANNED PROJECTS (do not duplicate):\n${existingProjectTitles.map((t, i) => `${i + 1}. ${t}`).join('\n')}` : ''}
 
