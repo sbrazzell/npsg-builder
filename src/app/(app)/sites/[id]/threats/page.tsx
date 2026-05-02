@@ -41,13 +41,18 @@ const DOT_COLORS: Record<string, string> = {
 
 export default async function ThreatsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const facility = await prisma.site.findUnique({
-    where: { id },
-    include: {
-      organization: true,
-      threatAssessments: { orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }] },
-    },
-  })
+  const [facility, threatAssessments] = await Promise.all([
+    prisma.site.findUnique({
+      where: { id },
+      include: { organization: true },
+    }),
+    // Fetched separately so the encryption extension decrypts vulnerabilityNotes + incidentHistory.
+    // Nested includes run under the parent model, bypassing per-model decryption.
+    prisma.threatAssessment.findMany({
+      where: { siteId: id },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+    }),
+  ])
 
   if (!facility) notFound()
 
@@ -58,11 +63,11 @@ export default async function ThreatsPage({ params }: { params: Promise<{ id: st
   })
 
   // For risk matrix, sort by risk score descending (display only)
-  const sorted = [...facility.threatAssessments].sort(
+  const sorted = [...threatAssessments].sort(
     (a, b) => calculateRiskScore(b.likelihood, b.impact) - calculateRiskScore(a.likelihood, a.impact)
   )
   // For the list panel, use the sortOrder-based order
-  const listOrder = facility.threatAssessments
+  const listOrder = threatAssessments
 
   // Group threats by cell for positioning
   const cellGroups: Record<string, typeof sorted> = {}
